@@ -111,11 +111,17 @@ window.kittyConfirm = function(msg, onYes, onNo) {
       try {
         if (raw.sem_data)     { window._data        = JSON.parse(raw.sem_data);     }
         if (raw.sem_custom)   { window._customTasks  = JSON.parse(raw.sem_custom);   }
-        if (raw.recurring_tasks)    { window._recurringTasks    = JSON.parse(raw.recurring_tasks);    }
-        if (raw.completions)         { window._completions        = JSON.parse(raw.completions);         }
-        if (raw.rutina_templates)    { window._rutinaTemplates    = JSON.parse(raw.rutina_templates);    }
-        if (raw.rutina_asignaciones) { window._rutinaAsignaciones = JSON.parse(raw.rutina_asignaciones); }
-        if (raw.rutina_completions)  { window._rutinaCompletions  = JSON.parse(raw.rutina_completions);  }
+        // Only update semana cache from cloud if there are no pending local saves
+        if (!_saveTimers['recurring_tasks'] && !_saveTimers['completions']) {
+          if (raw.recurring_tasks) { window._recurringTasks = JSON.parse(raw.recurring_tasks); }
+          if (raw.completions)     { window._completions    = JSON.parse(raw.completions);     }
+        }
+        // Only update rutina cache from cloud if there are no pending local saves
+        if (!_saveTimers['rutina_templates'] && !_saveTimers['rutina_asignaciones'] && !_saveTimers['rutina_completions']) {
+          if (raw.rutina_templates)    { window._rutinaTemplates    = JSON.parse(raw.rutina_templates);    }
+          if (raw.rutina_asignaciones) { window._rutinaAsignaciones = JSON.parse(raw.rutina_asignaciones); }
+          if (raw.rutina_completions)  { window._rutinaCompletions  = JSON.parse(raw.rutina_completions);  }
+        }
         if (raw.desglose_items)      { window._desgloseItems      = JSON.parse(raw.desglose_items);      }
         if (raw.gratitud_data)       { window._gratitudData       = JSON.parse(raw.gratitud_data);       }
         if (raw.sueno_data)          { window._suenoData          = JSON.parse(raw.sueno_data);          }
@@ -7485,6 +7491,10 @@ function saveRutinas() {
   try { localStorage.setItem('rutina_templates',    JSON.stringify(rutinaTemplates));    } catch(e){}
   try { localStorage.setItem('rutina_asignaciones', JSON.stringify(rutinaAsignaciones)); } catch(e){}
   try { localStorage.setItem('rutina_completions',  JSON.stringify(rutinaCompletions));  } catch(e){}
+  // Keep window cache in sync so loadRutinas() doesn't overwrite local changes with stale cloud data
+  window._rutinaTemplates    = rutinaTemplates;
+  window._rutinaAsignaciones = rutinaAsignaciones;
+  window._rutinaCompletions  = rutinaCompletions;
   if (window.cloudSave) {
     window.cloudSave('rutina_templates',    rutinaTemplates);
     window.cloudSave('rutina_asignaciones', rutinaAsignaciones);
@@ -9483,12 +9493,33 @@ function openImgManager() {
   backdrop.appendChild(box);
   document.body.appendChild(backdrop);
 
+  // Always read the active theme so the modal shows theme-specific images
+  const activeTheme = localStorage.getItem('config_theme') || 'rosa';
+  const THEME_LABELS = {'rosa':'Rosa 🌸','candy':'Candy 🍬','formal':'Formal 🤍','tierra':'Tierra 🪨','cielo':'Cielo ☁️','bosque':'Bosque 🌿','noche':'Noche 🌙','lavanda':'Lavanda 💜'};
+  const themeLabel = THEME_LABELS[activeTheme] || activeTheme;
+
+  // Update modal title to show current theme
+  const titleEl = box.querySelector('.img-manager-title');
+  if (titleEl) titleEl.innerHTML = '🖼️ <em>' + themeLabel + '</em>';
+  const hintEl = box.querySelector('.img-manager-hint');
+  if (hintEl) hintEl.innerHTML = 'Pega URLs de imágenes para el tema <strong>' + themeLabel + '</strong>.<br>Aparecerán en las columnas laterales y rotarán automáticamente 🌸';
+
+  // Load theme-specific URLs from localStorage
+  var themeImgsRaw = localStorage.getItem('deco_imgs_theme_' + activeTheme);
+  var themeUrls;
+  if (themeImgsRaw !== null) {
+    try { themeUrls = JSON.parse(themeImgsRaw); } catch(e) { themeUrls = []; }
+  } else {
+    themeUrls = [...imgUrls];
+  }
+  var themeIntervalVal = parseInt(localStorage.getItem('deco_interval_theme_' + activeTheme) || localStorage.getItem('deco_interval') || '30');
+
   // Set interval selector
   const sel = box.querySelector('#imgIntervalSel');
-  sel.value = String(imgInterval);
+  sel.value = String(themeIntervalVal);
 
-  // Render URL list
-  let localUrls = [...imgUrls];
+  // Render URL list using theme-specific urls
+  let localUrls = [...themeUrls];
 
   function renderList() {
     const list = box.querySelector('#imgUrlList');
@@ -9538,8 +9569,16 @@ function openImgManager() {
   };
 
   box.querySelector('#imgSaveBtn').onclick = () => {
-    imgUrls     = localUrls.filter(u => u.trim() !== '');
-    imgInterval = parseInt(sel.value);
+    const filtered = localUrls.filter(u => u.trim() !== '');
+    const intervalVal = parseInt(sel.value);
+    // Save to theme-specific key
+    try { localStorage.setItem('deco_imgs_theme_' + activeTheme, JSON.stringify(filtered)); } catch(e){}
+    try { localStorage.setItem('deco_interval_theme_' + activeTheme, String(intervalVal)); } catch(e){}
+    // Also update the active deco_imgs so it renders immediately
+    imgUrls = filtered;
+    imgInterval = intervalVal;
+    window._decoImgs = filtered;
+    window._decoInterval = intervalVal;
     imgCurrentIdx = 0;
     saveImgs();
     renderImgSlots();
@@ -11580,7 +11619,7 @@ function hRenderDiaCompleto(fecha) {
       rutIds.forEach(function(rid, rIdx) {
         var tpl = hGetTemplate(rid);
         if (!tpl) return;
-        body.appendChild(hRenderRutinaCard(tpl, franja.id, dk, state, rIdx, rutIds, asigKey));
+        body.appendChild(hRenderRutinaCardFuente(tpl, franja.id, dk, state, rIdx, rutIds, asigKey));
       });
     }
 
@@ -11600,83 +11639,6 @@ function hRenderDiaCompleto(fecha) {
   });
 
   return wrap;
-}
-
-/* ── Tarjeta de rutina con pasos ── */
-function hRenderRutinaCard(tpl, franjaId, dk, state, rIdx, rutIds, asigKey) {
-  var pasos = hGetPasosDeBloque(tpl, franjaId);
-  var total = pasos.length;
-  var hechos = 0;
-  pasos.forEach(function(p, idx) {
-    if (state.comp[dk+'|'+franjaId+'|'+tpl.id+'|'+idx]) hechos++;
-  });
-  var completa = total > 0 && hechos === total;
-
-  var card = document.createElement('div');
-  card.className = 'hrutina-card';
-
-  // Header de la rutina
-  var hdr = document.createElement('div');
-  hdr.className = 'hrutina-card-hdr';
-  hdr.innerHTML =
-    '<span class="hrutina-emoji">'+(tpl.emoji||'📋')+'</span>'+
-    '<span class="hrutina-nombre">'+tpl.name+'</span>'+
-    (total > 0 ? '<span class="hrutina-prog'+(completa?' completa':'')+'">'+hechos+'/'+total+'</span>' : '')+
-    '<span class="hrutina-chevron">▼</span>';
-
-  // Botón quitar esta rutina del bloque
-  var quitBtn = document.createElement('button');
-  quitBtn.style.cssText='background:none;border:none;color:var(--muted2);font-size:.7rem;cursor:pointer;padding:0 .2rem;flex-shrink:0';
-  quitBtn.textContent='✕';
-  quitBtn.title='Quitar rutina de este bloque';
-  quitBtn.onclick = function(e) {
-    e.stopPropagation();
-    var s = hLoad();
-    var arr = s.asig[asigKey] || [];
-    arr.splice(rIdx, 1);
-    if (arr.length===0) delete s.asig[asigKey]; else s.asig[asigKey]=arr;
-    hSave(s.asig, s.comp);
-    hRender();
-  };
-  hdr.appendChild(quitBtn);
-
-  // Pasos
-  var pasosWrap = document.createElement('div');
-  pasosWrap.className = 'hrutina-pasos';
-
-  if (total === 0) {
-    var noP = document.createElement('div');
-    noP.style.cssText='font-size:.65rem;color:var(--muted2);font-style:italic;padding:.3rem';
-    noP.textContent='Esta rutina no tiene pasos en este bloque.';
-    pasosWrap.appendChild(noP);
-  } else {
-    pasos.forEach(function(paso, idx) {
-      var ck = dk+'|'+franjaId+'|'+tpl.id+'|'+idx;
-      var done = !!state.comp[ck];
-      var row = document.createElement('div');
-      row.className = 'hpaso' + (done?' hecho':'');
-      row.innerHTML =
-        '<div class="hpaso-check">'+(done?'✓':'')+'</div>'+
-        '<span class="hpaso-texto">'+pasoText(paso)+'</span>';
-      row.onclick = function() {
-        var s2 = hLoad();
-        s2.comp[ck] = !done;
-        if (!s2.comp[ck]) delete s2.comp[ck];
-        hSave(s2.asig, s2.comp);
-        hRender();
-      };
-      pasosWrap.appendChild(row);
-    });
-  }
-
-  hdr.onclick = function(e) {
-    if (e.target === quitBtn) return;
-    card.classList.toggle('abierta');
-  };
-
-  card.appendChild(hdr);
-  card.appendChild(pasosWrap);
-  return card;
 }
 
 /* ── Vista columna (3d / semana): mini resumen ── */
@@ -11751,18 +11713,177 @@ function hRenderDiaColumna(fecha) {
 }
 
 /* ── Modal: asignar rutina a bloque ── */
-function hOpenAsigModal(dk, franja) {
-  var templates = (typeof rutinaTemplates !== 'undefined') ? rutinaTemplates : [];
-  if (templates.length === 0) {
-    alert('Primero crea una rutina en la página 🌸 Rutinas.');
-    return;
+/* ── Helpers ── */
+// Busca una plantilla en TODAS las fuentes disponibles
+function hGetTemplate(id) {
+  // 1. Rutinas del día (page-rutinas)
+  if (typeof rutinaTemplates !== 'undefined') {
+    var r = rutinaTemplates.find(function(t){ return t.id===id; });
+    if (r) return r;
   }
+  // 2. Rutinas de ejercicio (page-salud)
+  if (typeof ejTemplates !== 'undefined') {
+    var r = ejTemplates.find(function(t){ return t.id===id; });
+    if (r) return Object.assign({}, r, { _fuente: 'ejercicio' });
+  }
+  // 3. Rutinas de belleza (page-selfcare)
+  if (typeof bellezaTemplates !== 'undefined') {
+    var r = bellezaTemplates.find(function(t){ return t.id===id; });
+    if (r) return Object.assign({}, r, { _fuente: 'belleza' });
+  }
+  // 4. Rutinas de orden (tab-2 de rutinas)
+  try {
+    var orTpls = JSON.parse(localStorage.getItem('yuki_or_templates')||'[]');
+    var r = orTpls.find(function(t){ return t.id===id; });
+    if (r) return Object.assign({}, r, { _fuente: 'orden' });
+  } catch(e){}
+  // 5. Rutinas propias del horario
+  try {
+    var hTpls = JSON.parse(localStorage.getItem('yuki_horario_propias')||'[]');
+    var r = hTpls.find(function(t){ return t.id===id; });
+    if (r) return Object.assign({}, r, { _fuente: 'propia' });
+  } catch(e){}
+  return null;
+}
+
+// Extrae los pasos de una plantilla según su fuente
+function hGetPasosDeBloque(tpl, franjaId) {
+  if (!tpl) return [];
+  var fuente = tpl._fuente || 'rutina';
+
+  if (fuente === 'ejercicio') {
+    // ejTemplates: pasos = [{texto, duracion}]
+    return (tpl.pasos||[]).filter(function(p){ return (p.texto||'').trim()!==''; });
+  }
+  if (fuente === 'belleza') {
+    // bellezaTemplates: pasos = [string]
+    return (tpl.pasos||[]).filter(function(p){ return (typeof p==='string'?p:p.texto||'').trim()!==''; });
+  }
+  if (fuente === 'orden') {
+    // OR templates: pasos = [{tipo:'paso'|'nota', texto}]
+    return (tpl.pasos||[]).filter(function(p){ return p.texto && p.texto.trim()!==''; });
+  }
+  if (fuente === 'propia') {
+    // Rutinas propias del horario: pasos = [{tipo:'paso'|'nota', texto}]
+    return (tpl.pasos||[]).filter(function(p){ return p.texto && p.texto.trim()!==''; });
+  }
+  // rutinaTemplates: pasos = { mad:[], m:[], med:[], t:[], at:[], n:[] }
+  if (tpl.pasos && typeof tpl.pasos === 'object' && !Array.isArray(tpl.pasos)) {
+    var p = tpl.pasos[franjaId];
+    if (!Array.isArray(p)) return [];
+    return p.filter(function(x){ return pasoText(x).trim()!==''; });
+  }
+  return [];
+}
+
+function pasoText(p) {
+  if (typeof p==='string') return p;
+  if (p && typeof p==='object') return p.nombre||p.name||p.texto||p.text||'';
+  return String(p??'');
+}
+
+// Construye la tarjeta de rutina para mostrar sus pasos según fuente
+function hRenderRutinaCardFuente(tpl, franjaId, dk, state, rIdx, rutIds, asigKey) {
+  var fuente = tpl._fuente || 'rutina';
+  var pasos = hGetPasosDeBloque(tpl, franjaId);
+  var total = 0; var hechos = 0;
+  pasos.forEach(function(p, idx) {
+    if (fuente==='orden' || fuente==='propia') { if (p.tipo==='nota') return; }
+    total++;
+    if (state.comp[dk+'|'+franjaId+'|'+tpl.id+'|'+idx]) hechos++;
+  });
+  var completa = total>0 && hechos===total;
+
+  var card = document.createElement('div');
+  card.className = 'hrutina-card';
+
+  var hdr = document.createElement('div');
+  hdr.className = 'hrutina-card-hdr';
+  var fuenteChip = {
+    ejercicio: '<span style="font-size:.52rem;background:#e8f5e9;color:#388e3c;border-radius:20px;padding:.1rem .4rem;font-weight:700;flex-shrink:0">💪 Ejercicio</span>',
+    belleza:   '<span style="font-size:.52rem;background:var(--rosa-soft);color:var(--rosa);border-radius:20px;padding:.1rem .4rem;font-weight:700;flex-shrink:0">✨ Belleza</span>',
+    orden:     '<span style="font-size:.52rem;background:var(--verde-soft);color:var(--verde);border-radius:20px;padding:.1rem .4rem;font-weight:700;flex-shrink:0">📋 Orden</span>',
+    propia:    '<span style="font-size:.52rem;background:var(--manana-bg);color:var(--manana-icon);border-radius:20px;padding:.1rem .4rem;font-weight:700;flex-shrink:0">🗓️ Horario</span>',
+    rutina:    ''
+  }[fuente] || '';
+
+  hdr.innerHTML =
+    '<span class="hrutina-emoji">'+(tpl.emoji||'📋')+'</span>'+
+    '<span class="hrutina-nombre">'+tpl.name+'</span>'+
+    fuenteChip+
+    (total>0?'<span class="hrutina-prog'+(completa?' completa':'')+'">'+hechos+'/'+total+'</span>':'')+
+    '<span class="hrutina-chevron">▼</span>';
+
+  var quitBtn = document.createElement('button');
+  quitBtn.style.cssText='background:none;border:none;color:var(--muted2);font-size:.7rem;cursor:pointer;padding:0 .2rem;flex-shrink:0';
+  quitBtn.textContent='✕';
+  quitBtn.title='Quitar rutina de este bloque';
+  quitBtn.onclick = function(e) {
+    e.stopPropagation();
+    var s = hLoad(); var arr = s.asig[asigKey]||[];
+    arr.splice(rIdx,1);
+    if (arr.length===0) delete s.asig[asigKey]; else s.asig[asigKey]=arr;
+    hSave(s.asig,s.comp); hRender();
+  };
+  hdr.appendChild(quitBtn);
+
+  var pasosWrap = document.createElement('div');
+  pasosWrap.className = 'hrutina-pasos';
+
+  if (pasos.length===0) {
+    var noP = document.createElement('div');
+    noP.style.cssText='font-size:.65rem;color:var(--muted2);font-style:italic;padding:.3rem';
+    noP.textContent = fuente==='rutina' ? 'Sin pasos en este bloque.' : 'Sin pasos registrados.';
+    pasosWrap.appendChild(noP);
+  } else {
+    pasos.forEach(function(p, idx) {
+      // Notas/separadores
+      if ((fuente==='orden'||fuente==='propia') && p.tipo==='nota') {
+        var nota = document.createElement('div');
+        nota.style.cssText='padding:.28rem .4rem;margin:.15rem 0;background:var(--rosa-soft);border-left:3px solid var(--rosa);border-radius:0 8px 8px 0;font-size:.65rem;font-weight:700;color:var(--rosa);font-style:italic';
+        nota.textContent = p.texto;
+        pasosWrap.appendChild(nota);
+        return;
+      }
+      var ck = dk+'|'+franjaId+'|'+tpl.id+'|'+idx;
+      var done = !!state.comp[ck];
+      var textoP = pasoText(p);
+      var duracion = (fuente==='ejercicio' && p.duracion) ? ' <span style="font-size:.6rem;color:var(--muted);font-weight:600">'+p.duracion+'</span>' : '';
+      var row = document.createElement('div');
+      row.className = 'hpaso'+(done?' hecho':'');
+      row.innerHTML = '<div class="hpaso-check">'+(done?'✓':'')+'</div><span class="hpaso-texto">'+textoP+duracion+'</span>';
+      row.onclick = function() {
+        var s2=hLoad(); s2.comp[ck]=!done;
+        if (!s2.comp[ck]) delete s2.comp[ck];
+        hSave(s2.asig,s2.comp); hRender();
+      };
+      pasosWrap.appendChild(row);
+    });
+  }
+
+  hdr.onclick = function(e) { if(e.target===quitBtn) return; card.classList.toggle('abierta'); };
+  card.appendChild(hdr);
+  card.appendChild(pasosWrap);
+  return card;
+}
+
+/* ── Modal asignar rutina — multi-fuente + crear desde cero ── */
+function hOpenAsigModal(dk, franja) {
   var old = document.getElementById('horarioAsigModal');
   if (old) old.remove();
 
-  var state = hLoad();
+  var state   = hLoad();
   var asigKey = dk+'|'+franja.id;
   var yaAsig  = state.asig[asigKey] || [];
+
+  // Recoger todas las fuentes
+  var fuentes = [
+    { id:'propia',    label:'🗓️ Creadas aquí',     color:'var(--manana-icon)',  items: (function(){ try{return JSON.parse(localStorage.getItem('yuki_horario_propias')||'[]');}catch(e){return[];} })() },
+    { id:'rutina',    label:'🌸 Rutinas del día',    color:'var(--rosa)',          items: (typeof rutinaTemplates!=='undefined'?rutinaTemplates:[]) },
+    { id:'orden',     label:'📋 Orden y rutinas',    color:'var(--verde)',         items: (function(){ try{return JSON.parse(localStorage.getItem('yuki_or_templates')||'[]');}catch(e){return[];} })() },
+    { id:'ejercicio', label:'💪 Ejercicio',           color:'#388e3c',              items: (typeof ejTemplates!=='undefined'?ejTemplates:[]) },
+    { id:'belleza',   label:'✨ Belleza',             color:'var(--rosa)',          items: (typeof bellezaTemplates!=='undefined'?bellezaTemplates:[]) },
+  ];
 
   var bd = document.createElement('div');
   bd.className = 'horario-modal-bd';
@@ -11770,36 +11891,57 @@ function hOpenAsigModal(dk, franja) {
 
   var modal = document.createElement('div');
   modal.className = 'horario-modal';
+
+  // Header
   modal.innerHTML =
     '<div class="horario-modal-title">'+franja.icon+' '+franja.name+'</div>'+
-    '<div class="horario-modal-sub">Elige una rutina para añadir a este bloque</div>';
-
-  templates.forEach(function(tpl) {
-    var yaEsta = yaAsig.indexOf(tpl.id) !== -1;
-    var pasos  = hGetPasosDeBloque(tpl, franja.id);
-    var opt = document.createElement('div');
-    opt.className = 'hrut-opcion';
-    opt.innerHTML =
-      '<span class="hrut-opcion-emoji">'+(tpl.emoji||'📋')+'</span>'+
-      '<div class="hrut-opcion-info">'+
-        '<div class="hrut-opcion-nombre">'+tpl.name+'</div>'+
-        '<div class="hrut-opcion-pasos">'+pasos.length+' paso'+(pasos.length!==1?'s':'')+' en este bloque</div>'+
+    '<div class="horario-modal-sub" style="margin-bottom:.7rem">Añade una rutina al bloque</div>'+
+    // Botón crear desde cero
+    '<button id="hCreateDesde0" style="width:100%;display:flex;align-items:center;gap:.7rem;padding:.6rem .8rem;background:var(--rosa-soft);border:1.5px dashed var(--rosa);border-radius:12px;margin-bottom:.9rem;cursor:pointer;font-family:var(--font-body)">'+
+      '<span style="font-size:1.3rem">＋</span>'+
+      '<div style="text-align:left">'+
+        '<div style="font-size:.78rem;font-weight:700;color:var(--rosa)">Crear rutina nueva</div>'+
+        '<div style="font-size:.62rem;color:var(--muted);font-weight:600">Con pasos, casillas y notas propios</div>'+
       '</div>'+
-      (yaEsta ? '<span class="hrut-opcion-ya">✓ Añadida</span>' : '');
+    '</button>';
 
-    if (!yaEsta) {
-      opt.onclick = function() {
-        var s = hLoad();
-        if (!s.asig[asigKey]) s.asig[asigKey] = [];
-        s.asig[asigKey].push(tpl.id);
-        hSave(s.asig, s.comp);
-        hRender();
-        bd.remove();
-      };
-    } else {
-      opt.style.opacity = '.6';
-    }
-    modal.appendChild(opt);
+  // Grupos por fuente
+  fuentes.forEach(function(fuente) {
+    if (fuente.items.length === 0) return;
+    var grp = document.createElement('div');
+    grp.style.cssText = 'margin-bottom:.8rem';
+    var lbl = document.createElement('div');
+    lbl.style.cssText = 'font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:.35rem;padding-left:.2rem';
+    lbl.textContent = fuente.label;
+    grp.appendChild(lbl);
+
+    fuente.items.forEach(function(tpl) {
+      var tplConFuente = Object.assign({}, tpl, { _fuente: fuente.id });
+      var yaEsta = yaAsig.indexOf(tpl.id) !== -1;
+      var pasos  = hGetPasosDeBloque(tplConFuente, franja.id);
+      var pasosCount = pasos.filter(function(p){ return !(p.tipo==='nota'); }).length;
+      var opt = document.createElement('div');
+      opt.className = 'hrut-opcion';
+      if (yaEsta) opt.style.opacity = '.5';
+      opt.innerHTML =
+        '<span class="hrut-opcion-emoji">'+(tpl.emoji||'📋')+'</span>'+
+        '<div class="hrut-opcion-info">'+
+          '<div class="hrut-opcion-nombre">'+tpl.name+'</div>'+
+          '<div class="hrut-opcion-pasos">'+pasosCount+' paso'+(pasosCount!==1?'s':'')+'</div>'+
+        '</div>'+
+        (yaEsta?'<span class="hrut-opcion-ya">✓ Añadida</span>':'');
+      if (!yaEsta) {
+        opt.onclick = function() {
+          var s = hLoad();
+          if (!s.asig[asigKey]) s.asig[asigKey] = [];
+          s.asig[asigKey].push(tpl.id);
+          hSave(s.asig, s.comp);
+          hRender(); bd.remove();
+        };
+      }
+      grp.appendChild(opt);
+    });
+    modal.appendChild(grp);
   });
 
   var cancelBtn = document.createElement('button');
@@ -11811,23 +11953,107 @@ function hOpenAsigModal(dk, franja) {
   bd.onclick = function(e) { if(e.target===bd) bd.remove(); };
   bd.appendChild(modal);
   document.body.appendChild(bd);
+
+  // Crear desde 0
+  modal.querySelector('#hCreateDesde0').onclick = function() {
+    bd.remove();
+    hOpenCrearRutinaModal(dk, franja, asigKey);
+  };
 }
 
-/* ── Helpers ── */
-function hGetTemplate(id) {
-  if (typeof rutinaTemplates === 'undefined') return null;
-  return rutinaTemplates.find(function(t){ return t.id===id; }) || null;
-}
-function hGetPasosDeBloque(tpl, franjaId) {
-  if (!tpl || !tpl.pasos) return [];
-  var p = tpl.pasos[franjaId];
-  if (!Array.isArray(p)) return [];
-  return p.filter(function(x){ return pasoText(x).trim()!==''; });
-}
-function pasoText(p) {
-  if (typeof p==='string') return p;
-  if (p && typeof p==='object') return p.nombre||p.name||p.texto||p.text||'';
-  return String(p??'');
+/* ── Modal: crear rutina propia del horario ── */
+function hOpenCrearRutinaModal(dk, franja, asigKey) {
+  var H_EMOJIS = ['📋','🌸','⭐','🔥','💫','🧘','📚','🎨','🎵','🌿','✨','💪','🎯','🧠','🛁','☕','🌙','🌅'];
+  var selEmoji = '📋';
+  var pasos = [];
+
+  var old = document.getElementById('hCrearModal'); if(old) old.remove();
+  var bd = document.createElement('div');
+  bd.className = 'horario-modal-bd'; bd.id = 'hCrearModal';
+  bd.style.zIndex = '3400';
+
+  var modal = document.createElement('div');
+  modal.className = 'horario-modal';
+  modal.style.maxHeight = '88vh';
+  modal.innerHTML =
+    '<div class="horario-modal-title">✨ Nueva rutina</div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:.28rem;margin-bottom:.8rem" id="hCrearEmojiRow">'+
+      H_EMOJIS.map(function(em){
+        return '<button style="font-size:1.2rem;background:var(--bg);border:2px solid transparent;border-radius:10px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer" data-em="'+em+'">'+em+'</button>';
+      }).join('')+
+    '</div>'+
+    '<div style="margin-bottom:.75rem">'+
+      '<label style="display:block;font-size:.62rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.28rem">Nombre</label>'+
+      '<input id="hCrearNombre" style="width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:.46rem .8rem;font-family:var(--font-body);font-size:.78rem;color:var(--text);outline:none;box-sizing:border-box" placeholder="ej. Rutina de activación">'+
+    '</div>'+
+    '<div style="margin-bottom:.5rem">'+
+      '<label style="display:block;font-size:.62rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.28rem">Pasos y notas</label>'+
+      '<div id="hCrearPasos" style="display:flex;flex-direction:column;gap:.3rem;margin-bottom:.4rem"></div>'+
+      '<div style="display:flex;gap:.4rem">'+
+        '<button id="hCrearAddPaso" style="flex:1;background:none;border:1.5px dashed var(--border);border-radius:10px;color:var(--muted);font-family:var(--font-body);font-size:.7rem;font-weight:700;padding:.38rem;cursor:pointer">＋ Paso</button>'+
+        '<button id="hCrearAddNota" style="flex:1;background:none;border:1.5px dashed var(--rosa);border-radius:10px;color:var(--rosa);font-family:var(--font-body);font-size:.7rem;font-weight:700;padding:.38rem;cursor:pointer">✎ Nota</button>'+
+      '</div>'+
+    '</div>'+
+    '<div style="display:flex;gap:.6rem;margin-top:.9rem">'+
+      '<button id="hCrearCancel" style="background:none;border:1.5px solid var(--border);border-radius:14px;color:var(--muted);font-family:var(--font-body);font-size:.78rem;font-weight:700;padding:.52rem 1rem;cursor:pointer">Cancelar</button>'+
+      '<button id="hCrearGuardar" style="flex:1;background:var(--rosa-soft);border:1.5px solid var(--rosa);color:var(--rosa);font-family:var(--font-body);font-size:.78rem;font-weight:700;padding:.52rem;border-radius:14px;cursor:pointer">💾 Guardar y añadir</button>'+
+    '</div>';
+
+  bd.appendChild(modal);
+  document.body.appendChild(bd);
+
+  // Emoji picker
+  modal.querySelectorAll('#hCrearEmojiRow button').forEach(function(btn){
+    btn.onclick = function(){
+      modal.querySelectorAll('#hCrearEmojiRow button').forEach(function(b){ b.style.borderColor='transparent'; b.style.background='var(--bg)'; });
+      btn.style.borderColor='var(--rosa)'; btn.style.background='var(--rosa-soft)';
+      selEmoji = btn.dataset.em;
+    };
+  });
+  // Marcar default
+  var def = modal.querySelector('#hCrearEmojiRow button[data-em="📋"]');
+  if(def){ def.style.borderColor='var(--rosa)'; def.style.background='var(--rosa-soft)'; }
+
+  function renderPasos() {
+    var cont = document.getElementById('hCrearPasos');
+    cont.innerHTML = '';
+    pasos.forEach(function(item, idx){
+      var row = document.createElement('div');
+      row.style.cssText='display:flex;gap:.35rem;align-items:center';
+      var isNota = item.tipo==='nota';
+      row.innerHTML =
+        '<button style="flex-shrink:0;background:'+(isNota?'var(--rosa-soft)':'var(--surface)')+';border:1.5px solid '+(isNota?'var(--rosa)':'var(--border)')+';border-radius:8px;padding:.28rem .5rem;font-size:.62rem;font-weight:700;color:'+(isNota?'var(--rosa)':'var(--muted)')+';cursor:pointer;white-space:nowrap" data-idx="'+idx+'">'+(isNota?'📝 nota':'☑ paso')+'</button>'+
+        '<input style="flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:.33rem .6rem;font-family:var(--font-body);font-size:.73rem;color:var(--text);outline:none" placeholder="'+(isNota?'— Sección —':'Nombre del paso...')+'" value="'+((item.texto||'').replace(/"/g,'&quot;'))+'" data-idx="'+idx+'">'+
+        '<button style="background:none;border:none;color:var(--muted2);font-size:.72rem;cursor:pointer" data-del="'+idx+'">✕</button>';
+      row.querySelector('[data-idx="'+idx+'"]:not(input)').onclick = function(){ pasos[idx].tipo=isNota?'paso':'nota'; renderPasos(); };
+      row.querySelector('input').oninput = function(e){ pasos[idx].texto=e.target.value; };
+      row.querySelector('[data-del="'+idx+'"]').onclick = function(){ pasos.splice(idx,1); renderPasos(); };
+      cont.appendChild(row);
+    });
+  }
+
+  modal.querySelector('#hCrearAddPaso').onclick = function(){ pasos.push({tipo:'paso',texto:''}); renderPasos(); setTimeout(function(){ var ins=modal.querySelectorAll('#hCrearPasos input'); if(ins.length) ins[ins.length-1].focus(); },40); };
+  modal.querySelector('#hCrearAddNota').onclick = function(){ pasos.push({tipo:'nota',texto:''}); renderPasos(); setTimeout(function(){ var ins=modal.querySelectorAll('#hCrearPasos input'); if(ins.length) ins[ins.length-1].focus(); },40); };
+  modal.querySelector('#hCrearCancel').onclick = function(){ bd.remove(); };
+  bd.onclick = function(e){ if(e.target===bd) bd.remove(); };
+  modal.querySelector('#hCrearNombre').focus();
+
+  modal.querySelector('#hCrearGuardar').onclick = function(){
+    var nombre = document.getElementById('hCrearNombre').value.trim();
+    if (!nombre){ document.getElementById('hCrearNombre').focus(); return; }
+    var tpls = [];
+    try { tpls = JSON.parse(localStorage.getItem('yuki_horario_propias')||'[]'); } catch(e){}
+    var id = 'hp_'+Date.now();
+    tpls.push({ id:id, emoji:selEmoji, name:nombre, pasos:pasos.filter(function(p){return p.texto.trim()!=='';}) });
+    localStorage.setItem('yuki_horario_propias', JSON.stringify(tpls));
+    if(window.cloudSave) window.cloudSave('yuki_horario_propias', tpls);
+    // Añadir al bloque directamente
+    var s = hLoad();
+    if (!s.asig[asigKey]) s.asig[asigKey]=[];
+    s.asig[asigKey].push(id);
+    hSave(s.asig,s.comp);
+    hRender(); bd.remove();
+  };
 }
 
 /* ── Fecha label ── */
@@ -13614,6 +13840,9 @@ function updateProgress() {
 function saveData() {
   try { localStorage.setItem('recurring_tasks', JSON.stringify(recurringTasks)); } catch(e){}
   try { localStorage.setItem('completions', JSON.stringify(completions)); } catch(e){}
+  // Keep window cache in sync so loadData() does not overwrite local changes with stale cloud data
+  window._recurringTasks = recurringTasks;
+  window._completions    = completions;
   if (window.cloudSave) {
     window.cloudSave('recurring_tasks', recurringTasks);
     window.cloudSave('completions', completions);
@@ -26428,7 +26657,7 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 
   <!-- Imágenes decorativas -->
-  <div class="config-block" id="configImgBlock" style="display:none">
+  <div class="config-block" id="configImgBlock">
     <div class="config-block-title">🖼️ Imágenes decorativas</div>
     <p style="font-size:.72rem;color:var(--muted);font-weight:600;margin-bottom:.7rem">Solo visibles en pantallas grandes (desktop)</p>
 
@@ -26893,7 +27122,7 @@ document.addEventListener('DOMContentLoaded', function() {
         renderThemeGrid();
         configLoadExperience();
         var imgBlock = document.getElementById('configImgBlock');
-        if (imgBlock) imgBlock.style.display = window.innerWidth >= 900 ? '' : 'none';
+        if (imgBlock) imgBlock.style.display = '';
         // Sync toggle state
         var hidden = localStorage.getItem('deco_hidden') === '1';
         var btn = document.getElementById('imgHideToggleBtn');
@@ -28027,6 +28256,10 @@ function openWelcomeModal() {
         });
       }, 400);
     }, 300);
+  };
+
+  document.getElementById('welcomeSkipBtn').onclick = function() {
+    closeWelcome();
   };
 
 } // fin openWelcomeModal
