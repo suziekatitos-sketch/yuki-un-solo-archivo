@@ -111,17 +111,11 @@ window.kittyConfirm = function(msg, onYes, onNo) {
       try {
         if (raw.sem_data)     { window._data        = JSON.parse(raw.sem_data);     }
         if (raw.sem_custom)   { window._customTasks  = JSON.parse(raw.sem_custom);   }
-        // Only update semana cache from cloud if there are no pending local saves
-        if (!_saveTimers['recurring_tasks'] && !_saveTimers['completions']) {
-          if (raw.recurring_tasks) { window._recurringTasks = JSON.parse(raw.recurring_tasks); }
-          if (raw.completions)     { window._completions    = JSON.parse(raw.completions);     }
-        }
-        // Only update rutina cache from cloud if there are no pending local saves
-        if (!_saveTimers['rutina_templates'] && !_saveTimers['rutina_asignaciones'] && !_saveTimers['rutina_completions']) {
-          if (raw.rutina_templates)    { window._rutinaTemplates    = JSON.parse(raw.rutina_templates);    }
-          if (raw.rutina_asignaciones) { window._rutinaAsignaciones = JSON.parse(raw.rutina_asignaciones); }
-          if (raw.rutina_completions)  { window._rutinaCompletions  = JSON.parse(raw.rutina_completions);  }
-        }
+        if (raw.recurring_tasks)    { window._recurringTasks    = JSON.parse(raw.recurring_tasks);    }
+        if (raw.completions)         { window._completions        = JSON.parse(raw.completions);         }
+        if (raw.rutina_templates)    { window._rutinaTemplates    = JSON.parse(raw.rutina_templates);    }
+        if (raw.rutina_asignaciones) { window._rutinaAsignaciones = JSON.parse(raw.rutina_asignaciones); }
+        if (raw.rutina_completions)  { window._rutinaCompletions  = JSON.parse(raw.rutina_completions);  }
         if (raw.desglose_items)      { window._desgloseItems      = JSON.parse(raw.desglose_items);      }
         if (raw.gratitud_data)       { window._gratitudData       = JSON.parse(raw.gratitud_data);       }
         if (raw.sueno_data)          { window._suenoData          = JSON.parse(raw.sueno_data);          }
@@ -163,7 +157,7 @@ window.kittyConfirm = function(msg, onYes, onNo) {
           'notas_intereses_data','notas_intereses_cats',
           'yuki_mascotas','yuki_plantas','yuki_biblioteca_playlists','yuki_biblioteca_dopamina','yuki_diario',
           'yuki_decisions','yuki_rutina_horarios',
-          'yuki_xp','yuki_xp_streak','yuki_xp_last_date',
+          'yuki_xp','yuki_xp_streak','yuki_xp_last_date','yuki_task_timers',
           'yuki_sakura','yuki_tienda_recompensas','yuki_compras_historial','yuki_study_minutes',
           'yuki_citas','yuki_citas_dias','yuki_citas_last','yuki_citas_idx'];
         mirrorKeys.forEach(function(k) {
@@ -5798,27 +5792,34 @@ function todayKey() { return dateKey(new Date()); }
     (function(){
       var total = 0, done = 0;
       try {
-        var completions = JSON.parse(localStorage.getItem('completions') || '{}');
-        var tasks = JSON.parse(localStorage.getItem('sem_data') || '[]');
+        var completions = window._completions || JSON.parse(localStorage.getItem('completions') || '{}');
+        var recurringTasks = window._recurringTasks || JSON.parse(localStorage.getItem('recurring_tasks') || '[]');
         var now = new Date();
-        var dow = ['dom','lun','mar','mie','jue','vie','sab'][now.getDay()];
-        // Also check window globals if available
-        if (window._completions) completions = window._completions;
+        var dow = now.getDay(); // 0=dom,1=lun,...6=sab
+        // Map JS day (0=dom) to planner day index (0=lun..6=dom)
+        var plannerDow = (dow + 6) % 7; // lun=0, mar=1, ... dom=6
 
-        // Count today's tasks
-        Object.keys(completions).forEach(function(k) {
-          if (k.includes(todayKey)) { total++; if(completions[k]) done++; }
-        });
-        // fallback: count from sem_data
-        if (total === 0 && window._data) {
-          window._data.forEach(function(slot) {
-            if (slot.day === dow) {
-              total++;
-              var cKey = slot.id + '_' + todayKey;
-              if (completions[cKey]) done++;
+        recurringTasks.forEach(function(task) {
+          var visible = false;
+          if (task.recurrence === 'daily') {
+            visible = true;
+          } else if (task.recurrence === 'weekly') {
+            visible = (task.days || []).indexOf(plannerDow) !== -1;
+          } else if (task.recurrence === 'once') {
+            visible = task.onceDate === todayKey;
+          } else if (task.recurrence === 'custom') {
+            if (task.createdAt) {
+              var created = new Date(task.createdAt);
+              var diff = Math.floor((now - created) / 86400000);
+              visible = diff >= 0 && diff % (task.interval || 1) === 0;
             }
-          });
-        }
+          }
+          if (visible) {
+            total++;
+            var cKey = task.id + '|' + todayKey;
+            if (completions[cKey]) done++;
+          }
+        });
       } catch(e){}
 
       var pct = total > 0 ? Math.round(done/total*100) : 0;
@@ -7491,10 +7492,6 @@ function saveRutinas() {
   try { localStorage.setItem('rutina_templates',    JSON.stringify(rutinaTemplates));    } catch(e){}
   try { localStorage.setItem('rutina_asignaciones', JSON.stringify(rutinaAsignaciones)); } catch(e){}
   try { localStorage.setItem('rutina_completions',  JSON.stringify(rutinaCompletions));  } catch(e){}
-  // Keep window cache in sync so loadRutinas() doesn't overwrite local changes with stale cloud data
-  window._rutinaTemplates    = rutinaTemplates;
-  window._rutinaAsignaciones = rutinaAsignaciones;
-  window._rutinaCompletions  = rutinaCompletions;
   if (window.cloudSave) {
     window.cloudSave('rutina_templates',    rutinaTemplates);
     window.cloudSave('rutina_asignaciones', rutinaAsignaciones);
@@ -7878,6 +7875,18 @@ function openRutinaSessionModal(templateId, dk) {
   closeBtn.className = 'modal-btn-cancel';
   closeBtn.textContent = 'Listo ✓';
   closeBtn.onclick = () => backdrop.remove();
+
+  // Timer button for rutina
+  const rutinaTimerBtn = document.createElement('button');
+  rutinaTimerBtn.className = 'modal-btn-cancel';
+  rutinaTimerBtn.style.cssText = 'display:flex;align-items:center;gap:.4rem;border-color:var(--border);';
+  rutinaTimerBtn.innerHTML = '⏱ Timer';
+  rutinaTimerBtn.onclick = () => {
+    backdrop.remove();
+    if (window.openTaskTimer) window.openTaskTimer('rutina_' + templateId, (tpl.emoji || '🌸') + ' ' + tpl.name);
+  };
+
+  btnsEl.appendChild(rutinaTimerBtn);
   btnsEl.appendChild(closeBtn);
 
   box.appendChild(changeBtn);
@@ -7995,11 +8004,21 @@ function openRutinaViewModal(templateId) {
 
   inner.innerHTML = '<div class="rutina-modal-title" style="padding-right:2.5rem">' + (tpl.emoji || '📸') + ' <em>' + tpl.name + '</em></div>'
     + '<div style="margin-top:.6rem">' + viewBodyHtml + '</div>'
-    + '<div class="modal-btns" style="margin-top:1rem"><button class="modal-btn-cancel" id="rutViewCloseBtn">Cerrar</button></div>';
+    + '<div class="modal-btns" style="margin-top:1rem">'
+    + '<button class="modal-btn-cancel" id="rutViewTimerBtn" style="display:flex;align-items:center;gap:.4rem">⏱ Timer</button>'
+    + '<button class="modal-btn-cancel" id="rutViewCloseBtn">Cerrar</button>'
+    + '</div>';
 
   box.appendChild(editBtn);
   box.appendChild(inner);
   inner.querySelector('#rutViewCloseBtn').onclick = () => backdrop.remove();
+  var rutViewTimerBtnEl = inner.querySelector('#rutViewTimerBtn');
+  if (rutViewTimerBtnEl) {
+    rutViewTimerBtnEl.onclick = function() {
+      backdrop.remove();
+      if (window.openTaskTimer) window.openTaskTimer('rutina_' + templateId, (tpl.emoji || '🌸') + ' ' + tpl.name);
+    };
+  }
 
   // Si es rutina de foto, conectar el click de la casilla
   if (tpl.tipo === 'foto' && tpl.foto) {
@@ -9493,33 +9512,12 @@ function openImgManager() {
   backdrop.appendChild(box);
   document.body.appendChild(backdrop);
 
-  // Always read the active theme so the modal shows theme-specific images
-  const activeTheme = localStorage.getItem('config_theme') || 'rosa';
-  const THEME_LABELS = {'rosa':'Rosa 🌸','candy':'Candy 🍬','formal':'Formal 🤍','tierra':'Tierra 🪨','cielo':'Cielo ☁️','bosque':'Bosque 🌿','noche':'Noche 🌙','lavanda':'Lavanda 💜'};
-  const themeLabel = THEME_LABELS[activeTheme] || activeTheme;
-
-  // Update modal title to show current theme
-  const titleEl = box.querySelector('.img-manager-title');
-  if (titleEl) titleEl.innerHTML = '🖼️ <em>' + themeLabel + '</em>';
-  const hintEl = box.querySelector('.img-manager-hint');
-  if (hintEl) hintEl.innerHTML = 'Pega URLs de imágenes para el tema <strong>' + themeLabel + '</strong>.<br>Aparecerán en las columnas laterales y rotarán automáticamente 🌸';
-
-  // Load theme-specific URLs from localStorage
-  var themeImgsRaw = localStorage.getItem('deco_imgs_theme_' + activeTheme);
-  var themeUrls;
-  if (themeImgsRaw !== null) {
-    try { themeUrls = JSON.parse(themeImgsRaw); } catch(e) { themeUrls = []; }
-  } else {
-    themeUrls = [...imgUrls];
-  }
-  var themeIntervalVal = parseInt(localStorage.getItem('deco_interval_theme_' + activeTheme) || localStorage.getItem('deco_interval') || '30');
-
   // Set interval selector
   const sel = box.querySelector('#imgIntervalSel');
-  sel.value = String(themeIntervalVal);
+  sel.value = String(imgInterval);
 
-  // Render URL list using theme-specific urls
-  let localUrls = [...themeUrls];
+  // Render URL list
+  let localUrls = [...imgUrls];
 
   function renderList() {
     const list = box.querySelector('#imgUrlList');
@@ -9569,16 +9567,8 @@ function openImgManager() {
   };
 
   box.querySelector('#imgSaveBtn').onclick = () => {
-    const filtered = localUrls.filter(u => u.trim() !== '');
-    const intervalVal = parseInt(sel.value);
-    // Save to theme-specific key
-    try { localStorage.setItem('deco_imgs_theme_' + activeTheme, JSON.stringify(filtered)); } catch(e){}
-    try { localStorage.setItem('deco_interval_theme_' + activeTheme, String(intervalVal)); } catch(e){}
-    // Also update the active deco_imgs so it renders immediately
-    imgUrls = filtered;
-    imgInterval = intervalVal;
-    window._decoImgs = filtered;
-    window._decoInterval = intervalVal;
+    imgUrls     = localUrls.filter(u => u.trim() !== '');
+    imgInterval = parseInt(sel.value);
     imgCurrentIdx = 0;
     saveImgs();
     renderImgSlots();
@@ -13774,11 +13764,15 @@ function renderCell(cell, slot, date) {
       completions[cKey] = !done;
       if (!done && window.starBurst) window.starBurst(chk);
       saveData(); updateProgress(); renderCell(cell, slot, date);
+      if (window.renderWidgets) window.renderWidgets();
     };
 
     const txt = document.createElement('span');
     txt.className = 'pill-text';
     txt.textContent = task.text;
+    txt.title = '⏱ Abrir temporizador';
+    txt.style.cursor = 'pointer';
+    txt.onclick = (e) => { e.stopPropagation(); openTaskTimer(task.id, task.text); };
 
     // Recurrence badge
     const badge = document.createElement('span');
@@ -13840,9 +13834,6 @@ function updateProgress() {
 function saveData() {
   try { localStorage.setItem('recurring_tasks', JSON.stringify(recurringTasks)); } catch(e){}
   try { localStorage.setItem('completions', JSON.stringify(completions)); } catch(e){}
-  // Keep window cache in sync so loadData() does not overwrite local changes with stale cloud data
-  window._recurringTasks = recurringTasks;
-  window._completions    = completions;
   if (window.cloudSave) {
     window.cloudSave('recurring_tasks', recurringTasks);
     window.cloudSave('completions', completions);
@@ -14256,6 +14247,611 @@ setInterval(function() {
     }
   }
 }, 500);
+
+// ============================================================
+//  🌸 TEMPORIZADOR TIIMO — por tarea con subtareas
+// ============================================================
+(function(){
+
+  // ── Lista de emojis de la usuaria
+  var TIMER_EMOJIS = ['🌸','🫧','🦄','🪷','🌱','⭐','💗','💌','🌷','🌿','🌠','🌊','🦓','🪶','🪽','🦭','🐋','🦪','🪸','🐚','🐝','🦋','🐛','🍓','🥬','🍐','🫖','🖌️','🖍️','🪡','🧵','🧶','🖼️','🎹','📸','🎷','🎺','🎸','🧼','🧹','🧴','🧸','👘','👒','🩻','🗒️','📁','📂','📖','🔖','📒','📝','📋','📍','🪞','🎮','👾','🩰','🏀','🎀','🧚🏻‍♀️'];
+
+  // ── Datos guardados en Firebase: { taskId: { subtareas: [{texto, minutos}] } }
+  var timerData = {};
+  var TIMER_KEY = 'yuki_task_timers';
+
+  function timerLoad() {
+    try { timerData = window._yukiTaskTimers || JSON.parse(localStorage.getItem(TIMER_KEY) || '{}'); } catch(e){ timerData = {}; }
+  }
+  function timerSave() {
+    try { localStorage.setItem(TIMER_KEY, JSON.stringify(timerData)); } catch(e){}
+    if (window.cloudSave) window.cloudSave(TIMER_KEY, timerData);
+  }
+
+  timerLoad();
+
+  // Patch cloud sync
+  var _origSyncTimer = window.syncFromCloud;
+  window.syncFromCloud = function() {
+    if (_origSyncTimer) _origSyncTimer();
+    if (window._yukiTaskTimers) { timerData = window._yukiTaskTimers; }
+  };
+
+  // ── Estado del timer en curso
+  var _timerActive = false;
+  var _timerInterval = null;
+  var _timerSecondsLeft = 0;
+  var _timerSecondsTotal = 0;
+  var _timerStepIdx = 0;
+  var _timerSteps = [];      // [{texto, minutos}]
+  var _timerTaskId = null;
+  var _timerTaskText = '';
+  var _timerEmojiIdx = 0;
+  var _timerEmojiInterval = null;
+
+  // ── Audio beep suave
+  function playTimerBeep() {
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [0, 0.35, 0.7].forEach(function(t, i) {
+        var osc = ctx.createOscillator();
+        var g   = ctx.createGain();
+        osc.connect(g); g.connect(ctx.destination);
+        osc.frequency.value = [523, 659, 784][i];
+        g.gain.setValueAtTime(0.25, ctx.currentTime + t);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.3);
+        osc.start(ctx.currentTime + t);
+        osc.stop(ctx.currentTime + t + 0.3);
+      });
+    } catch(e) {}
+  }
+
+  // ── Abrir modal del timer para una tarea
+  window.openTaskTimer = function(taskId, taskText) {
+    timerLoad();
+    _timerTaskId   = taskId;
+    _timerTaskText = taskText;
+
+    // Parar cualquier timer activo
+    stopCurrentTimer();
+
+    // Obtener subtareas guardadas (o vacías)
+    var saved = timerData[taskId] || { subtareas: [] };
+    var subtareas = saved.subtareas.length ? saved.subtareas : [];
+
+    renderTimerModal(subtareas, false);
+  };
+
+  // ── Render modal completo
+  function renderTimerModal(subtareas, running) {
+    var old = document.getElementById('yukiTimerModal');
+    if (old) old.remove();
+
+    var emoji = TIMER_EMOJIS[Math.floor(Math.random() * TIMER_EMOJIS.length)];
+    var totalMin = subtareas.reduce(function(s,t){ return s + (parseInt(t.minutos)||0); }, 0);
+
+    // Inject styles once
+    if (!document.getElementById('yukiTimerStyles')) {
+      var st = document.createElement('style');
+      st.id = 'yukiTimerStyles';
+      st.textContent = [
+        // Backdrop
+        '#yukiTimerModal{position:fixed;inset:0;z-index:11000;background:rgba(26,14,30,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:1rem;overflow-y:auto}',
+        // Box
+        '.ykt-box{background:var(--card);border:1.5px solid var(--border);border-radius:28px;padding:1.8rem 1.6rem 1.6rem;max-width:400px;width:100%;box-shadow:0 24px 80px rgba(0,0,0,.35);position:relative;animation:fadeUp .3s ease both}',
+        // Header
+        '.ykt-header{display:flex;align-items:center;gap:.7rem;margin-bottom:1.2rem}',
+        '.ykt-close{position:absolute;top:1rem;right:1rem;background:none;border:1.5px solid var(--border);border-radius:50%;width:28px;height:28px;font-size:.8rem;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:all .15s}',
+        '.ykt-close:hover{border-color:var(--rosa);color:var(--rosa)}',
+        '.ykt-task-name{font-family:var(--font-title);font-style:italic;font-size:1rem;color:var(--text);flex:1;line-height:1.3}',
+        // Emoji center
+        '.ykt-emoji-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;margin:.2rem 0 1.2rem}',
+        '.ykt-emoji-big{font-size:3.5rem;line-height:1;transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .2s;display:block;text-align:center}',
+        '.ykt-emoji-big.pop{transform:scale(1.3);opacity:.8}',
+        '.ykt-total-time{font-size:.72rem;font-weight:700;color:var(--muted);margin-top:.4rem;letter-spacing:.04em}',
+        // Timer ring
+        '.ykt-ring-wrap{display:flex;justify-content:center;margin-bottom:1.1rem;position:relative}',
+        '.ykt-ring-svg{width:160px;height:160px;transform:rotate(-90deg)}',
+        '.ykt-ring-bg{fill:none;stroke:var(--border);stroke-width:8}',
+        '.ykt-ring-arc{fill:none;stroke:var(--rosa);stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .5s ease,stroke .4s}',
+        '.ykt-ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}',
+        '.ykt-ring-time{font-size:1.7rem;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;line-height:1}',
+        '.ykt-ring-step{font-size:.65rem;font-weight:700;color:var(--muted);margin-top:.25rem;text-align:center;max-width:100px;line-height:1.3}',
+        // Steps list
+        '.ykt-steps{display:flex;flex-direction:column;gap:.4rem;margin-bottom:1rem;max-height:220px;overflow-y:auto}',
+        '.ykt-step-row{display:flex;align-items:center;gap:.5rem;padding:.45rem .65rem;border-radius:12px;border:1.5px solid var(--border);background:var(--bg);transition:all .2s;position:relative}',
+        '.ykt-step-row.active-step{border-color:var(--rosa);background:var(--rosa-soft);box-shadow:0 2px 12px rgba(244,167,192,.2)}',
+        '.ykt-step-row.done-step{opacity:.5;text-decoration:line-through;background:var(--surface)}',
+        '.ykt-step-num{min-width:20px;height:20px;border-radius:50%;background:var(--surface);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:800;color:var(--muted);flex-shrink:0}',
+        '.ykt-step-row.active-step .ykt-step-num{background:var(--rosa);border-color:var(--rosa);color:#fff}',
+        '.ykt-step-row.done-step .ykt-step-num{background:var(--verde);border-color:var(--verde);color:#fff}',
+        '.ykt-step-text{flex:1;font-size:.8rem;font-weight:700;color:var(--text);line-height:1.3}',
+        '.ykt-step-min{font-size:.68rem;font-weight:700;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:.1rem .5rem;white-space:nowrap;flex-shrink:0}',
+        '.ykt-step-row.active-step .ykt-step-min{background:var(--rosa);color:#fff;border-color:var(--rosa)}',
+        // Controls
+        '.ykt-controls{display:flex;gap:.5rem;justify-content:center;margin-bottom:1rem}',
+        '.ykt-ctrl-btn{padding:.55rem 1.4rem;border-radius:20px;border:none;font-family:var(--font-body);font-size:.82rem;font-weight:800;cursor:pointer;transition:all .18s}',
+        '.ykt-play-btn{background:var(--rosa);color:#fff;min-width:110px}',
+        '.ykt-play-btn:hover{opacity:.88;transform:scale(1.04)}',
+        '.ykt-skip-btn{background:var(--surface);border:1.5px solid var(--border);color:var(--muted)}',
+        '.ykt-skip-btn:hover{border-color:var(--rosa);color:var(--rosa)}',
+        '.ykt-reset-btn{background:none;border:1.5px solid var(--border);color:var(--muted2);padding:.4rem .8rem;border-radius:20px;font-family:var(--font-body);font-size:.72rem;font-weight:700;cursor:pointer;transition:all .15s}',
+        '.ykt-reset-btn:hover{border-color:var(--muted);color:var(--muted)}',
+        // Edit area
+        '.ykt-edit-area{border-top:1.5px solid var(--border);padding-top:1rem;margin-top:.2rem}',
+        '.ykt-edit-title{font-size:.65rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.6rem}',
+        '.ykt-edit-row{display:flex;gap:.4rem;align-items:center;margin-bottom:.35rem}',
+        '.ykt-edit-text{flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:.35rem .65rem;font-family:var(--font-body);font-size:.78rem;font-weight:600;color:var(--text);outline:none}',
+        '.ykt-edit-text:focus{border-color:var(--rosa)}',
+        '.ykt-edit-min{width:68px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:.35rem .5rem;font-family:var(--font-body);font-size:.78rem;font-weight:600;color:var(--text);outline:none;text-align:center}',
+        '.ykt-edit-min:focus{border-color:var(--rosa)}',
+        '.ykt-edit-del{background:none;border:none;color:var(--muted2);cursor:pointer;font-size:.85rem;padding:0 2px;flex-shrink:0}',
+        '.ykt-edit-del:hover{color:var(--rosa)}',
+        '.ykt-add-step-btn{background:none;border:1.5px dashed var(--border);border-radius:10px;padding:.3rem .8rem;font-family:var(--font-body);font-size:.72rem;font-weight:700;color:var(--muted);cursor:pointer;transition:all .2s;width:100%;margin-top:.2rem}',
+        '.ykt-add-step-btn:hover{border-color:var(--rosa);color:var(--rosa)}',
+        '.ykt-save-btn{width:100%;margin-top:.6rem;padding:.5rem;border-radius:12px;border:none;background:var(--rosa);color:#fff;font-family:var(--font-body);font-size:.82rem;font-weight:800;cursor:pointer;transition:all .2s}',
+        '.ykt-save-btn:hover{opacity:.88}',
+        // Alert overlay for step done
+        '.ykt-alert{position:fixed;inset:0;z-index:12000;background:rgba(244,167,192,.18);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center}',
+        '.ykt-alert-box{background:var(--card);border:2px solid var(--rosa);border-radius:24px;padding:2rem 2.2rem;max-width:320px;width:90%;text-align:center;box-shadow:0 16px 60px rgba(244,167,192,.4);animation:fadeUp .25s ease both}',
+        '.ykt-alert-emoji{font-size:3rem;display:block;margin-bottom:.6rem}',
+        '.ykt-alert-title{font-family:var(--font-title);font-style:italic;font-size:1.1rem;color:var(--text);margin-bottom:.4rem}',
+        '.ykt-alert-sub{font-size:.8rem;color:var(--muted);font-weight:600;margin-bottom:1.1rem;line-height:1.5}',
+        '.ykt-alert-next-btn{padding:.6rem 1.6rem;border-radius:20px;border:none;background:var(--rosa);color:#fff;font-family:var(--font-body);font-size:.85rem;font-weight:800;cursor:pointer;transition:all .2s}',
+        '.ykt-alert-next-btn:hover{opacity:.88;transform:scale(1.04)}',
+        // Progress bar strip
+        '.ykt-prog-strip{display:flex;gap:3px;margin-bottom:1rem}',
+        '.ykt-prog-seg{flex:1;height:5px;border-radius:3px;background:var(--border);transition:background .3s}',
+        '.ykt-prog-seg.seg-done{background:var(--rosa)}',
+        '.ykt-prog-seg.seg-active{background:linear-gradient(90deg,var(--rosa),var(--verde))}',
+      ].join('');
+      document.head.appendChild(st);
+    }
+
+    var m = document.createElement('div');
+    m.id = 'yukiTimerModal';
+    m.onclick = function(e){ if(e.target === m) closeTimerModal(); };
+
+    var box = document.createElement('div');
+    box.className = 'ykt-box';
+
+    // Close btn
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'ykt-close';
+    closeBtn.textContent = '✕';
+    closeBtn.onclick = closeTimerModal;
+
+    // Header
+    var hdr = document.createElement('div');
+    hdr.className = 'ykt-header';
+    hdr.innerHTML = '<div class="ykt-task-name">⏱ ' + escHtmlTimer(_timerTaskText) + '</div>';
+
+    // Emoji center
+    var emojiWrap = document.createElement('div');
+    emojiWrap.className = 'ykt-emoji-wrap';
+    var emojiBig = document.createElement('span');
+    emojiBig.className = 'ykt-emoji-big';
+    emojiBig.id = 'yktEmojiBig';
+    emojiBig.textContent = emoji;
+    var totalLbl = document.createElement('div');
+    totalLbl.className = 'ykt-total-time';
+    totalLbl.id = 'yktTotalLbl';
+    totalLbl.textContent = totalMin > 0 ? 'Total: ' + totalMin + ' min' : 'Sin tiempo asignado';
+    emojiWrap.appendChild(emojiBig);
+    emojiWrap.appendChild(totalLbl);
+
+    // Progress strip
+    var strip = document.createElement('div');
+    strip.className = 'ykt-prog-strip';
+    strip.id = 'yktProgStrip';
+
+    // Timer ring
+    var ringWrap = document.createElement('div');
+    ringWrap.className = 'ykt-ring-wrap';
+    var CIRC = 2 * Math.PI * 66; // r=66
+    ringWrap.innerHTML =
+      '<svg class="ykt-ring-svg" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">' +
+        '<circle class="ykt-ring-bg" cx="80" cy="80" r="66" stroke-dasharray="' + CIRC + '" />' +
+        '<circle class="ykt-ring-arc" id="yktArc" cx="80" cy="80" r="66" stroke-dasharray="' + CIRC + '" stroke-dashoffset="' + CIRC + '" />' +
+      '</svg>' +
+      '<div class="ykt-ring-center">' +
+        '<span class="ykt-ring-time" id="yktRingTime">--:--</span>' +
+        '<span class="ykt-ring-step" id="yktRingStep">lista</span>' +
+      '</div>';
+
+    // Steps list (view mode)
+    var stepsList = document.createElement('div');
+    stepsList.className = 'ykt-steps';
+    stepsList.id = 'yktStepsList';
+
+    // Controls
+    var controls = document.createElement('div');
+    controls.className = 'ykt-controls';
+    var playBtn = document.createElement('button');
+    playBtn.className = 'ykt-ctrl-btn ykt-play-btn';
+    playBtn.id = 'yktPlayBtn';
+    playBtn.textContent = subtareas.length > 0 ? '▶ Iniciar' : '▶ Iniciar';
+    playBtn.onclick = toggleTimerPlay;
+    var skipBtn = document.createElement('button');
+    skipBtn.className = 'ykt-ctrl-btn ykt-skip-btn';
+    skipBtn.textContent = 'Siguiente →';
+    skipBtn.onclick = skipTimerStep;
+    var resetBtn = document.createElement('button');
+    resetBtn.className = 'ykt-reset-btn';
+    resetBtn.textContent = '↺ Reiniciar';
+    resetBtn.onclick = resetTimer;
+    controls.appendChild(playBtn);
+    if (subtareas.length > 1) controls.appendChild(skipBtn);
+    controls.appendChild(resetBtn);
+
+    // Edit area
+    var editArea = document.createElement('div');
+    editArea.className = 'ykt-edit-area';
+    editArea.id = 'yktEditArea';
+    editArea.innerHTML = '<div class="ykt-edit-title">✏️ Subtareas y tiempos</div>';
+
+    // Subtareas edit rows
+    var editList = document.createElement('div');
+    editList.id = 'yktEditList';
+
+    function renderEditRows(subs) {
+      editList.innerHTML = '';
+      subs.forEach(function(sub, i) {
+        var row = document.createElement('div');
+        row.className = 'ykt-edit-row';
+        var numLbl = document.createElement('span');
+        numLbl.style.cssText = 'font-size:.65rem;font-weight:800;color:var(--muted2);min-width:14px';
+        numLbl.textContent = (i+1)+'.';
+        var txt = document.createElement('input');
+        txt.className = 'ykt-edit-text';
+        txt.placeholder = 'Ej: Calentamiento...';
+        txt.value = sub.texto || '';
+        txt.oninput = function(){ subs[i].texto = this.value; updateTotalLbl(subs); };
+        var min = document.createElement('input');
+        min.className = 'ykt-edit-min';
+        min.type = 'number';
+        min.min = '1'; min.max = '999';
+        min.placeholder = 'min';
+        min.value = sub.minutos || '';
+        min.oninput = function(){ subs[i].minutos = parseInt(this.value)||0; updateTotalLbl(subs); };
+        var del = document.createElement('button');
+        del.className = 'ykt-edit-del';
+        del.textContent = '✕';
+        del.onclick = function(){ subs.splice(i,1); renderEditRows(subs); updateTotalLbl(subs); };
+        row.appendChild(numLbl);
+        row.appendChild(txt);
+        row.appendChild(min);
+        row.appendChild(del);
+        editList.appendChild(row);
+      });
+    }
+
+    function updateTotalLbl(subs) {
+      var t = subs.reduce(function(s,sub){ return s+(parseInt(sub.minutos)||0); }, 0);
+      var lbl = document.getElementById('yktTotalLbl');
+      if (lbl) lbl.textContent = t > 0 ? 'Total: ' + t + ' min' : 'Sin tiempo asignado';
+    }
+
+    renderEditRows(subtareas);
+
+    var addBtn = document.createElement('button');
+    addBtn.className = 'ykt-add-step-btn';
+    addBtn.textContent = '＋ Añadir subtarea';
+    addBtn.onclick = function(){
+      subtareas.push({ texto:'', minutos:'' });
+      renderEditRows(subtareas);
+      var inputs = editList.querySelectorAll('.ykt-edit-text');
+      if (inputs.length) inputs[inputs.length-1].focus();
+    };
+
+    var saveBtn = document.createElement('button');
+    saveBtn.className = 'ykt-save-btn';
+    saveBtn.textContent = '💾 Guardar subtareas';
+    saveBtn.onclick = function() {
+      var clean = subtareas.filter(function(s){ return (s.texto||'').trim() !== ''; }).map(function(s){
+        return { texto: s.texto.trim(), minutos: parseInt(s.minutos)||5 };
+      });
+      timerData[_timerTaskId] = { subtareas: clean };
+      timerSave();
+      // Re-render modal with saved data, not running
+      stopCurrentTimer();
+      renderTimerModal(clean, false);
+    };
+
+    editArea.appendChild(editList);
+    editArea.appendChild(addBtn);
+    editArea.appendChild(saveBtn);
+
+    // Assemble
+    box.appendChild(closeBtn);
+    box.appendChild(hdr);
+    box.appendChild(emojiWrap);
+    box.appendChild(strip);
+    box.appendChild(ringWrap);
+    box.appendChild(stepsList);
+    box.appendChild(controls);
+    box.appendChild(editArea);
+    m.appendChild(box);
+    document.body.appendChild(m);
+
+    // Render step pills & progress
+    renderStepsView(subtareas, -1);
+    renderProgStrip(subtareas, -1);
+
+    // Init timer state
+    _timerSteps  = subtareas.slice();
+    _timerStepIdx = 0;
+    updateRingDisplay(0, 0, 0, subtareas[0] ? subtareas[0].texto : 'Sin subtareas');
+
+    // Animate emoji randomly
+    startEmojiCycle();
+  }
+
+  // ── Render step pills (view)
+  function renderStepsView(steps, activeIdx) {
+    var list = document.getElementById('yktStepsList');
+    if (!list) return;
+    list.innerHTML = '';
+    if (!steps.length) {
+      list.innerHTML = '<div style="font-size:.78rem;color:var(--muted2);text-align:center;padding:.5rem 0">Sin subtareas — añade algunas abajo ✨</div>';
+      return;
+    }
+    steps.forEach(function(s, i) {
+      var row = document.createElement('div');
+      var cls = 'ykt-step-row';
+      if (i < activeIdx)  cls += ' done-step';
+      if (i === activeIdx) cls += ' active-step';
+      row.className = cls;
+      var num = document.createElement('div');
+      num.className = 'ykt-step-num';
+      num.textContent = i < activeIdx ? '✓' : (i+1);
+      var txt = document.createElement('div');
+      txt.className = 'ykt-step-text';
+      txt.textContent = s.texto || 'Subtarea ' + (i+1);
+      var min = document.createElement('div');
+      min.className = 'ykt-step-min';
+      min.textContent = (s.minutos||5) + ' min';
+      row.appendChild(num);
+      row.appendChild(txt);
+      row.appendChild(min);
+      list.appendChild(row);
+    });
+  }
+
+  // ── Progress strip segments
+  function renderProgStrip(steps, activeIdx) {
+    var strip = document.getElementById('yktProgStrip');
+    if (!strip || !steps.length) return;
+    strip.innerHTML = '';
+    steps.forEach(function(s, i) {
+      var seg = document.createElement('div');
+      seg.className = 'ykt-prog-seg' +
+        (i < activeIdx  ? ' seg-done' :
+         i === activeIdx ? ' seg-active' : '');
+      // Proportional width by time
+      var totalMin = steps.reduce(function(a,b){ return a+(b.minutos||5); }, 0);
+      seg.style.flex = String(s.minutos||5);
+      strip.appendChild(seg);
+    });
+  }
+
+  // ── Ring display update
+  function updateRingDisplay(secondsLeft, secondsTotal, stepIdx, stepText) {
+    var arc  = document.getElementById('yktArc');
+    var disp = document.getElementById('yktRingTime');
+    var stLbl = document.getElementById('yktRingStep');
+    var CIRC = 2 * Math.PI * 66;
+    if (!arc || !disp) return;
+
+    var pct = secondsTotal > 0 ? secondsLeft / secondsTotal : 0;
+    arc.style.strokeDashoffset = CIRC * (1 - pct);
+    // Color by time left
+    arc.style.stroke = pct > 0.5 ? 'var(--rosa)' : pct > 0.25 ? '#e8903a' : '#e84040';
+
+    var m = Math.floor(secondsLeft / 60);
+    var s = secondsLeft % 60;
+    disp.textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+    if (stLbl) stLbl.textContent = stepText || '';
+  }
+
+  // ── Emoji cycle animation
+  function startEmojiCycle() {
+    stopEmojiCycle();
+    _timerEmojiIdx = Math.floor(Math.random() * TIMER_EMOJIS.length);
+    _timerEmojiInterval = setInterval(function() {
+      var el = document.getElementById('yktEmojiBig');
+      if (!el) { stopEmojiCycle(); return; }
+      el.classList.add('pop');
+      setTimeout(function(){
+        _timerEmojiIdx = (_timerEmojiIdx + 1) % TIMER_EMOJIS.length;
+        var el2 = document.getElementById('yktEmojiBig');
+        if (el2) { el2.textContent = TIMER_EMOJIS[_timerEmojiIdx]; el2.classList.remove('pop'); }
+      }, 180);
+    }, 4000);
+  }
+  function stopEmojiCycle() {
+    if (_timerEmojiInterval) { clearInterval(_timerEmojiInterval); _timerEmojiInterval = null; }
+  }
+
+  // ── Toggle play/pause
+  window.toggleTimerPlay = function() {
+    if (_timerActive) {
+      // Pause
+      stopCurrentTimer();
+      var btn = document.getElementById('yktPlayBtn');
+      if (btn) btn.textContent = '▶ Continuar';
+    } else {
+      startTimerStep(_timerStepIdx);
+    }
+  };
+
+  // ── Start a specific step
+  function startTimerStep(stepIdx) {
+    if (!_timerSteps.length) return;
+    if (stepIdx >= _timerSteps.length) {
+      // All done!
+      onAllStepsDone();
+      return;
+    }
+    stopCurrentTimer();
+    _timerStepIdx = stepIdx;
+    var step = _timerSteps[stepIdx];
+    var secs = (parseInt(step.minutos) || 5) * 60;
+    _timerSecondsLeft  = secs;
+    _timerSecondsTotal = secs;
+    _timerActive = true;
+
+    renderStepsView(_timerSteps, stepIdx);
+    renderProgStrip(_timerSteps, stepIdx);
+    updateRingDisplay(secs, secs, stepIdx, step.texto || 'Paso ' + (stepIdx+1));
+
+    var btn = document.getElementById('yktPlayBtn');
+    if (btn) btn.textContent = '⏸ Pausar';
+
+    _timerInterval = setInterval(function() {
+      _timerSecondsLeft--;
+      updateRingDisplay(_timerSecondsLeft, _timerSecondsTotal, stepIdx, step.texto || 'Paso ' + (stepIdx+1));
+
+      if (_timerSecondsLeft <= 0) {
+        stopCurrentTimer();
+        playTimerBeep();
+        if (window.starBurst) {
+          var ring = document.getElementById('yktArc');
+          if (ring) window.starBurst(ring);
+        }
+        // Show alert: wait for user to advance
+        showStepDoneAlert(stepIdx);
+      }
+    }, 1000);
+  }
+
+  // ── Show alert when step is done
+  function showStepDoneAlert(stepIdx) {
+    var step = _timerSteps[stepIdx];
+    var isLast = stepIdx >= _timerSteps.length - 1;
+    var alertEmoji = TIMER_EMOJIS[Math.floor(Math.random() * TIMER_EMOJIS.length)];
+
+    var ov = document.createElement('div');
+    ov.className = 'ykt-alert';
+    ov.id = 'yktAlert';
+
+    var msgs = [
+      '¡Muy bien! 💗', '¡Excelente! ✨', '¡Lo lograste! 🌸',
+      '¡Increíble! ⭐', '¡Orgullosa de ti! 🦋', '¡Sigue así! 🌷'
+    ];
+    var msg = msgs[Math.floor(Math.random()*msgs.length)];
+
+    ov.innerHTML =
+      '<div class="ykt-alert-box">' +
+        '<span class="ykt-alert-emoji">' + alertEmoji + '</span>' +
+        '<div class="ykt-alert-title">' + msg + '</div>' +
+        '<div class="ykt-alert-sub">' +
+          (isLast
+            ? '¡Completaste todas las subtareas! 🎉'
+            : '"' + escHtmlTimer(step.texto || 'Paso ' + (stepIdx+1)) + '" completado.<br>¿Lista para el siguiente paso?') +
+        '</div>' +
+        '<button class="ykt-alert-next-btn" id="yktAlertNextBtn">' +
+          (isLast ? '🎊 ¡Finalizar!' : 'Siguiente paso →') +
+        '</button>' +
+      '</div>';
+
+    document.body.appendChild(ov);
+
+    document.getElementById('yktAlertNextBtn').onclick = function() {
+      ov.remove();
+      if (isLast) {
+        onAllStepsDone();
+      } else {
+        startTimerStep(stepIdx + 1);
+      }
+    };
+  }
+
+  // ── All steps done
+  function onAllStepsDone() {
+    stopCurrentTimer();
+    renderStepsView(_timerSteps, _timerSteps.length); // all done
+    renderProgStrip(_timerSteps, _timerSteps.length);
+    updateRingDisplay(0, _timerSecondsTotal, _timerSteps.length, '¡Tarea completada! 🎉');
+
+    var arc = document.getElementById('yktArc');
+    if (arc) { arc.style.stroke = '#6dbf7a'; arc.style.strokeDashoffset = '0'; }
+
+    var btn = document.getElementById('yktPlayBtn');
+    if (btn) { btn.textContent = '✓ Completada'; btn.style.background = '#6dbf7a'; btn.disabled = true; }
+
+    if (window.starBurst) {
+      var ringWrap = document.getElementById('yktArc');
+      if (ringWrap) window.starBurst(ringWrap);
+    }
+    if (window.yukiAddXP) window.yukiAddXP(15, 'Timer completado');
+    if (window.yukiAddSakura) window.yukiAddSakura(3);
+
+    try { new Notification('🌸 Yuki — ¡Tarea completada!', { body: _timerTaskText + ' ¡Lo lograste! 💗' }); } catch(e){}
+  }
+
+  // ── Skip to next step
+  window.skipTimerStep = function() {
+    stopCurrentTimer();
+    startTimerStep(_timerStepIdx + 1);
+  };
+
+  // ── Reset timer
+  window.resetTimer = function() {
+    stopCurrentTimer();
+    _timerStepIdx = 0;
+    if (_timerSteps.length) {
+      var secs = (parseInt(_timerSteps[0].minutos)||5) * 60;
+      updateRingDisplay(secs, secs, 0, _timerSteps[0].texto || 'Paso 1');
+    } else {
+      updateRingDisplay(0, 0, 0, 'lista');
+    }
+    renderStepsView(_timerSteps, -1);
+    renderProgStrip(_timerSteps, -1);
+    var btn = document.getElementById('yktPlayBtn');
+    if (btn) { btn.textContent = '▶ Iniciar'; btn.style.background = ''; btn.disabled = false; }
+    var arc = document.getElementById('yktArc');
+    if (arc) { arc.style.stroke = 'var(--rosa)'; }
+  };
+
+  // ── Stop internal timer
+  function stopCurrentTimer() {
+    _timerActive = false;
+    if (_timerInterval) { clearInterval(_timerInterval); _timerInterval = null; }
+  }
+
+  // ── Close modal
+  function closeTimerModal() {
+    stopCurrentTimer();
+    stopEmojiCycle();
+    var m = document.getElementById('yukiTimerModal');
+    if (m) m.remove();
+    var a = document.getElementById('yktAlert');
+    if (a) a.remove();
+  }
+
+  // ── Tiny HTML escape
+  function escHtmlTimer(str) {
+    return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Hook cloud sync for timer data
+  var _prevSync = window.syncFromCloud;
+  window.syncFromCloud = function() {
+    if (_prevSync) _prevSync();
+    if (window._yukiTaskTimers) { timerData = window._yukiTaskTimers; }
+  };
+
+  // ── Load timer data into cloud sync mirror
+  (function patchMirrorKeys() {
+    // Already patched via mirrorKeys in Firebase module — we just need to
+    // make sure cloud data is loaded on init
+    document.addEventListener('firebase-ready', function() {
+      setTimeout(timerLoad, 400);
+    });
+  })();
+
+})();
 
 // ============================================================
 //  SECCIÓN 4 · CHECK-IN SENSORIAL
@@ -21268,8 +21864,21 @@ function renderHabitos() {
       }
     };
 
+    // Timer button
+    var timerBtn = document.createElement('button');
+    timerBtn.title = 'Abrir temporizador';
+    timerBtn.style.cssText = 'background:none;border:1.5px solid var(--border);border-radius:50%;width:28px;height:28px;font-size:.78rem;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;margin-left:auto';
+    timerBtn.textContent = '⏱';
+    timerBtn.onclick = function(e) {
+      e.stopPropagation();
+      if (window.openTaskTimer) window.openTaskTimer('habito_' + h.id, (h.emoji ? h.emoji + ' ' : '') + h.nombre);
+    };
+    timerBtn.onmouseenter = function(){ this.style.borderColor='var(--rosa)'; this.style.color='var(--rosa)'; };
+    timerBtn.onmouseleave = function(){ this.style.borderColor='var(--border)'; this.style.color='var(--muted)'; };
+
     top.appendChild(chk);
     top.appendChild(info);
+    top.appendChild(timerBtn);
     card.appendChild(top);
     card.appendChild(bar);
     card.appendChild(del);
@@ -26657,7 +27266,7 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 
   <!-- Imágenes decorativas -->
-  <div class="config-block" id="configImgBlock">
+  <div class="config-block" id="configImgBlock" style="display:none">
     <div class="config-block-title">🖼️ Imágenes decorativas</div>
     <p style="font-size:.72rem;color:var(--muted);font-weight:600;margin-bottom:.7rem">Solo visibles en pantallas grandes (desktop)</p>
 
@@ -27122,7 +27731,7 @@ document.addEventListener('DOMContentLoaded', function() {
         renderThemeGrid();
         configLoadExperience();
         var imgBlock = document.getElementById('configImgBlock');
-        if (imgBlock) imgBlock.style.display = '';
+        if (imgBlock) imgBlock.style.display = window.innerWidth >= 900 ? '' : 'none';
         // Sync toggle state
         var hidden = localStorage.getItem('deco_hidden') === '1';
         var btn = document.getElementById('imgHideToggleBtn');
@@ -28256,10 +28865,6 @@ function openWelcomeModal() {
         });
       }, 400);
     }, 300);
-  };
-
-  document.getElementById('welcomeSkipBtn').onclick = function() {
-    closeWelcome();
   };
 
 } // fin openWelcomeModal
