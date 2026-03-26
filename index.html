@@ -175,7 +175,13 @@ window.kittyConfirm = function(msg, onYes, onNo) {
         if (raw.fortalezas)   { window._fortalezas   = JSON.parse(raw.fortalezas);   }
         if (raw.cambio_state) { window._cambioState  = JSON.parse(raw.cambio_state); }
         if (raw.cambio_custom){ window._cambioCustom = JSON.parse(raw.cambio_custom);}
-        if (typeof window.syncFromCloud === 'function') window.syncFromCloud();
+        // Solo llamar syncFromCloud si el snapshot NO lo causamos nosotros
+        if (_ownWriteCount > 0) {
+          _ownWriteCount = Math.max(0, _ownWriteCount - 1);
+          console.log('cloudSave: snapshot propio ignorado, datos locales intactos');
+        } else {
+          if (typeof window.syncFromCloud === 'function') window.syncFromCloud();
+        }
       } catch(e) { console.warn("sync parse error", e); }
     });
   }
@@ -186,6 +192,9 @@ window.kittyConfirm = function(msg, onYes, onNo) {
   // Debounce para cloudSave
   var _saveTimers = {};
   
+  // Flag: cuántos writes propios están en vuelo (para ignorar el snapshot que disparan)
+  var _ownWriteCount = 0;
+
   window.cloudSave = async function(key, value) {
     // Guardar siempre en la cola local por si falla
     _pendingSaves[key] = value;
@@ -200,9 +209,13 @@ window.kittyConfirm = function(msg, onYes, onNo) {
     // Debounce: esperar 500ms antes de guardar
     _saveTimers[key] = setTimeout(async () => {
       try {
+        _ownWriteCount++; // marcar: este snapshot lo causamos nosotros
         await setDoc(getUserDoc(currentUID), { [key]: JSON.stringify(_pendingSaves[key]) }, { merge: true });
         delete _pendingSaves[key]; // éxito, quitar de cola
-      } catch(e) { console.warn("cloudSave error", e); }
+      } catch(e) {
+        console.warn("cloudSave error", e);
+        _ownWriteCount = Math.max(0, _ownWriteCount - 1);
+      }
       delete _saveTimers[key];
     }, 500);
   };
@@ -6884,9 +6897,7 @@ function todayKey() { return dateKey(new Date()); }
     gap: 5px;
   }
 
-  .rutina-franja.franja-mad { border-top: 3px solid var(--mad-border); background: #23233a; }
-  .franja-mad .rutina-paso { color: #c8c8e8; }
-  .franja-mad .rutina-franja-empty { color: #6868a0; }
+  .rutina-franja.franja-mad { border-top: 3px solid var(--mad-border); }
   .rutina-franja.franja-m   { border-top: 3px solid var(--manana-border); }
   .rutina-franja.franja-med { border-top: 3px solid var(--med-border); }
   .rutina-franja.franja-t   { border-top: 3px solid var(--tarde-border); }
@@ -6899,7 +6910,32 @@ function todayKey() { return dateKey(new Date()); }
     letter-spacing: .08em;
     text-transform: uppercase;
     margin-bottom: .3rem;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .25rem;
+    user-select: none;
   }
+  .franja-title-alias {
+    font-size: .6rem;
+    font-weight: 700;
+    opacity: .75;
+    letter-spacing: .04em;
+    text-transform: none;
+    font-style: italic;
+  }
+  .franja-title-alias-empty {
+    font-size: .55rem;
+    font-weight: 600;
+    opacity: .35;
+    font-style: normal;
+    letter-spacing: .04em;
+    text-transform: none;
+    border: 1px dashed currentColor;
+    border-radius: 20px;
+    padding: .05rem .35rem;
+  }
+  .rutina-franja-title:hover .franja-title-alias-empty { opacity: .65; }
   .franja-mad .rutina-franja-title { color: var(--mad-icon); }
   .franja-m   .rutina-franja-title { color: var(--manana-icon); }
   .franja-med .rutina-franja-title { color: var(--med-icon); }
@@ -7580,7 +7616,28 @@ function renderRutinas() {
 
     const title = document.createElement('div');
     title.className = 'rutina-franja-title';
-    title.innerHTML = franja.icon + ' ' + franja.name + (franja.shuffleable ? ' <span style="font-size:.5rem;opacity:.5;font-weight:600;letter-spacing:0">🔀</span>' : '');
+    const _franjaAliases = JSON.parse(localStorage.getItem('rutina_franja_aliases') || '{}');
+    const _alias = _franjaAliases[franja.id] || '';
+    const _shuffleBadge = franja.shuffleable ? ' <span style="font-size:.5rem;opacity:.5;font-weight:600;letter-spacing:0">🔀</span>' : '';
+    title.innerHTML =
+      '<span class="franja-title-base">' + franja.icon + ' ' + franja.name + _shuffleBadge + '</span>' +
+      (_alias
+        ? '<span class="franja-title-alias">· ' + _alias + '</span>'
+        : '<span class="franja-title-alias franja-title-alias-empty">＋ nombre</span>');
+    title.title = 'Toca para editar el nombre de este bloque';
+    title.style.cursor = 'pointer';
+    title.onclick = function(e) {
+      e.stopPropagation();
+      const aliases2 = JSON.parse(localStorage.getItem('rutina_franja_aliases') || '{}');
+      const cur = aliases2[franja.id] || '';
+      const val = prompt('Nombre para el bloque ' + franja.name + ' (deja vacío para quitar):', cur);
+      if (val === null) return; // cancelado
+      if (val.trim() === '') { delete aliases2[franja.id]; }
+      else { aliases2[franja.id] = val.trim(); }
+      localStorage.setItem('rutina_franja_aliases', JSON.stringify(aliases2));
+      if (window.cloudSave) window.cloudSave('rutina_franja_aliases', aliases2);
+      renderRutinas();
+    };
     col.appendChild(title);
 
     const pasos = assigned ? (assigned.pasos[franja.id] || []) : [];
@@ -8440,6 +8497,581 @@ if (document.readyState !== 'loading') {
   loadRutinas();
   renderRutinas();
 }
+</script>
+
+<style>
+/* ══ ORDEN Y RUTINAS ══ */
+.or-tpl-card {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: .55rem;
+  overflow: hidden;
+  transition: box-shadow .18s;
+}
+.or-tpl-card:hover { box-shadow: 0 2px 12px rgba(212,116,138,.09); }
+
+.or-tpl-hdr {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .65rem .9rem;
+  cursor: pointer;
+  user-select: none;
+}
+.or-tpl-emoji { font-size: 1.3rem; flex-shrink: 0; }
+.or-tpl-info  { flex: 1; min-width: 0; }
+.or-tpl-nombre {
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.or-tpl-meta {
+  font-size: .62rem;
+  color: var(--muted);
+  font-weight: 600;
+  margin-top: 1px;
+}
+.or-tpl-prog {
+  font-size: .62rem;
+  font-weight: 700;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.or-tpl-prog.completa { color: var(--verde); }
+.or-tpl-chevron {
+  font-size: .6rem;
+  color: var(--muted2);
+  transition: transform .2s;
+  flex-shrink: 0;
+}
+.or-tpl-card.or-open .or-tpl-chevron { transform: rotate(180deg); }
+
+.or-tpl-body {
+  display: none;
+  padding: .3rem .9rem .8rem;
+  border-top: 1.5px solid var(--border);
+}
+.or-tpl-card.or-open .or-tpl-body { display: block; }
+
+.or-tpl-actions {
+  display: flex;
+  gap: .4rem;
+  flex-shrink: 0;
+}
+.or-tpl-btn {
+  background: none;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  width: 28px; height: 28px;
+  font-size: .75rem;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
+  flex-shrink: 0;
+}
+.or-tpl-btn:hover { background: var(--surface); }
+
+/* Pasos + notas */
+.or-paso-row {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  padding: .38rem .3rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background .12s;
+}
+.or-paso-row:hover { background: var(--surface); }
+.or-paso-row.or-done { opacity: .45; }
+
+.or-paso-check {
+  width: 17px; height: 17px;
+  min-width: 17px;
+  border-radius: 50%;
+  border: 2px solid var(--muted2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .55rem;
+  margin-top: 1px;
+  flex-shrink: 0;
+  transition: all .15s;
+}
+.or-paso-row.or-done .or-paso-check {
+  background: var(--verde);
+  border-color: var(--verde);
+  color: #fff;
+}
+.or-paso-texto {
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.35;
+}
+.or-paso-row.or-done .or-paso-texto { text-decoration: line-through; }
+
+/* Nota/separador de bloque */
+.or-nota-row {
+  padding: .3rem .4rem;
+  margin: .2rem 0;
+  background: var(--rosa-soft);
+  border-left: 3px solid var(--rosa);
+  border-radius: 0 8px 8px 0;
+  font-size: .68rem;
+  font-weight: 700;
+  color: var(--rosa);
+  font-style: italic;
+}
+
+/* Hoy hice – tarjetas de sesión completada */
+.or-session-card {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: .45rem;
+  overflow: hidden;
+}
+.or-session-hdr {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .55rem .9rem;
+  cursor: pointer;
+}
+.or-session-badge {
+  font-size: .58rem;
+  font-weight: 700;
+  border-radius: 20px;
+  padding: .12rem .5rem;
+  background: var(--verde-soft);
+  color: var(--verde);
+  flex-shrink: 0;
+}
+.or-session-del {
+  background: none; border: none;
+  color: var(--muted2); font-size: .7rem;
+  cursor: pointer; margin-left: auto; padding: 0 .2rem;
+}
+
+/* Modal de crear/editar rutina */
+.or-modal-bd {
+  position: fixed; inset: 0;
+  background: rgba(80,30,50,.38);
+  z-index: 3300;
+  display: flex; align-items: flex-end; justify-content: center;
+}
+@media (min-width:520px) { .or-modal-bd { align-items: center; } }
+.or-modal {
+  background: var(--card);
+  border-radius: 24px 24px 0 0;
+  padding: 1.5rem 1.3rem 2rem;
+  width: 100%; max-width: 460px;
+  animation: fadeUp .22s ease both;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+@media (min-width:520px) { .or-modal { border-radius: 24px; } }
+.or-modal-title {
+  font-family: var(--font-title);
+  font-style: italic;
+  font-size: 1.1rem;
+  color: var(--text);
+  margin-bottom: 1rem;
+}
+.or-field { margin-bottom: .8rem; }
+.or-label {
+  display: block; font-size: .65rem; font-weight: 700;
+  color: var(--muted); letter-spacing: .07em;
+  text-transform: uppercase; margin-bottom: .28rem;
+}
+.or-input {
+  width: 100%; background: var(--bg);
+  border: 1.5px solid var(--border); border-radius: 12px;
+  padding: .48rem .8rem; font-family: var(--font-body);
+  font-size: .78rem; color: var(--text); outline: none;
+  box-sizing: border-box; transition: border-color .2s;
+}
+.or-input:focus { border-color: var(--rosa); }
+.or-emoji-row {
+  display: flex; flex-wrap: wrap; gap: .28rem; margin-bottom: .8rem;
+}
+.or-emoji-btn {
+  font-size: 1.25rem; background: var(--bg);
+  border: 2px solid transparent; border-radius: 10px;
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: border-color .15s, background .15s;
+}
+.or-emoji-btn.sel { border-color: var(--rosa); background: var(--rosa-soft); }
+
+/* Editor de pasos en el modal */
+.or-steps-editor { display: flex; flex-direction: column; gap: .35rem; margin-bottom: .5rem; }
+.or-step-row {
+  display: flex; gap: .4rem; align-items: center;
+}
+.or-step-type {
+  flex-shrink: 0;
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: 8px; padding: .3rem .5rem;
+  font-size: .65rem; font-weight: 700; color: var(--muted);
+  cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.or-step-type.is-note { background: var(--rosa-soft); border-color: var(--rosa); color: var(--rosa); }
+.or-step-input {
+  flex: 1; background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: 10px; padding: .35rem .6rem;
+  font-family: var(--font-body); font-size: .75rem; color: var(--text);
+  outline: none; transition: border-color .2s;
+}
+.or-step-input:focus { border-color: var(--rosa); }
+.or-step-del {
+  background: none; border: none; color: var(--muted2);
+  font-size: .75rem; cursor: pointer; padding: 0 .2rem;
+  flex-shrink: 0;
+}
+.or-step-del:hover { color: var(--rosa); }
+.or-add-step-row {
+  display: flex; gap: .4rem; margin-top: .3rem;
+}
+.or-add-step-btn {
+  flex: 1; background: none;
+  border: 1.5px dashed var(--border); border-radius: 10px;
+  color: var(--muted); font-family: var(--font-body);
+  font-size: .7rem; font-weight: 700; padding: .38rem;
+  cursor: pointer; transition: border-color .18s, color .18s;
+}
+.or-add-step-btn:hover { border-color: var(--rosa); color: var(--rosa); }
+.or-add-note-btn {
+  flex: 1; background: none;
+  border: 1.5px dashed var(--rosa); border-radius: 10px;
+  color: var(--rosa); font-family: var(--font-body);
+  font-size: .7rem; font-weight: 700; padding: .38rem;
+  cursor: pointer; transition: background .18s;
+}
+.or-add-note-btn:hover { background: var(--rosa-soft); }
+
+.or-modal-btns { display: flex; gap: .6rem; margin-top: 1rem; }
+.or-modal-save {
+  flex: 1; background: var(--rosa-soft);
+  border: 1.5px solid var(--rosa); color: var(--rosa);
+  font-family: var(--font-body); font-size: .78rem; font-weight: 700;
+  padding: .52rem; border-radius: 14px; cursor: pointer;
+  transition: background .18s;
+}
+.or-modal-save:hover { background: var(--rosa); color: #fff; }
+.or-modal-cancel {
+  background: none; border: 1.5px solid var(--border); color: var(--muted);
+  font-family: var(--font-body); font-size: .78rem; font-weight: 700;
+  padding: .52rem 1.1rem; border-radius: 14px; cursor: pointer;
+}
+.or-modal-del {
+  background: none; border: 1.5px solid #f0b0b0; color: #c05050;
+  font-family: var(--font-body); font-size: .78rem; font-weight: 700;
+  padding: .52rem .9rem; border-radius: 14px; cursor: pointer;
+}
+</style>
+
+<script>
+/* ══════════════════════════════════════════
+   ORDEN Y RUTINAS — tab 1 de Rutinas
+══════════════════════════════════════════ */
+(function(){
+  var OR_TPL_KEY  = 'yuki_or_templates';   // [{id, emoji, nombre, pasos:[{tipo:'paso'|'nota', texto}]}]
+  var OR_COMP_KEY = 'yuki_or_completions'; // {'tplId|YYYY-MM-DD|pasoIdx': true}
+  var OR_SES_KEY  = 'yuki_or_sesiones';    // {'YYYY-MM-DD': [{tplId, ts, hechos, total}]}
+
+  var OR_EMOJIS = ['📚','📖','✏️','🔬','💻','🎨','🎵','🏃','🧘','🌿','📝','🗂️','🔭','🧪','💡','🎯','⭐','🌸','📌','🧠'];
+  var orDateOffset = 0;
+
+  function orDKey(offset) {
+    var d = new Date(); d.setDate(d.getDate() + (offset||0)); d.setHours(0,0,0,0);
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+  function orLoadTpl()  { try { return JSON.parse(localStorage.getItem(OR_TPL_KEY)||'[]'); } catch(e){return[];} }
+  function orLoadComp() { try { return JSON.parse(localStorage.getItem(OR_COMP_KEY)||'{}'); } catch(e){return{};} }
+  function orLoadSes()  { try { return JSON.parse(localStorage.getItem(OR_SES_KEY)||'{}'); } catch(e){return{};} }
+
+  function orSaveTpl(d)  { localStorage.setItem(OR_TPL_KEY,  JSON.stringify(d)); if(window.cloudSave) window.cloudSave(OR_TPL_KEY, d); }
+  function orSaveComp(d) { localStorage.setItem(OR_COMP_KEY, JSON.stringify(d)); if(window.cloudSave) window.cloudSave(OR_COMP_KEY, d); }
+  function orSaveSes(d)  { localStorage.setItem(OR_SES_KEY,  JSON.stringify(d)); if(window.cloudSave) window.cloudSave(OR_SES_KEY, d); }
+
+  /* ── Render lista de plantillas ── */
+  function orRenderTemplates() {
+    var list = document.getElementById('orTemplatesList');
+    if (!list) return;
+    var tpls = orLoadTpl();
+    var comp = orLoadComp();
+    var dk   = orDKey(orDateOffset);
+
+    if (tpls.length === 0) {
+      list.innerHTML = '<div style="font-size:.72rem;color:var(--muted2);text-align:center;padding:.8rem;font-style:italic">Aún no tienes rutinas. ¡Crea una! ✨</div>';
+      return;
+    }
+
+    list.innerHTML = '';
+    tpls.forEach(function(tpl) {
+      var pasos = (tpl.pasos||[]).filter(function(p){ return p.tipo==='paso'; });
+      var total = pasos.length;
+      var hechos = 0;
+      pasos.forEach(function(p, rawIdx) {
+        // rawIdx en pasos[] completos
+        var realIdx = (tpl.pasos||[]).indexOf(p);
+        if (comp[tpl.id+'|'+dk+'|'+realIdx]) hechos++;
+      });
+      var completa = total>0 && hechos===total;
+
+      var card = document.createElement('div');
+      card.className = 'or-tpl-card';
+
+      var hdr = document.createElement('div');
+      hdr.className = 'or-tpl-hdr';
+      hdr.innerHTML =
+        '<span class="or-tpl-emoji">'+(tpl.emoji||'📋')+'</span>'+
+        '<div class="or-tpl-info">'+
+          '<div class="or-tpl-nombre">'+tpl.nombre+'</div>'+
+          '<div class="or-tpl-meta">'+total+' paso'+(total!==1?'s':'')+(tpl.pasos||[]).filter(function(p){return p.tipo==='nota';}).length > 0 ? ' · '+(tpl.pasos||[]).filter(function(p){return p.tipo==='nota';}).length+' nota'+(((tpl.pasos||[]).filter(function(p){return p.tipo==='nota';}).length)!==1?'s':'') : '' +'</div>'+
+        '</div>'+
+        (total>0?'<span class="or-tpl-prog'+(completa?' completa':'')+'">'+hechos+'/'+total+'</span>':'')+
+        '<div class="or-tpl-actions">'+
+          '<button class="or-tpl-btn or-edit-btn" title="Editar">✏️</button>'+
+          '<button class="or-tpl-btn or-do-btn" title="Registrar como hecha hoy">✓ Hoy</button>'+
+        '</div>'+
+        '<span class="or-tpl-chevron">▼</span>';
+
+      // Cuerpo de pasos
+      var body = document.createElement('div');
+      body.className = 'or-tpl-body';
+      orBuildPasosList(body, tpl, dk, comp);
+
+      hdr.querySelector('.or-edit-btn').onclick = function(e){ e.stopPropagation(); orOpenModal(tpl.id); };
+      hdr.querySelector('.or-do-btn').onclick   = function(e){ e.stopPropagation(); orRegistrarSesion(tpl, dk); };
+      hdr.onclick = function(e) {
+        if (e.target.closest('.or-tpl-actions')) return;
+        card.classList.toggle('or-open');
+      };
+
+      card.appendChild(hdr);
+      card.appendChild(body);
+      list.appendChild(card);
+    });
+  }
+
+  function orBuildPasosList(container, tpl, dk, comp) {
+    (tpl.pasos||[]).forEach(function(item, idx) {
+      if (item.tipo === 'nota') {
+        var nota = document.createElement('div');
+        nota.className = 'or-nota-row';
+        nota.textContent = item.texto || '';
+        container.appendChild(nota);
+        return;
+      }
+      var done = !!comp[tpl.id+'|'+dk+'|'+idx];
+      var row = document.createElement('div');
+      row.className = 'or-paso-row'+(done?' or-done':'');
+      row.innerHTML =
+        '<div class="or-paso-check">'+(done?'✓':'')+'</div>'+
+        '<span class="or-paso-texto">'+item.texto+'</span>';
+      row.onclick = function() {
+        var c2 = orLoadComp();
+        var ck = tpl.id+'|'+dk+'|'+idx;
+        c2[ck] = !done;
+        if (!c2[ck]) delete c2[ck];
+        orSaveComp(c2);
+        orRender();
+      };
+      container.appendChild(row);
+    });
+  }
+
+  /* ── Registrar sesión del día ── */
+  function orRegistrarSesion(tpl, dk) {
+    var ses = orLoadSes();
+    if (!ses[dk]) ses[dk] = [];
+    // Evitar duplicado en el mismo día
+    if (ses[dk].find(function(s){ return s.tplId===tpl.id; })) {
+      // Ya registrada: actualizar
+      ses[dk] = ses[dk].filter(function(s){ return s.tplId!==tpl.id; });
+    }
+    var comp = orLoadComp();
+    var pasos = (tpl.pasos||[]).filter(function(p){ return p.tipo==='paso'; });
+    var total = pasos.length;
+    var hechos = 0;
+    (tpl.pasos||[]).forEach(function(p, idx) {
+      if (p.tipo==='paso' && comp[tpl.id+'|'+dk+'|'+idx]) hechos++;
+    });
+    ses[dk].push({ tplId: tpl.id, ts: Date.now(), hechos: hechos, total: total });
+    orSaveSes(ses);
+    orRenderDay();
+  }
+
+  /* ── Render "Hoy hice" ── */
+  function orRenderDay() {
+    var list  = document.getElementById('orDayList');
+    var empty = document.getElementById('orDayEmpty');
+    if (!list) return;
+    var dk  = orDKey(orDateOffset);
+    var ses = orLoadSes();
+    var tpls = orLoadTpl();
+    var hoy = ses[dk] || [];
+
+    if (hoy.length === 0) {
+      list.innerHTML = '';
+      if (empty) empty.style.display = '';
+      return;
+    }
+    if (empty) empty.style.display = 'none';
+    list.innerHTML = '';
+
+    hoy.forEach(function(s, si) {
+      var tpl = tpls.find(function(t){ return t.id===s.tplId; });
+      if (!tpl) return;
+      var card = document.createElement('div');
+      card.className = 'or-session-card';
+      var completa = s.total>0 && s.hechos===s.total;
+      card.innerHTML =
+        '<div class="or-session-hdr">'+
+          '<span style="font-size:1.2rem">'+(tpl.emoji||'📋')+'</span>'+
+          '<span style="font-size:.78rem;font-weight:700;color:var(--text);flex:1">'+tpl.nombre+'</span>'+
+          (s.total>0?'<span class="or-session-badge">'+(completa?'✅ completa':s.hechos+'/'+s.total)+'</span>':'')+
+          '<button class="or-session-del" title="Quitar de hoy">✕</button>'+
+        '</div>';
+      card.querySelector('.or-session-del').onclick = function() {
+        var ses2 = orLoadSes();
+        if (ses2[dk]) { ses2[dk].splice(si,1); if(!ses2[dk].length) delete ses2[dk]; }
+        orSaveSes(ses2); orRenderDay();
+      };
+      list.appendChild(card);
+    });
+  }
+
+  /* ── Render fecha ── */
+  function orRenderFecha() {
+    var el = document.getElementById('orDateLabel');
+    if (!el) return;
+    var DIAS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    var MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    var d = new Date(); d.setDate(d.getDate()+orDateOffset); d.setHours(0,0,0,0);
+    var label = DIAS[d.getDay()]+' '+d.getDate()+' de '+MESES[d.getMonth()];
+    if (orDateOffset===0) label = '📅 Hoy · '+label;
+    if (orDateOffset===1) label = '📅 Mañana · '+label;
+    el.textContent = label;
+  }
+
+  function orRender() { orRenderFecha(); orRenderTemplates(); orRenderDay(); }
+
+  /* ── Modal crear/editar ── */
+  function orOpenModal(editId) {
+    var tpls = orLoadTpl();
+    var tpl  = editId ? tpls.find(function(t){ return t.id===editId; }) : null;
+    var selEmoji = tpl ? tpl.emoji : '📚';
+    var pasos    = tpl ? JSON.parse(JSON.stringify(tpl.pasos||[])) : [];
+
+    var old = document.getElementById('orModalBd'); if(old) old.remove();
+    var bd = document.createElement('div');
+    bd.className = 'or-modal-bd'; bd.id = 'orModalBd';
+
+    var modal = document.createElement('div');
+    modal.className = 'or-modal';
+    modal.innerHTML =
+      '<div class="or-modal-title">'+(editId?'✏️ Editar rutina':'✨ Nueva rutina')+'</div>'+
+      '<div class="or-emoji-row" id="orEmojiRow">'+
+        OR_EMOJIS.map(function(em){
+          return '<button class="or-emoji-btn'+(em===selEmoji?' sel':'')+'" data-em="'+em+'">'+em+'</button>';
+        }).join('')+
+      '</div>'+
+      '<div class="or-field"><label class="or-label">Nombre de la rutina</label>'+
+        '<input class="or-input" id="orInNombre" placeholder="ej. Rutina de estudio" value="'+(tpl?tpl.nombre||'':'')+'"></div>'+
+      '<div class="or-field"><label class="or-label">Pasos y notas</label>'+
+        '<div class="or-steps-editor" id="orStepsEditor"></div>'+
+        '<div class="or-add-step-row">'+
+          '<button class="or-add-step-btn" id="orAddPaso">＋ Paso</button>'+
+          '<button class="or-add-note-btn" id="orAddNota">✎ Nota / separador</button>'+
+        '</div>'+
+      '</div>'+
+      '<div class="or-modal-btns">'+
+        (editId?'<button class="or-modal-del" id="orDelBtn">🗑️</button>':'')+
+        '<button class="or-modal-cancel" id="orCancelBtn">Cancelar</button>'+
+        '<button class="or-modal-save"   id="orSaveBtn">💾 Guardar</button>'+
+      '</div>';
+
+    bd.appendChild(modal);
+    document.body.appendChild(bd);
+
+    // Emoji
+    modal.querySelectorAll('.or-emoji-btn').forEach(function(btn){
+      btn.onclick = function(){
+        modal.querySelectorAll('.or-emoji-btn').forEach(function(b){b.classList.remove('sel');});
+        btn.classList.add('sel'); selEmoji = btn.dataset.em;
+      };
+    });
+
+    // Editor de pasos
+    function renderStepsEditor() {
+      var ed = document.getElementById('orStepsEditor');
+      ed.innerHTML = '';
+      pasos.forEach(function(item, idx) {
+        var row = document.createElement('div');
+        row.className = 'or-step-row';
+        var isNota = item.tipo==='nota';
+        row.innerHTML =
+          '<button class="or-step-type'+(isNota?' is-note':'')+'" data-idx="'+idx+'">'+
+            (isNota?'📝 nota':'☑ paso')+
+          '</button>'+
+          '<input class="or-step-input" placeholder="'+(isNota?'ej. — Bloque 1: Lectura activa —':'ej. Leer 20 páginas')+'" value="'+((item.texto||'').replace(/"/g,'&quot;'))+'" data-idx="'+idx+'">'+
+          '<button class="or-step-del" data-idx="'+idx+'">✕</button>';
+        row.querySelector('.or-step-type').onclick = function(){
+          pasos[idx].tipo = isNota ? 'paso' : 'nota';
+          renderStepsEditor();
+        };
+        row.querySelector('.or-step-input').oninput = function(e){ pasos[idx].texto = e.target.value; };
+        row.querySelector('.or-step-del').onclick   = function(){ pasos.splice(idx,1); renderStepsEditor(); };
+        ed.appendChild(row);
+      });
+    }
+    renderStepsEditor();
+
+    document.getElementById('orAddPaso').onclick  = function(){ pasos.push({tipo:'paso', texto:''}); renderStepsEditor(); setTimeout(function(){ var ins=document.querySelectorAll('#orStepsEditor .or-step-input'); if(ins.length) ins[ins.length-1].focus(); },50); };
+    document.getElementById('orAddNota').onclick  = function(){ pasos.push({tipo:'nota', texto:''}); renderStepsEditor(); setTimeout(function(){ var ins=document.querySelectorAll('#orStepsEditor .or-step-input'); if(ins.length) ins[ins.length-1].focus(); },50); };
+    document.getElementById('orCancelBtn').onclick = function(){ bd.remove(); };
+    bd.onclick = function(e){ if(e.target===bd) bd.remove(); };
+
+    if (editId) {
+      document.getElementById('orDelBtn').onclick = function(){
+        if(!confirm('¿Eliminar esta rutina?')) return;
+        var arr = orLoadTpl().filter(function(t){ return t.id!==editId; });
+        orSaveTpl(arr); orRender(); bd.remove();
+      };
+    }
+
+    document.getElementById('orSaveBtn').onclick = function(){
+      var nombre = document.getElementById('orInNombre').value.trim();
+      if (!nombre) { document.getElementById('orInNombre').focus(); return; }
+      var arr = orLoadTpl();
+      var obj = { id: editId||('or_'+Date.now()), emoji: selEmoji, nombre: nombre, pasos: pasos };
+      if (editId) { var i=arr.findIndex(function(t){return t.id===editId;}); if(i!==-1) arr[i]=obj; else arr.push(obj); }
+      else arr.push(obj);
+      orSaveTpl(arr); orRender(); bd.remove();
+    };
+  }
+
+  /* ── Init ── */
+  document.addEventListener('DOMContentLoaded', function(){
+    var prev = document.getElementById('orPrevDay');
+    var next = document.getElementById('orNextDay');
+    var add  = document.getElementById('orAddBtn');
+    if (prev) prev.onclick = function(){ orDateOffset--; orRender(); };
+    if (next) next.onclick = function(){ orDateOffset++; orRender(); };
+    if (add)  add.onclick  = function(){ orOpenModal(null); };
+    orRender();
+  });
+
+  // Hook showPage
+  var _origShowOR = window.showPage;
+  window.showPage = function(p){
+    if (_origShowOR) _origShowOR(p);
+    if (p==='page-rutinas') setTimeout(orRender, 150);
+  };
+
+})();
 </script>
 
 <script>
@@ -10325,10 +10957,33 @@ window.calmaShowTab = function(idx) {
 </div><!-- end page-tareas -->
 <div id="page-rutinas" class="page-section">
 <div id="sec-rutinas-nav" style="scroll-margin-top:60px"></div>
+
+<!-- Header -->
+<div class="salud-tabs-header">
+  <span class="section-sub">🌸 mis rutinas</span>
+  <h2 class="section-title" style="max-width:780px;margin:0 auto .5rem"><em>Rutinas</em> del Día</h2>
+</div>
+
+<!-- Tabs -->
+<div class="salud-tabs" style="margin-bottom:0">
+  <button class="salud-tab active" id="rutTab0" onclick="rutShowTab(0)">🌅 Bloques del día</button>
+  <button class="salud-tab" id="rutTab1" onclick="rutShowTab(1)">📋 Orden y rutinas</button>
+</div>
+<script>
+window.rutShowTab = function(idx) {
+  for (var i=0; i<2; i++) {
+    var btn = document.getElementById('rutTab'+i);
+    var el  = document.getElementById('rutTabContent'+i);
+    if (btn) btn.classList.toggle('active', i===idx);
+    if (el)  el.style.display = (i===idx) ? '' : 'none';
+  }
+};
+</script>
+
+<!-- TAB 0: Bloques del día -->
+<div id="rutTabContent0">
 <section class="rutinas-section" id="sec-rutinas">
-  <span class="section-sub">🗓️ mis rutinas</span>
-  <h2 class="section-title"><em>Rutinas</em> del Día</h2>
-  <p style="font-size:.75rem;color:var(--muted);margin-bottom:1.2rem;font-weight:600">
+  <p style="font-size:.75rem;color:var(--muted);margin-bottom:1.2rem;font-weight:600;margin-top:.8rem">
     Crea plantillas de rutina y asígnalas a días específicos 🐾
   </p>
 
@@ -10339,8 +10994,6 @@ window.calmaShowTab = function(idx) {
       <span class="rutina-date-label" id="rutDateLabel"></span>
       <button class="nav-btn" id="rutNextDay">›</button>
     </div>
-
-    <!-- Plantilla asignada a este día -->
     <div class="rutina-assigned" id="rutAssigned"></div>
   </div>
 
@@ -10356,6 +11009,44 @@ window.calmaShowTab = function(idx) {
     <div class="rutina-templates-list" id="rutTemplatesList"></div>
   </div>
 </section>
+</div><!-- end rutTabContent0 -->
+
+<!-- TAB 1: Orden y rutinas -->
+<div id="rutTabContent1" style="display:none">
+<section class="rutinas-section" id="sec-orden-rutinas">
+  <p style="font-size:.75rem;color:var(--muted);margin-bottom:1.2rem;font-weight:600;margin-top:.8rem">
+    Tus rutinas de estudio, lectura, trabajo… con pasos, casillas y notas 📋
+  </p>
+
+  <!-- Fecha del día -->
+  <div class="rutina-date-row" style="margin-bottom:1rem">
+    <button class="nav-btn" id="orPrevDay">‹</button>
+    <span class="rutina-date-label" id="orDateLabel"></span>
+    <button class="nav-btn" id="orNextDay">›</button>
+  </div>
+
+  <!-- Mis rutinas personalizadas -->
+  <div class="rutina-templates-wrap" style="margin-bottom:1rem">
+    <div class="rutina-templates-header">
+      <span class="rutina-templates-title">✨ Mis rutinas</span>
+      <button class="rutina-new-btn" id="orAddBtn">＋ Nueva rutina</button>
+    </div>
+    <div id="orTemplatesList"></div>
+  </div>
+
+  <!-- Registro del día -->
+  <div class="rutina-templates-wrap">
+    <div class="rutina-templates-header">
+      <span class="rutina-templates-title">📅 Hoy hice…</span>
+    </div>
+    <div id="orDayList"></div>
+    <div id="orDayEmpty" style="font-size:.72rem;color:var(--muted2);text-align:center;padding:.8rem;font-style:italic;display:none">
+      Toca una rutina de arriba para marcarla como hecha hoy 🌸
+    </div>
+  </div>
+
+</section>
+</div><!-- end rutTabContent1 -->
 
 </div><!-- end page-rutinas -->
 <!-- ══════════════════════════════════════════
@@ -11270,490 +11961,6 @@ window.syncFromCloud = function() {
 </section>
 </div><!-- end page-concentro -->
 
-<!-- ══════════════════════════════════════════
-     PÁGINA · TEMPORIZADOR ⏱
-══════════════════════════════════════════ -->
-<div id="page-temporizador" class="page-section">
-<style>
-  .timer-page { max-width:600px; margin:0 auto; padding:1.5rem 1rem 4rem; }
-  .timer-page-header { margin-bottom:1.4rem; }
-
-  /* Selector de actividad */
-  .timer-selector-title { font-size:.72rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:.7rem; }
-  .timer-selector-list { display:flex; flex-direction:column; gap:.5rem; }
-  .timer-selector-item { background:var(--card); border:1.5px solid var(--border); border-radius:14px; padding:.8rem 1rem; display:flex; align-items:center; gap:.8rem; cursor:pointer; transition:border-color .2s; }
-  .timer-selector-item:hover { border-color:var(--rosa); }
-  .timer-selector-item-icon { font-size:1.3rem; flex-shrink:0; }
-  .timer-selector-item-info { flex:1; }
-  .timer-selector-item-name { font-size:.85rem; font-weight:700; color:var(--text); }
-  .timer-selector-item-sub { font-size:.7rem; color:var(--muted); margin-top:.1rem; }
-  .timer-selector-item-arrow { font-size:1rem; color:var(--muted2); }
-  .timer-empty { text-align:center; color:var(--muted); font-size:.82rem; padding:2rem 1rem; font-style:italic; }
-
-  /* Pantalla completa del temporizador */
-  .timer-fullscreen {
-    position:fixed; inset:0; z-index:9500;
-    background:var(--bg);
-    flex-direction:column; align-items:center; justify-content:center;
-    padding:2rem 1.5rem;
-    animation:fadeIn .3s ease;
-  }
-  .timer-fs-close { position:absolute; top:18px; right:18px; background:none; border:none; font-size:1.3rem; color:var(--muted); cursor:pointer; }
-  .timer-fs-activity { font-size:.72rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin-bottom:.4rem; text-align:center; }
-  .timer-fs-step { font-size:1.1rem; font-weight:800; color:var(--text); text-align:center; margin-bottom:.3rem; font-family:var(--font-title); font-style:italic; }
-  .timer-fs-stepcount { font-size:.72rem; color:var(--muted); margin-bottom:2rem; text-align:center; font-weight:600; }
-
-  /* Círculo SVG */
-  .timer-circle-wrap { position:relative; width:240px; height:240px; margin-bottom:2rem; }
-  .timer-circle-wrap svg { transform:rotate(-90deg); }
-  .timer-circle-bg { fill:none; stroke:var(--border); stroke-width:12; }
-  .timer-circle-fill { fill:none; stroke:var(--rosa); stroke-width:12; stroke-linecap:round; transition:stroke-dashoffset .9s linear; }
-  .timer-circle-time { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-  .timer-circle-digits { font-size:3rem; font-weight:900; color:var(--text); font-family:var(--font-title); line-height:1; }
-  .timer-circle-label { font-size:.65rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin-top:.3rem; }
-
-  /* Botones */
-  .timer-fs-btns { display:flex; gap:.8rem; margin-top:.5rem; }
-  .timer-fs-btn-main { background:var(--rosa); color:white; border:none; border-radius:24px; padding:.7rem 2rem; font-size:.9rem; font-weight:800; cursor:pointer; font-family:var(--font-body); }
-  .timer-fs-btn-skip { background:var(--surface); color:var(--muted); border:1.5px solid var(--border); border-radius:24px; padding:.7rem 1.2rem; font-size:.9rem; font-weight:700; cursor:pointer; font-family:var(--font-body); }
-
-  /* Modal ¿lista para el siguiente? */
-  .timer-next-modal { position:fixed; inset:0; z-index:9600; background:rgba(0,0,0,.4); display:flex; align-items:center; justify-content:center; padding:1.5rem; }
-  .timer-next-box { background:var(--card); border-radius:20px; padding:1.5rem; max-width:360px; width:100%; text-align:center; }
-  .timer-next-emoji { font-size:2.5rem; margin-bottom:.6rem; }
-  .timer-next-title { font-size:1rem; font-weight:800; color:var(--text); font-family:var(--font-title); font-style:italic; margin-bottom:.3rem; }
-  .timer-next-sub { font-size:.78rem; color:var(--muted); font-weight:600; margin-bottom:1.2rem; }
-  .timer-next-btns { display:flex; flex-direction:column; gap:.5rem; }
-  .timer-next-yes { background:var(--rosa); color:white; border:none; border-radius:20px; padding:.6rem 1.2rem; font-size:.85rem; font-weight:800; cursor:pointer; font-family:var(--font-body); }
-  .timer-next-pause { background:var(--surface); color:var(--muted); border:1.5px solid var(--border); border-radius:20px; padding:.6rem 1.2rem; font-size:.85rem; font-weight:700; cursor:pointer; font-family:var(--font-body); }
-</style>
-
-<section class="timer-page">
-  <div class="timer-page-header">
-    <span class="section-sub">⏱ foco</span>
-    <h1 class="section-title"><em>Temporizador</em></h1>
-    <p style="font-size:.78rem;color:var(--muted);font-weight:600;margin-top:.2rem">Elige qué vas a hacer y empieza 🌸</p>
-  </div>
-  <div class="timer-selector-title">¿Qué vas a hacer?</div>
-  <div class="timer-selector-list" id="timerSelectorList"></div>
-</section>
-
-<!-- Pantalla completa temporizador -->
-<div class="timer-fullscreen" id="timerFullscreen" style="display:none">
-  <button class="timer-fs-close" onclick="timerClose()">✕</button>
-  <div class="timer-fs-activity" id="timerFsActivity"></div>
-
-  <!-- Círculo grande: tiempo total -->
-  <div class="timer-circle-wrap" style="width:260px;height:260px;margin-bottom:1rem">
-    <svg width="260" height="260" viewBox="0 0 260 260">
-      <circle class="timer-circle-bg" cx="130" cy="130" r="118"/>
-      <circle class="timer-circle-fill" id="timerCircleFillTotal" cx="130" cy="130" r="118"
-        stroke-dasharray="741.4" stroke-dashoffset="0"/>
-    </svg>
-    <div class="timer-circle-time">
-      <div id="timerCircleEmoji" style="font-size:2.8rem;line-height:1;margin-bottom:.2rem">🌸</div>
-      <div class="timer-circle-digits" id="timerDigitsTotal" style="font-size:2.2rem">00:00</div>
-      <div class="timer-circle-label">tiempo total</div>
-    </div>
-  </div>
-
-  <!-- Círculo pequeño: paso actual -->
-  <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:1rem">
-    <div style="position:relative;width:72px;height:72px;flex-shrink:0">
-      <svg width="72" height="72" viewBox="0 0 72 72" style="transform:rotate(-90deg)">
-        <circle fill="none" stroke="var(--border)" stroke-width="6" cx="36" cy="36" r="30"/>
-        <circle fill="none" stroke="var(--rosa)" stroke-width="6" stroke-linecap="round"
-          cx="36" cy="36" r="30" id="timerCircleFillStep"
-          stroke-dasharray="188.5" stroke-dashoffset="0"/>
-      </svg>
-      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:900;color:var(--text)" id="timerDigitsStep">00:00</div>
-    </div>
-    <div>
-      <div class="timer-fs-step" id="timerFsStep" style="margin-bottom:.1rem"></div>
-      <div class="timer-fs-stepcount" id="timerFsStepCount" style="margin-bottom:0"></div>
-    </div>
-  </div>
-
-  <div class="timer-fs-btns">
-    <button class="timer-fs-btn-main" id="timerBtnMain" onclick="timerToggle()">▶ Iniciar</button>
-    <button class="timer-fs-btn-skip" onclick="timerSkip()">Saltar →</button>
-  </div>
-</div>
-
-<!-- Modal siguiente paso -->
-<div class="timer-next-modal" id="timerNextModal" style="display:none">
-  <div class="timer-next-box">
-    <div class="timer-next-emoji">🎉</div>
-    <div class="timer-next-title" id="timerNextTitle">¡Paso completado!</div>
-    <div class="timer-next-sub" id="timerNextSub">¿Lista para el siguiente?</div>
-    <div class="timer-next-btns">
-      <button class="timer-next-yes" onclick="timerNextStep()">¡Sí, siguiente! →</button>
-      <button class="timer-next-pause" onclick="timerPauseHere()">Necesito un momento 🌸</button>
-    </div>
-  </div>
-</div>
-
-</div><!-- end page-temporizador -->
-
-<script>
-(function(){
-  var timerSteps = [];
-  var timerIdx = 0;
-  var timerSecsLeft = 0;
-  var timerTotal = 0;
-  var timerInterval = null;
-  var timerRunning = false;
-  var timerActivityName = '';
-
-  // ── Construir lista de actividades disponibles
-  window.timerBuildSelector = function() {
-    var list = document.getElementById('timerSelectorList');
-    if (!list) return;
-    list.innerHTML = '';
-    var items = [];
-
-    // 1. Tareas de hoy de Mi Semana (con duración si tienen)
-    try {
-      var semData = JSON.parse(localStorage.getItem('sem_data')||'[]');
-      var completions = JSON.parse(localStorage.getItem('completions')||'{}');
-      var today = new Date();
-      var dk = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
-      var dow = ['dom','lun','mar','mie','jue','vie','sab'][today.getDay()];
-      semData.forEach(function(task) {
-        if (!task.dias || !task.dias[dow]) return;
-        var key = task.id+'|'+dk;
-        if (completions[key]) return; // ya completada
-        items.push({
-          icon: task.emoji || '✅',
-          name: task.title || task.nombre || 'Tarea',
-          sub: 'Mi Semana · hoy',
-          steps: [{ nombre: task.title || task.nombre, segundos: 25*60 }]
-        });
-      });
-    } catch(e){}
-
-    // 2. Tareas complejas (desglose)
-    try {
-      var desgl = JSON.parse(localStorage.getItem('desglose_items')||'[]');
-      desgl.forEach(function(item) {
-        if (!item.pasos || !item.pasos.length) return;
-        var steps = item.pasos.map(function(p) {
-          var txt = typeof p === 'string' ? p : (p.texto||p.nombre||p.name||'Paso');
-          return { nombre: txt, segundos: 25*60 };
-        });
-        items.push({ icon:'🧩', name: item.title||'Tarea compleja', sub: steps.length+' pasos · 25 min c/u', steps: steps });
-      });
-    } catch(e){}
-
-    // 3. Rutinas de ejercicio
-    try {
-      var ejTpls = JSON.parse(localStorage.getItem('ej_templates')||'[]');
-      ejTpls.forEach(function(tpl) {
-        if (!tpl.pasos || !tpl.pasos.length) return;
-        var steps = tpl.pasos.map(function(p) {
-          var txt = typeof p === 'string' ? p : (p.texto||p.nombre||'Ejercicio');
-          var dur = typeof p === 'object' && p.duracion ? parseDuracion(p.duracion) : 60;
-          return { nombre: txt, segundos: dur };
-        });
-        items.push({ icon: tpl.emoji||'💪', name: tpl.name||'Rutina', sub: 'Ejercicio · '+steps.length+' pasos', steps: steps });
-      });
-    } catch(e){}
-
-    // 4. Rutinas de limpieza
-    try {
-      var limpTpls = JSON.parse(localStorage.getItem('limp_rutinas')||'[]');
-      limpTpls.forEach(function(r) {
-        if (!r.pasos || !r.pasos.length) return;
-        var steps = r.pasos.map(function(p) {
-          return { nombre: typeof p==='string'?p:(p.nombre||p.texto||'Paso'), segundos: 5*60 };
-        });
-        items.push({ icon:'🧹', name: r.nombre||r.name||'Rutina de limpieza', sub: 'Limpieza · '+steps.length+' pasos', steps: steps });
-      });
-    } catch(e){}
-
-    // 5. Mis Horas (ritmo circadiano) — como actividad libre
-    try {
-      var rhoras = JSON.parse(localStorage.getItem('yuki_rutina_horarios')||'[]');
-      rhoras.forEach(function(h) {
-        items.push({ icon:'⏰', name: h.label, sub: 'Mis Horas · '+h.hora+(h.nota?' · '+h.nota:''), steps: [{ nombre: h.label, segundos: 30*60 }] });
-      });
-    } catch(e){}
-
-    if (!items.length) {
-      list.innerHTML = '<div class="timer-empty">Agrega tareas en Mi Semana, rutinas de ejercicio o limpieza para poder temporizarlas 🌸</div>';
-      return;
-    }
-
-    items.forEach(function(item) {
-      var el = document.createElement('div');
-      el.className = 'timer-selector-item';
-      el.innerHTML =
-        '<div class="timer-selector-item-icon">'+item.icon+'</div>'+
-        '<div class="timer-selector-item-info">'+
-          '<div class="timer-selector-item-name">'+item.name+'</div>'+
-          '<div class="timer-selector-item-sub">'+item.sub+'</div>'+
-        '</div>'+
-        '<div class="timer-selector-item-arrow">›</div>';
-      el.onclick = (function(it){ return function(){ timerStart(it); }; })(item);
-      list.appendChild(el);
-    });
-  };
-
-  function parseDuracion(str) {
-    if (!str) return 60;
-    str = str.toLowerCase().trim();
-    var m = str.match(/(\d+)\s*min/); if(m) return parseInt(m[1])*60;
-    var s = str.match(/(\d+)\s*seg/); if(s) return parseInt(s[1]);
-    var h = str.match(/(\d+)\s*h/);   if(h) return parseInt(h[1])*3600;
-    var n = parseInt(str);             if(!isNaN(n)) return n*60;
-    return 60;
-  }
-
-  function timerFmt(s) {
-    var m = Math.floor(s/60), sec = s%60;
-    return String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
-  }
-
-  function timerUpdateCircles() {
-    // Círculo grande — total
-    var fillTotal = document.getElementById('timerCircleFillTotal');
-    var digitsTotal = document.getElementById('timerDigitsTotal');
-    if (fillTotal && timerTotalSecs > 0) {
-      fillTotal.style.strokeDashoffset = CIRCUM_BIG * (1 - timerTotalLeft/timerTotalSecs);
-    }
-    if (digitsTotal) digitsTotal.textContent = timerFmt(Math.max(0, timerTotalLeft));
-    // Círculo pequeño — paso
-    var fillStep = document.getElementById('timerCircleFillStep');
-    var digitsStep = document.getElementById('timerDigitsStep');
-    if (fillStep && timerTotal > 0) {
-      fillStep.style.strokeDashoffset = CIRCUM_SMALL * (1 - timerSecsLeft/timerTotal);
-    }
-    if (digitsStep) digitsStep.textContent = timerFmt(Math.max(0, timerSecsLeft));
-  }
-
-  function timerLoadStep() {
-    clearInterval(timerInterval);
-    timerRunning = false;
-    var step = timerSteps[timerIdx];
-    timerSecsLeft = step.segundos;
-    timerTotal = step.segundos;
-    document.getElementById('timerFsActivity').textContent = timerActivityName;
-    document.getElementById('timerFsStep').textContent = step.nombre;
-    document.getElementById('timerFsStepCount').textContent =
-      timerSteps.length > 1 ? 'Paso '+(timerIdx+1)+' de '+timerSteps.length : '';
-    document.getElementById('timerBtnMain').textContent = '▶ Iniciar';
-    timerUpdateCircles();
-  }
-
-  window.timerToggle = function() {
-    if (timerRunning) {
-      clearInterval(timerInterval);
-      timerRunning = false;
-      document.getElementById('timerBtnMain').textContent = '▶ Continuar';
-    } else {
-      timerRunning = true;
-      document.getElementById('timerBtnMain').textContent = '⏸ Pausar';
-      timerInterval = setInterval(function() {
-        timerSecsLeft--;
-        if (timerTotalLeft > 0) timerTotalLeft--;
-        timerUpdateCircles();
-        if (timerSecsLeft <= 0) {
-          clearInterval(timerInterval);
-          timerRunning = false;
-          timerStepDone();
-        }
-      }, 1000);
-    }
-  };
-
-  window.timerStart = function(item) {
-    // Mostrar pantalla de configuración de tiempos primero
-    timerActivityName = item.name;
-    timerSteps = item.steps.map(function(s){ return { nombre:s.nombre, segundos:s.segundos }; });
-    timerShowConfig();
-  };
-
-  var timerEmoji = '🌸'; // emoji seleccionado para el temporizador
-  var timerTotalSecs = 0;    // tiempo total de la actividad
-  var timerTotalLeft = 0;    // tiempo total restante
-  var timerTotalInterval = null;
-  var CIRCUM_BIG  = 2 * Math.PI * 118; // 741.4
-  var CIRCUM_SMALL = 2 * Math.PI * 30; // 188.5
-  var TIMER_EMOJIS = ['🌸','🫧','🦄','🪷','🌱','⭐','💗','💌','🌷','🌿','🌠','🌊','🦓','🪶','🪽','🦭','🐋','🦪','🪸','🐚','🐝','🦋','🐛','🍓','🥬','🍐','🫖','🖌️','🖍️','🪡','🧵','🧶','🖼️','🎹','📸','🎷','🎺','🎸','🧼','🧹','🧴','🧸','👘','👒','🩻','🗒️','📁','📂','📖','🔖','📒','📝','📋','📍','🪞','🎮','👾','🩰','🏀','🎀','🧚🏻'];
-
-  function timerShowConfig() {
-    var old = document.getElementById('timerConfigModal');
-    if (old) old.remove();
-
-    var modal = document.createElement('div');
-    modal.id = 'timerConfigModal';
-    modal.style.cssText = 'position:fixed;inset:0;z-index:9480;background:var(--bg);display:flex;flex-direction:column;overflow-y:auto';
-
-    var html = '<div style="max-width:520px;margin:0 auto;padding:1.5rem 1rem 4rem;width:100%">';
-    html += '<div style="display:flex;align-items:center;gap:.8rem;margin-bottom:1.2rem">';
-    html += '<button onclick="document.getElementById(\'timerConfigModal\').remove()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--muted)">‹</button>';
-    html += '<div><div style="font-size:.65rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Temporizador</div>';
-    html += '<div style="font-size:1rem;font-weight:800;color:var(--text);font-family:var(--font-title);font-style:italic">'+timerActivityName+'</div></div></div>';
-
-    // Selector de emoji
-    html += '<div style="font-size:.7rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.6rem">✨ Elige un emoji</div>';
-    html += '<div id="timerEmojiPicker" style="display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:1.2rem;background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:.8rem">';
-    TIMER_EMOJIS.forEach(function(e) {
-      var isActive = e === timerEmoji;
-      html += '<button onclick="timerSelectEmoji(\''+e+'\')" style="font-size:1.4rem;background:'+(isActive?'var(--rosa-soft)':'none')+';border:'+(isActive?'1.5px solid var(--rosa)':'1.5px solid transparent')+';border-radius:8px;padding:.2rem .3rem;cursor:pointer;transition:all .15s" id="timerEmojiBtn_'+e.codePointAt(0)+'">'+e+'</button>';
-    });
-    html += '</div>';
-
-    html += '<div style="font-size:.7rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.7rem">⏱ Ajusta los tiempos</div>';
-
-    // Tiempo total
-    var totalMins = Math.round(timerSteps.reduce(function(s,p){ return s+p.segundos; },0)/60);
-    html += '<div style="background:var(--card);border:1.5px solid var(--rosa-soft);border-radius:12px;padding:.8rem 1rem;margin-bottom:.8rem;display:flex;align-items:center;gap:.7rem">';
-    html += '<div style="flex:1"><div style="font-size:.72rem;font-weight:800;color:var(--rosa);margin-bottom:.3rem">⏰ Tiempo total de la actividad</div>';
-    html += '<div style="display:flex;align-items:center;gap:.4rem">';
-    html += '<input type="number" min="1" max="480" value="'+totalMins+'" id="timerTotalMins" style="width:60px;border:1.5px solid var(--border);border-radius:8px;padding:.3rem .4rem;font-family:var(--font-body);font-size:.9rem;font-weight:800;color:var(--text);background:var(--surface);text-align:center;outline:none">';
-    html += '<span style="font-size:.75rem;color:var(--muted);font-weight:700">minutos en total</span>';
-    html += '</div></div></div>';
-
-    html += '<div style="font-size:.7rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.5rem">📋 Tiempo por paso</div>';
-    html += '<div id="timerConfigSteps" style="display:flex;flex-direction:column;gap:.6rem;margin-bottom:1.4rem"></div>';
-    html += '<button onclick="timerConfigStart()" style="width:100%;padding:.7rem;border-radius:14px;border:none;background:var(--rosa);color:white;font-family:var(--font-body);font-size:.9rem;font-weight:800;cursor:pointer">▶ ¡Empezar!</button>';
-    html += '</div>';
-    modal.innerHTML = html;
-    document.body.appendChild(modal);
-
-    renderTimerConfigSteps();
-  }
-
-  window.timerSelectEmoji = function(e) {
-    timerEmoji = e;
-    // Actualizar visual
-    document.querySelectorAll('#timerEmojiPicker button').forEach(function(btn) {
-      btn.style.background = 'none';
-      btn.style.border = '1.5px solid transparent';
-    });
-    var btn = document.getElementById('timerEmojiBtn_'+e.codePointAt(0));
-    if (btn) { btn.style.background = 'var(--rosa-soft)'; btn.style.border = '1.5px solid var(--rosa)'; }
-    // Actualizar emoji en el círculo si está visible
-    var emojiEl = document.getElementById('timerCircleEmoji');
-    if (emojiEl) emojiEl.textContent = timerEmoji;
-  };
-
-  function renderTimerConfigSteps() {
-    var cont = document.getElementById('timerConfigSteps');
-    if (!cont) return;
-    cont.innerHTML = '';
-    timerSteps.forEach(function(step, i) {
-      var mins = Math.floor(step.segundos/60);
-      var secs = step.segundos % 60;
-      var row = document.createElement('div');
-      row.style.cssText = 'background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:.8rem 1rem;display:flex;align-items:center;gap:.7rem';
-      row.innerHTML =
-        '<div style="flex:1">' +
-          '<div style="font-size:.82rem;font-weight:700;color:var(--text);margin-bottom:.4rem">'+(timerSteps.length>1?'Paso '+(i+1)+': ':'')+step.nombre+'</div>' +
-          '<div style="display:flex;align-items:center;gap:.4rem">' +
-            '<input type="number" min="0" max="180" value="'+mins+'" style="width:52px;border:1.5px solid var(--border);border-radius:8px;padding:.3rem .4rem;font-family:var(--font-body);font-size:.85rem;font-weight:700;color:var(--text);background:var(--surface);text-align:center;outline:none" onchange="timerConfigUpdateStep('+i+',this.value,\'mins\')">' +
-            '<span style="font-size:.72rem;color:var(--muted);font-weight:700">min</span>' +
-            '<input type="number" min="0" max="59" value="'+secs+'" style="width:52px;border:1.5px solid var(--border);border-radius:8px;padding:.3rem .4rem;font-family:var(--font-body);font-size:.85rem;font-weight:700;color:var(--text);background:var(--surface);text-align:center;outline:none" onchange="timerConfigUpdateStep('+i+',this.value,\'secs\')">' +
-            '<span style="font-size:.72rem;color:var(--muted);font-weight:700">seg</span>' +
-          '</div>' +
-        '</div>';
-      cont.appendChild(row);
-    });
-  }
-
-  window.timerConfigUpdateStep = function(idx, val, unit) {
-    val = parseInt(val) || 0;
-    var step = timerSteps[idx];
-    var mins = Math.floor(step.segundos/60);
-    var secs = step.segundos % 60;
-    if (unit === 'mins') mins = Math.max(0, Math.min(180, val));
-    else secs = Math.max(0, Math.min(59, val));
-    timerSteps[idx].segundos = mins*60 + secs;
-  };
-
-  window.timerConfigStart = function() {
-    var totalInput = document.getElementById('timerTotalMins');
-    timerTotalSecs = totalInput ? (parseInt(totalInput.value)||30)*60 : timerSteps.reduce(function(s,p){ return s+p.segundos; },0);
-    timerTotalLeft = timerTotalSecs;
-    var modal = document.getElementById('timerConfigModal');
-    if (modal) modal.remove();
-    timerIdx = 0;
-    timerLoadStep();
-    var emojiEl = document.getElementById('timerCircleEmoji');
-    if (emojiEl) emojiEl.textContent = timerEmoji;
-    document.getElementById('timerFullscreen').style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-  };
-
-  function timerStepDone() {
-    if ('vibrate' in navigator) navigator.vibrate([200,100,200]);
-    if (timerIdx >= timerSteps.length - 1) {
-      // Última — completado todo
-      var modal = document.getElementById('timerNextModal');
-      document.getElementById('timerNextTitle').textContent = '¡Todo completado! 🎉';
-      document.getElementById('timerNextSub').textContent = timerActivityName+' terminado. ¡Bien hecho!';
-      document.querySelector('.timer-next-yes').textContent = '¡Cerrar! 🌸';
-      document.querySelector('.timer-next-yes').onclick = function() { timerClose(); };
-      document.querySelector('.timer-next-pause').style.display = 'none';
-      modal.style.display = 'flex';
-    } else {
-      // Hay más pasos
-      var next = timerSteps[timerIdx+1];
-      var modal = document.getElementById('timerNextModal');
-      document.getElementById('timerNextTitle').textContent = '¡Paso completado! 🎉';
-      document.getElementById('timerNextSub').textContent = 'Siguiente: '+next.nombre+' ('+timerFmt(next.segundos)+')';
-      document.querySelector('.timer-next-yes').textContent = '¡Sí, siguiente! →';
-      document.querySelector('.timer-next-yes').onclick = timerNextStep;
-      document.querySelector('.timer-next-pause').style.display = '';
-      modal.style.display = 'flex';
-    }
-  }
-
-  window.timerNextStep = function() {
-    document.getElementById('timerNextModal').style.display = 'none';
-    document.querySelector('.timer-next-pause').style.display = '';
-    timerIdx++;
-    timerLoadStep();
-  };
-
-  window.timerPauseHere = function() {
-    document.getElementById('timerNextModal').style.display = 'none';
-    // Queda en pantalla con el siguiente paso listo pero sin iniciar
-    timerIdx++;
-    timerLoadStep();
-  };
-
-  window.timerSkip = function() {
-    clearInterval(timerInterval);
-    timerRunning = false;
-    if (timerIdx >= timerSteps.length - 1) { timerClose(); return; }
-    timerIdx++;
-    timerLoadStep();
-  };
-
-  window.timerClose = function() {
-    clearInterval(timerInterval);
-    timerRunning = false;
-    document.getElementById('timerFullscreen').style.display = 'none';
-    document.getElementById('timerNextModal').style.display = 'none';
-    var cfg = document.getElementById('timerConfigModal');
-    if (cfg) cfg.remove();
-    document.body.style.overflow = '';
-    document.querySelector('.timer-next-pause').style.display = '';
-  };
-
-  // Re-render selector al entrar a la página
-  var _origShowTimer = window.showPage;
-  window.showPage = function(p) {
-    if (_origShowTimer) _origShowTimer(p);
-    if (p === 'page-temporizador') { setTimeout(window.timerBuildSelector, 100); }
-  };
-
-  // Solo construir selector cuando se entra a la página
-  // setTimeout(window.timerBuildSelector, 500); // removido — se carga al entrar
-})();
-</script>
 <div id="page-transiciones" class="page-section">
 <div id="sec-transiciones-nav" style="scroll-margin-top:60px"></div>
 <section class="rutinas-section" id="sec-transiciones" style="margin-top:1rem;margin-bottom:2rem">
@@ -21414,7 +21621,6 @@ const NAV_PAGES = [
   { icon:'🧠', label:'Braindump',   page:'page-braindump' },
   { icon:'🍏', label:'Salud',       page:'page-salud'     },
   { icon:'✨', label:'Selfcare',    page:'page-selfcare'  },
-  { icon:'⏱️', label:'Temporizador', page:'page-temporizador'  },
   { icon:'🍽️', label:'Recetario',   page:'page-recetario' },
   { icon:'🧺', label:'Despensa',    page:'page-despensa'  },
   { icon:'🧹', label:'Limpieza',    page:'page-limpieza'  },
@@ -21462,8 +21668,7 @@ const DRAWER_STRUCTURE = {
     { id:'organizacion', icon:'📌', label:'Organización', items: [
       { icon:'', label:'Tareas',  page:'page-tareas'  },
       { icon:'', label:'Rutinas', page:'page-rutinas' },
-      { icon:'🗓️', label:'Horario', page:'page-horario' },
-      { icon:'⏱️', label:'Temporizador', page:'page-temporizador' },
+      { icon:'', label:'Horario', page:'page-horario' },
       { icon:'', label:'Me concentro', page:'page-concentro' },
       { icon:'', label:'Transiciones', page:'page-transiciones' },
     ]},
@@ -26048,6 +26253,41 @@ document.addEventListener('DOMContentLoaded', function() {
     display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem;
     margin-top: .3rem;
   }
+  /* Config toggle */
+  .config-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .6rem .7rem;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+  }
+  .config-toggle-btn {
+    width: 44px; height: 24px;
+    min-width: 44px;
+    background: var(--border);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    position: relative;
+    transition: background .2s;
+    padding: 0;
+  }
+  .config-toggle-btn.active { background: var(--rosa); }
+  .config-toggle-knob {
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    transition: left .2s;
+    display: block;
+    box-shadow: 0 1px 4px rgba(0,0,0,.18);
+  }
+  .config-toggle-btn.active .config-toggle-knob { left: 22px; }
+
   .theme-btn {
     border-radius: 12px; border: 2.5px solid transparent;
     padding: .6rem .3rem; cursor: pointer;
@@ -26191,11 +26431,23 @@ document.addEventListener('DOMContentLoaded', function() {
   <div class="config-block" id="configImgBlock" style="display:none">
     <div class="config-block-title">🖼️ Imágenes decorativas</div>
     <p style="font-size:.72rem;color:var(--muted);font-weight:600;margin-bottom:.7rem">Solo visibles en pantallas grandes (desktop)</p>
+
+    <!-- Toggle ocultar imágenes -->
+    <div class="config-toggle-row" id="imgHideToggleRow" style="margin-bottom:.7rem">
+      <div>
+        <div style="font-size:.78rem;font-weight:700;color:var(--text)">Ocultar imágenes</div>
+        <div style="font-size:.65rem;color:var(--muted);font-weight:600">Modo silencio visual — sin imágenes en los márgenes</div>
+      </div>
+      <button class="config-toggle-btn" id="imgHideToggleBtn" onclick="toggleImgHide()">
+        <span class="config-toggle-knob"></span>
+      </button>
+    </div>
+
     <button class="config-action-btn" id="imgManageBtn" onclick="openImgManager()">
       <span>🖼️</span>
       <div>
-        <div>Gestionar imágenes</div>
-        <div style="font-size:.68rem;color:var(--muted2);font-weight:600">Personaliza las imágenes del margen</div>
+        <div>Gestionar imágenes por tema</div>
+        <div style="font-size:.68rem;color:var(--muted2);font-weight:600">Las imágenes se guardan separadas por tema de color</div>
       </div>
     </button>
   </div>
@@ -26469,7 +26721,17 @@ document.addEventListener('DOMContentLoaded', function() {
     var t = THEMES.find(function(x){ return x.id===themeId; });
     if (!t) return;
     var root = document.documentElement;
-    // Resetear vars base primero por si el tema anterior sobreescribió algo
+
+    // Guardar imágenes del tema anterior antes de cambiar
+    if (currentTheme && currentTheme !== themeId) {
+      var prevImgs = [];
+      try { prevImgs = JSON.parse(localStorage.getItem('deco_imgs') || '[]'); } catch(e){}
+      var prevInterval = parseInt(localStorage.getItem('deco_interval') || '30');
+      localStorage.setItem('deco_imgs_theme_' + currentTheme, JSON.stringify(prevImgs));
+      localStorage.setItem('deco_interval_theme_' + currentTheme, String(prevInterval));
+    }
+
+    // Resetear vars base
     Object.keys(BASE_VARS).forEach(function(k){
       if (!t.vars[k]) root.style.setProperty(k, BASE_VARS[k]);
     });
@@ -26477,6 +26739,22 @@ document.addEventListener('DOMContentLoaded', function() {
     currentTheme = themeId;
     localStorage.setItem('config_theme', themeId);
     document.body.setAttribute('data-theme', themeId);
+
+    // Restaurar imágenes guardadas para este tema (si existen)
+    var savedImgs = localStorage.getItem('deco_imgs_theme_' + themeId);
+    var savedInterval = localStorage.getItem('deco_interval_theme_' + themeId);
+    if (savedImgs !== null) {
+      localStorage.setItem('deco_imgs', savedImgs);
+      if (savedInterval) localStorage.setItem('deco_interval', savedInterval);
+      // Forzar recarga en el sistema de imágenes
+      try {
+        window._decoImgs = JSON.parse(savedImgs);
+        if (savedInterval) window._decoInterval = parseInt(savedInterval);
+      } catch(e){}
+      if (typeof loadImgs === 'function') loadImgs();
+      if (typeof renderImgSlots === 'function') renderImgSlots();
+    }
+
     renderThemeGrid();
   }
 
@@ -26579,17 +26857,51 @@ document.addEventListener('DOMContentLoaded', function() {
     a.click();
   };
 
-  // Init cuando se abre la página
-  var _origShowPage = window.showPage;
-  window.showPage = function(pageId) {
-    if (_origShowPage) _origShowPage(pageId);
-    if (pageId === 'page-config') { setTimeout(function(){ configLoadProfile(); renderThemeGrid(); configLoadExperience(); var imgBlock = document.getElementById('configImgBlock'); if(imgBlock) imgBlock.style.display = window.innerWidth >= 900 ? '' : 'none'; }, 50); }
-    if (pageId === 'page-buscar') { setTimeout(function(){ if(window._buscarInit) window._buscarInit(); }, 150); }
-  };
-
   // Guardar referencia al usuario actual
   var _origAuth = window._onAuthUser;
   window._onConfigUser = function(user) { window._currentUser = user; };
+
+  // ── Ocultar imágenes ──
+  function applyImgHide(hidden) {
+    var cols = ['imgColLeft','imgColRight'];
+    cols.forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.style.display = hidden ? 'none' : '';
+    });
+    var btn = document.getElementById('imgHideToggleBtn');
+    if (btn) btn.classList.toggle('active', hidden);
+    localStorage.setItem('deco_hidden', hidden ? '1' : '0');
+  }
+
+  window.toggleImgHide = function() {
+    var cur = localStorage.getItem('deco_hidden') === '1';
+    applyImgHide(!cur);
+  };
+
+  // Aplicar al cargar
+  document.addEventListener('DOMContentLoaded', function(){
+    if (localStorage.getItem('deco_hidden') === '1') applyImgHide(true);
+  });
+
+  // Sincronizar estado del toggle cuando se abre config
+  var _origShowCfg = window.showPage;
+  window.showPage = function(pageId) {
+    if (_origShowCfg) _origShowCfg(pageId);
+    if (pageId === 'page-config') {
+      setTimeout(function(){
+        configLoadProfile();
+        renderThemeGrid();
+        configLoadExperience();
+        var imgBlock = document.getElementById('configImgBlock');
+        if (imgBlock) imgBlock.style.display = window.innerWidth >= 900 ? '' : 'none';
+        // Sync toggle state
+        var hidden = localStorage.getItem('deco_hidden') === '1';
+        var btn = document.getElementById('imgHideToggleBtn');
+        if (btn) btn.classList.toggle('active', hidden);
+      }, 50);
+    }
+    if (pageId === 'page-buscar') { setTimeout(function(){ if(window._buscarInit) window._buscarInit(); }, 150); }
+  };
 
   // Aplicar tema guardado al cargar
   if (currentTheme !== 'rosa') applyTheme(currentTheme);
