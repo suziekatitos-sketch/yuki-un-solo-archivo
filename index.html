@@ -5380,6 +5380,56 @@ window.kittyConfirm = function(msg, onYes, onNo) {
   }
   .focus-motivator.show { opacity: 1; }
 
+  /* ── Selector de animación ────────────────────────── */
+  .focus-anim-selector {
+    display: flex; gap: .45rem; margin-bottom: 1.6rem; flex-wrap: wrap; justify-content: center;
+  }
+  .focus-anim-btn {
+    padding: .3rem .7rem; border-radius: 20px; border: 1.5px solid var(--border);
+    background: var(--card); color: var(--muted); font-family: var(--font-body);
+    font-size: .72rem; font-weight: 800; cursor: pointer; transition: all .15s;
+  }
+  .focus-anim-btn.active { border-color: var(--rosa); background: var(--rosa-soft); color: var(--rosa); }
+  .focus-anim-btn:hover { border-color: var(--rosa); color: var(--rosa); }
+
+  /* Toggle dígitos */
+  .focus-digits-toggle {
+    font-size: .68rem; font-weight: 800; color: var(--muted2); cursor: pointer;
+    text-decoration: underline dotted; text-underline-offset: 3px;
+    margin-bottom: .8rem; text-align: center; user-select: none;
+  }
+  .focus-digits-toggle:hover { color: var(--muted); }
+
+  /* Canvas de animación dentro del ring */
+  #focusAnimCanvas {
+    position: absolute; inset: 0; width: 220px; height: 220px;
+    border-radius: 50%; pointer-events: none;
+  }
+
+  /* ── Keyframes animaciones ───────────────────────── */
+
+  /* FLOR */
+  @keyframes petalBloom {
+    0%   { transform: var(--pt) scaleX(0) scaleY(0); opacity: 0; }
+    60%  { opacity: 1; }
+    100% { transform: var(--pt) scaleX(1) scaleY(1); opacity: 1; }
+  }
+  @keyframes florecer { from { opacity: 0; transform: scale(.2); } to { opacity: 1; transform: scale(1); } }
+  @keyframes shimmer  { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.25) drop-shadow(0 0 6px #f9c4d8); } }
+
+  /* VELA */
+  @keyframes llamaBail { 0%,100% { transform: scaleX(1) translateY(0); } 25% { transform: scaleX(.85) translateY(-1px) rotate(-3deg); } 75% { transform: scaleX(1.1) translateY(1px) rotate(2deg); } }
+  @keyframes cerapAnim { from { height: var(--cera-h-start); } to { height: var(--cera-h-end); } }
+  @keyframes humoRise  { 0% { opacity:.7; transform:translateX(-50%) translateY(0) scaleX(1); } 100% { opacity:0; transform:translateX(-50%) translateY(-30px) scaleX(1.6); } }
+
+  /* TÉ */
+  @keyframes vaporRise { 0% { opacity:.6; transform:translateX(var(--vx)) translateY(0); } 100% { opacity:0; transform:translateX(var(--vx)) translateY(-28px); } }
+  @keyframes teColor   { from { background: #e8d5b0; } to { background: var(--te-final); } }
+
+  /* CONSTELACIÓN */
+  @keyframes starAppear { 0% { opacity:0; transform:scale(0); } 70% { transform:scale(1.4); } 100% { opacity:1; transform:scale(1); } }
+  @keyframes starTwinkle { 0%,100% { opacity:1; } 50% { opacity:.5; } }
+
   .drawer-item-indent { width: 1.2rem; flex-shrink: 0; }
   .drawer-item-label { letter-spacing: .02em; }
 
@@ -13122,6 +13172,7 @@ window.syncFromCloud = function() {
           <div class="diario-entry-view-title" id="diarioEntryViewTitle"></div>
         </div>
         <div style="display:flex;gap:.4rem">
+          <button class="diario-entry-view-btn" onclick="stkOpenForEntry(window._diarioViewingId)" title="Stickers">🌸</button>
           <button class="diario-entry-view-btn" onclick="diarioEditEntry()" title="Editar">✏️</button>
           <button class="diario-entry-view-btn" onclick="diarioDeleteEntry()" title="Eliminar">🗑️</button>
           <button class="diario-entry-view-btn" onclick="diarioCloseView()" title="Cerrar">✕</button>
@@ -13130,6 +13181,8 @@ window.syncFromCloud = function() {
       <div class="diario-entry-view-tags" id="diarioEntryViewTags"></div>
       <div class="diario-entry-view-photo" id="diarioEntryViewPhoto"></div>
       <div class="diario-entry-view-text" id="diarioEntryViewText"></div>
+      <!-- Capa de stickers anclada a esta entrada -->
+      <div id="diarioEntryViewStickers" style="position:relative;min-height:60px;margin-top:.5rem"></div>
     </div>
     <div id="diarioList"></div>
   </div>
@@ -13400,6 +13453,7 @@ window.syncFromCloud = function() {
   }
 
   function showEntryView(entry) {
+    window._diarioViewingId = entry.id;
     var view = document.getElementById('diarioEntryView');
     document.getElementById('diarioEntryViewDate').textContent = fmtDate(entry.fecha);
     document.getElementById('diarioEntryViewTitle').textContent = entry.titulo || '';
@@ -13429,6 +13483,8 @@ window.syncFromCloud = function() {
     document.getElementById('diarioEntryViewText').textContent = entry.texto || '';
     view.style.display = '';
     view.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Stickers anclados a esta entrada
+    if (window.stkRenderForEntry) window.stkRenderForEntry(entry.id, document.getElementById('diarioEntryViewStickers'));
   }
 
   window.diarioCloseView = function() {
@@ -19003,8 +19059,35 @@ renderTracker();
   var _canvasStickers=[];var _canvasSelected=null;var _canvasBg='neutral';
   var _ootdMesOffset=0;
 
-  var ALL_VIBES=['⚔️ Guerrera','☕ Soft girl','🛋️ Modo pijama','🎓 Estudiante','🌙 Cena','🌸 Romántica','💼 Profesional'];
-  var DEFAULT_MOODS=['🌙 Cena con amigas','🎓 Día de examen','🛋️ Flojera productiva','💼 Presentación','⚔️ Modo guerrera'];
+  var KEY_VIBES='armario_vibes';
+  var KEY_MOODS='armario_moods';
+  function loadVibes(){try{return JSON.parse(localStorage.getItem(KEY_VIBES)||'[]');}catch(e){return[];}}
+  function saveVibes(arr){try{localStorage.setItem(KEY_VIBES,JSON.stringify(arr));}catch(e){}}
+  function loadMoods(){try{return JSON.parse(localStorage.getItem(KEY_MOODS)||'[]');}catch(e){return[];}}
+  function saveMoods(arr){try{localStorage.setItem(KEY_MOODS,JSON.stringify(arr));}catch(e){}}
+  var ALL_VIBES=loadVibes();
+  var DEFAULT_MOODS=loadMoods();
+
+  function promptAddVibe(onAdded){
+    var v=prompt('Nueva categoría de vibe (ej: 🌙 Noche, ☕ Casual…)');
+    if(!v||!v.trim())return;
+    v=v.trim();
+    if(ALL_VIBES.indexOf(v)===-1){ALL_VIBES.push(v);saveVibes(ALL_VIBES);}
+    if(onAdded)onAdded(v);
+  }
+  function promptAddMood(onAdded){
+    var m=prompt('Nuevo mood para outfit (ej: 🎉 Fiesta, 🌿 Paseo…)');
+    if(!m||!m.trim())return;
+    m=m.trim();
+    if(DEFAULT_MOODS.indexOf(m)===-1){DEFAULT_MOODS.push(m);saveMoods(DEFAULT_MOODS);}
+    if(onAdded)onAdded(m);
+  }
+  function removeVibe(v){
+    ALL_VIBES=ALL_VIBES.filter(function(x){return x!==v;});saveVibes(ALL_VIBES);
+    // also clean prendas
+    loadP();_prendas.forEach(function(p){if(p.vibes){p.vibes=p.vibes.filter(function(x){return x!==v;});}});saveP();
+  }
+  function removeMood(m){DEFAULT_MOODS=DEFAULT_MOODS.filter(function(x){return x!==m;});saveMoods(DEFAULT_MOODS);}
   var CAT_EMOJI={tops:'👚',pantalones:'👖',vestidos:'👗',zapatos:'👟'};
   var BG_COLORS={neutral:'linear-gradient(135deg,#f5f5f0,#ede9e4)',rosa:'linear-gradient(135deg,#fce4ec,#f8bbd9)',oscuro:'linear-gradient(135deg,#1a1a2e,#16213e)',crema:'linear-gradient(135deg,#fdf6ec,#f5e6d0)'};
 
@@ -19041,11 +19124,22 @@ renderTracker();
     var all=document.createElement('button');all.className='armario-vibe-tab'+(_vibeActual==='todas'?' active':'');
     all.textContent='Todas';all.onclick=function(){_vibeActual='todas';renderVibeFilter();renderGrid();};
     div.appendChild(all);
+    ALL_VIBES=loadVibes();
     ALL_VIBES.forEach(function(v){
       var btn=document.createElement('button');btn.className='armario-vibe-tab'+(_vibeActual===v?' active':'');
-      btn.textContent=v;btn.onclick=function(){_vibeActual=v;renderVibeFilter();renderGrid();};
+      btn.textContent=v;
+      btn.onclick=function(){_vibeActual=v;renderVibeFilter();renderGrid();};
+      btn.title='Mantén presionado para eliminar';
+      var holdTimer;
+      btn.addEventListener('pointerdown',function(){holdTimer=setTimeout(function(){if(confirm('¿Eliminar la categoría "'+v+'"?')){removeVibe(v);if(_vibeActual===v)_vibeActual='todas';renderVibeFilter();renderGrid();}},600);});
+      btn.addEventListener('pointerup',function(){clearTimeout(holdTimer);});
+      btn.addEventListener('pointerleave',function(){clearTimeout(holdTimer);});
       div.appendChild(btn);
     });
+    var addBtn=document.createElement('button');addBtn.className='armario-vibe-tab';
+    addBtn.textContent='＋ nueva';addBtn.style.borderStyle='dashed';
+    addBtn.onclick=function(){promptAddVibe(function(){renderVibeFilter();renderGrid();});};
+    div.appendChild(addBtn);
   }
 
   // ── Grid prendas ──
@@ -19104,16 +19198,26 @@ renderTracker();
     document.getElementById('armarioFotoPreview').style.display='none';
     document.getElementById('armarioFotoPlaceholder').style.display='flex';
     // Render vibes selector
-    var vibesDiv=document.getElementById('armPrendaVibesSel');vibesDiv.innerHTML='';
-    ALL_VIBES.forEach(function(v){
-      var tag=document.createElement('button');tag.className='armario-vibe-tag-sel';tag.textContent=v;
-      tag.onclick=function(){
-        var idx=_selectedVibes.indexOf(v);
-        if(idx===-1){_selectedVibes.push(v);tag.classList.add('selected');}
-        else{_selectedVibes.splice(idx,1);tag.classList.remove('selected');}
-      };
-      vibesDiv.appendChild(tag);
-    });
+    var vibesDiv=document.getElementById('armPrendaVibesSel');
+    function renderVibeSel(){
+      vibesDiv.innerHTML='';
+      ALL_VIBES=loadVibes();
+      ALL_VIBES.forEach(function(v){
+        var tag=document.createElement('button');tag.className='armario-vibe-tag-sel';tag.textContent=v;
+        if(_selectedVibes.indexOf(v)!==-1)tag.classList.add('selected');
+        tag.onclick=function(){
+          var idx=_selectedVibes.indexOf(v);
+          if(idx===-1){_selectedVibes.push(v);tag.classList.add('selected');}
+          else{_selectedVibes.splice(idx,1);tag.classList.remove('selected');}
+        };
+        vibesDiv.appendChild(tag);
+      });
+      var addTag=document.createElement('button');addTag.className='armario-vibe-tag-sel';
+      addTag.textContent='＋ nueva';addTag.style.borderStyle='dashed';
+      addTag.onclick=function(){promptAddVibe(function(v){_selectedVibes.push(v);renderVibeSel();});};
+      vibesDiv.appendChild(addTag);
+    }
+    renderVibeSel();
     document.getElementById('armarioPrendaBackdrop').classList.add('open');
   };
   window.armarioCerrarPrenda=function(){document.getElementById('armarioPrendaBackdrop').classList.remove('open');};
@@ -19173,12 +19277,26 @@ renderTracker();
     loadP();_selectedPrendas=[];_selectedMood='';
     document.getElementById('armarioOutfitNombre').value='';
     document.getElementById('armarioMoodCustom').value='';
-    var tagsDiv=document.getElementById('armarioMoodTags');tagsDiv.innerHTML='';
-    DEFAULT_MOODS.forEach(function(m){
-      var tag=document.createElement('button');tag.className='armario-mood-tag';tag.textContent=m;
-      tag.onclick=function(){_selectedMood=m;tagsDiv.querySelectorAll('.armario-mood-tag').forEach(function(t){t.classList.remove('selected');});tag.classList.add('selected');document.getElementById('armarioMoodCustom').value='';};
-      tagsDiv.appendChild(tag);
-    });
+    var tagsDiv=document.getElementById('armarioMoodTags');
+    function renderMoodTags(){
+      tagsDiv.innerHTML='';
+      DEFAULT_MOODS=loadMoods();
+      DEFAULT_MOODS.forEach(function(m){
+        var tag=document.createElement('button');tag.className='armario-mood-tag';tag.textContent=m;
+        if(_selectedMood===m)tag.classList.add('selected');
+        tag.onclick=function(){_selectedMood=m;tagsDiv.querySelectorAll('.armario-mood-tag').forEach(function(t){t.classList.remove('selected');});tag.classList.add('selected');document.getElementById('armarioMoodCustom').value='';};
+        var holdTimer;
+        tag.addEventListener('pointerdown',function(){holdTimer=setTimeout(function(){if(confirm('¿Eliminar el mood "'+m+'"?')){removeMood(m);if(_selectedMood===m)_selectedMood='';renderMoodTags();}},600);});
+        tag.addEventListener('pointerup',function(){clearTimeout(holdTimer);});
+        tag.addEventListener('pointerleave',function(){clearTimeout(holdTimer);});
+        tagsDiv.appendChild(tag);
+      });
+      var addTag=document.createElement('button');addTag.className='armario-mood-tag';
+      addTag.textContent='＋ nuevo';addTag.style.borderStyle='dashed';
+      addTag.onclick=function(){promptAddMood(function(){renderMoodTags();});};
+      tagsDiv.appendChild(addTag);
+    }
+    renderMoodTags();
     var sel=document.getElementById('armarioPrendaSelector');sel.innerHTML='';
     if(!_prendas.length){sel.innerHTML='<div style="font-size:.75rem;color:var(--muted);font-weight:600;grid-column:1/-1">Primero añade prendas 👗</div>';}
     _prendas.forEach(function(p){
@@ -24117,7 +24235,7 @@ const DRAWER_STRUCTURE = {
       { icon:'', label:'Tareas',  page:'page-tareas'  },
       { icon:'', label:'Rutinas', page:'page-rutinas' },
       { icon:'', label:'Horario', page:'page-horario' },
-      { icon:'', label:'Me concentro', page:'page-concentro' },
+      { icon:'🪷', label:'Me concentro', page:'page-concentro' },
       { icon:'', label:'Transiciones', page:'page-transiciones' },
     ]},
   ],
@@ -24270,7 +24388,7 @@ function renderDrawerNav() {
   // Focus mode button
   var focusBtn = document.createElement('button');
   focusBtn.className = 'drawer-focus-btn';
-  focusBtn.innerHTML = '🎯 Modo Enfoque';
+  focusBtn.innerHTML = '🪷 Modo Enfoque';
   focusBtn.onclick = function() { closeDrawer(); openFocusMode(); };
   wrap.appendChild(focusBtn);
 
@@ -30399,6 +30517,12 @@ function esc(str) {
     } catch(e) {}
   }
 
+  // ── Animación activa ─────────────────────────────────────
+  var focusAnimMode = 'ring'; // ring | flower | candle | tea | stars
+  var focusShowDigits = true;
+  var focusAnimRAF = null;
+  var focusAnimState = {};
+
   function updateRing() {
     var prog = document.getElementById('focusProgCircle');
     var digits = document.getElementById('focusDigits');
@@ -30408,6 +30532,373 @@ function esc(str) {
     var m = Math.floor(focusSecondsLeft / 60);
     var s = focusSecondsLeft % 60;
     digits.textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+    // Drive canvas animation
+    if (focusAnimMode !== 'ring') renderAnimFrame(ratio);
+  }
+
+  function setAnimMode(mode) {
+    focusAnimMode = mode;
+    var svg = document.querySelector('.focus-timer-svg');
+    var canvas = document.getElementById('focusAnimCanvas');
+    var toggle = document.getElementById('focusDigitsToggle');
+    var digitsEl = document.getElementById('focusDigits');
+    var phaseEl = document.getElementById('focusPhase');
+    if (!svg || !canvas) return;
+
+    if (mode === 'ring') {
+      svg.style.display = '';
+      canvas.style.display = 'none';
+      if (toggle) toggle.style.display = 'none';
+      if (digitsEl) { digitsEl.style.opacity = ''; digitsEl.style.fontSize = ''; }
+      focusShowDigits = true;
+    } else {
+      svg.style.display = 'none';
+      canvas.style.display = '';
+      if (toggle) {
+        toggle.style.display = 'block';
+        toggle.textContent = focusShowDigits ? '👁 ocultar tiempo' : '👁 mostrar tiempo';
+      }
+      if (digitsEl) {
+        digitsEl.style.opacity = focusShowDigits ? '.8' : '0';
+        digitsEl.style.fontSize = '.95rem';
+        digitsEl.style.fontWeight = '700';
+      }
+      if (phaseEl) phaseEl.style.fontSize = '.62rem';
+      // Init state for this mode
+      focusAnimState = {};
+      renderAnimFrame(focusSecondsLeft / focusTotalSeconds);
+    }
+  }
+
+  function renderAnimFrame(ratio) {
+    var canvas = document.getElementById('focusAnimCanvas');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    var W = 220, H = 220, cx = 110, cy = 110;
+    ctx.clearRect(0, 0, W, H);
+    var progress = 1 - ratio; // 0=inicio, 1=final
+
+    if (focusAnimMode === 'flower') drawFlower(ctx, W, H, cx, cy, progress);
+    else if (focusAnimMode === 'candle') drawCandle(ctx, W, H, cx, cy, progress);
+    else if (focusAnimMode === 'tea')    drawTea(ctx, W, H, cx, cy, progress);
+    else if (focusAnimMode === 'stars')  drawStars(ctx, W, H, cx, cy, progress);
+  }
+
+  // ── FLOR ────────────────────────────────────────────────
+  function drawFlower(ctx, W, H, cx, cy, p) {
+    var t = Date.now() / 1000;
+    // Fondo suave
+    var bg = ctx.createRadialGradient(cx, cy, 10, cx, cy, 100);
+    bg.addColorStop(0, 'rgba(253,230,240,.18)');
+    bg.addColorStop(1, 'rgba(253,230,240,0)');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+    var petals = 6;
+    var maxLen = 68;
+    var minLen = 8;
+    var petalLen = minLen + (maxLen - minLen) * p;
+    var petalW = 18 + 10 * p;
+
+    // Tallos / hojas pequeñas si > 30%
+    if (p > 0.3) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(120,180,100,' + Math.min(1, (p - .3) * 3) + ')';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(cx, cy + 60); ctx.bezierCurveTo(cx - 10, cy + 40, cx, cy + 20, cx, cy + 5);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Pétalos
+    for (var i = 0; i < petals; i++) {
+      var angle = (i / petals) * Math.PI * 2;
+      var sway = Math.sin(t * 0.8 + i) * 0.04 * p;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(angle + sway);
+      var alpha = Math.min(1, p * 2);
+      // Gradiente pétalo
+      var pg = ctx.createLinearGradient(0, 0, 0, -petalLen);
+      pg.addColorStop(0, 'rgba(242,136,170,' + alpha + ')');
+      pg.addColorStop(0.6, 'rgba(252,190,210,' + alpha + ')');
+      pg.addColorStop(1, 'rgba(255,230,240,' + (alpha * .6) + ')');
+      ctx.fillStyle = pg;
+      ctx.beginPath();
+      ctx.ellipse(0, -petalLen / 2 - 2, petalW / 2, petalLen / 2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Centro
+    var centerR = 8 + 10 * p;
+    var shimmer = 0.85 + 0.15 * Math.sin(t * 2);
+    var cg = ctx.createRadialGradient(cx - 2, cy - 2, 1, cx, cy, centerR);
+    cg.addColorStop(0, 'rgba(255,220,100,' + shimmer + ')');
+    cg.addColorStop(1, 'rgba(240,160,60,' + shimmer * .8 + ')');
+    ctx.beginPath(); ctx.arc(cx, cy, centerR, 0, Math.PI * 2);
+    ctx.fillStyle = cg; ctx.fill();
+
+    // Brillo final
+    if (p > 0.92) {
+      var sparkA = (p - .92) / .08;
+      ctx.save();
+      for (var s = 0; s < 8; s++) {
+        var sa = (s / 8) * Math.PI * 2 + t;
+        var sd = 75 + 15 * Math.sin(t * 3 + s);
+        ctx.beginPath();
+        ctx.arc(cx + Math.cos(sa) * sd, cy + Math.sin(sa) * sd, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,200,100,' + sparkA * .8 + ')';
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+
+  // ── VELA ────────────────────────────────────────────────
+  function drawCandle(ctx, W, H, cx, cy, p) {
+    var t = Date.now() / 1000;
+    var maxH = 100, minH = 10;
+    var candleH = maxH - (maxH - minH) * p;
+    var candleW = 28;
+    var baseY = cy + 55;
+    var topY = baseY - candleH;
+
+    // Fondo cálido sutil
+    var bg = ctx.createRadialGradient(cx, baseY - candleH / 2, 5, cx, baseY - candleH / 2, 90);
+    bg.addColorStop(0, 'rgba(255,220,150,.1)');
+    bg.addColorStop(1, 'rgba(255,220,150,0)');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+    // Cera derramada (base)
+    ctx.beginPath();
+    ctx.ellipse(cx, baseY, candleW / 2 + 4, 5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(240,225,200,.6)'; ctx.fill();
+
+    // Cuerpo vela
+    var wg = ctx.createLinearGradient(cx - candleW/2, 0, cx + candleW/2, 0);
+    wg.addColorStop(0, '#e8ddd0');
+    wg.addColorStop(0.35, '#f5efe6');
+    wg.addColorStop(1, '#d4c9b8');
+    ctx.fillStyle = wg;
+    ctx.beginPath();
+    ctx.roundRect(cx - candleW/2, topY, candleW, candleH, [4, 4, 0, 0]);
+    ctx.fill();
+
+    // Líneas textura cera
+    ctx.strokeStyle = 'rgba(180,160,130,.25)'; ctx.lineWidth = 1;
+    for (var li = 1; li < 4; li++) {
+      var ly = topY + (candleH * li / 4);
+      ctx.beginPath(); ctx.moveTo(cx - candleW/2 + 3, ly); ctx.lineTo(cx + candleW/2 - 3, ly);
+      ctx.stroke();
+    }
+
+    // Mecha
+    if (!p || p < .98) {
+      ctx.strokeStyle = '#5a3a1a'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(cx, topY); ctx.lineTo(cx + 1, topY - 7); ctx.stroke();
+
+      // Llama
+      var sway = Math.sin(t * 3.5) * 2.5;
+      var flameH = 22 + Math.sin(t * 2.2) * 4;
+      var fg = ctx.createRadialGradient(cx + sway * .3, topY - 10, 1, cx + sway * .3, topY - flameH / 2, flameH / 1.5);
+      fg.addColorStop(0, 'rgba(255,255,200,.95)');
+      fg.addColorStop(0.4, 'rgba(255,160,50,.9)');
+      fg.addColorStop(1, 'rgba(255,80,20,0)');
+      ctx.fillStyle = fg;
+      ctx.beginPath();
+      ctx.moveTo(cx - 7 + sway, topY - 3);
+      ctx.bezierCurveTo(cx - 9 + sway, topY - flameH * .6, cx + sway * .5, topY - flameH * 1.1, cx + sway * .3, topY - flameH - 5);
+      ctx.bezierCurveTo(cx + sway, topY - flameH * 1.1, cx + 9 + sway, topY - flameH * .6, cx + 7 + sway, topY - 3);
+      ctx.closePath(); ctx.fill();
+
+      // Halo luz
+      var halo = ctx.createRadialGradient(cx + sway*.3, topY - flameH*.5, 2, cx + sway*.3, topY - flameH*.5, 38);
+      halo.addColorStop(0, 'rgba(255,200,80,.18)');
+      halo.addColorStop(1, 'rgba(255,200,80,0)');
+      ctx.fillStyle = halo; ctx.fillRect(cx - 40, topY - flameH - 30, 80, 80);
+    } else {
+      // Humo apagado
+      for (var si = 0; si < 3; si++) {
+        var st2 = (t * 1.2 + si * .4) % 1;
+        ctx.beginPath();
+        ctx.arc(cx + Math.sin(t + si) * 4, topY - 8 - st2 * 25, 2.5 * (1 - st2), 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(150,140,130,' + (.5 * (1 - st2)) + ')';
+        ctx.fill();
+      }
+    }
+  }
+
+  // ── TÉ ───────────────────────────────────────────────────
+  function drawTea(ctx, W, H, cx, cy, p) {
+    var t = Date.now() / 1000;
+    var cupW = 80, cupH = 56, cupY = cy + 16;
+
+    // Platillo
+    ctx.beginPath();
+    ctx.ellipse(cx, cupY + cupH + 4, cupW / 2 + 8, 7, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(200,185,165,.45)'; ctx.fill();
+
+    // Taza (forma trapezoidal)
+    ctx.beginPath();
+    ctx.moveTo(cx - cupW/2, cupY);
+    ctx.lineTo(cx - cupW/2 + 6, cupY + cupH);
+    ctx.lineTo(cx + cupW/2 - 6, cupY + cupH);
+    ctx.lineTo(cx + cupW/2, cupY);
+    ctx.closePath();
+    var cg2 = ctx.createLinearGradient(cx - cupW/2, 0, cx + cupW/2, 0);
+    cg2.addColorStop(0, '#e0d5c8');
+    cg2.addColorStop(0.4, '#f0e8de');
+    cg2.addColorStop(1, '#cfc4b4');
+    ctx.fillStyle = cg2; ctx.fill();
+    ctx.strokeStyle = 'rgba(160,140,120,.4)'; ctx.lineWidth = 1.5; ctx.stroke();
+
+    // Asa
+    ctx.beginPath();
+    ctx.arc(cx + cupW/2 + 4, cupY + cupH/2, 14, -Math.PI/2, Math.PI/2, false);
+    ctx.strokeStyle = '#d0c4b4'; ctx.lineWidth = 4; ctx.stroke();
+
+    // Té infusionado
+    var r1 = 130, g1 = 100, b1 = 60; // té oscuro
+    var r0 = 220, g0 = 210, b0 = 190; // agua clara
+    var tr = Math.round(r0 + (r1 - r0) * p), tg = Math.round(g0 + (g1 - g0) * p), tb = Math.round(b0 + (b1 - b0) * p);
+    ctx.beginPath();
+    ctx.moveTo(cx - cupW/2 + 4, cupY + 6);
+    ctx.lineTo(cx - cupW/2 + 4 + (cupW - 8) * .08, cupY + cupH - 2);
+    ctx.lineTo(cx + cupW/2 - 4 - (cupW - 8) * .08, cupY + cupH - 2);
+    ctx.lineTo(cx + cupW/2 - 4, cupY + 6);
+    ctx.fillStyle = 'rgba(' + tr + ',' + tg + ',' + tb + ',.82)'; ctx.fill();
+
+    // Bolsita de té
+    if (p < 0.9) {
+      var bx = cx + 8, by = cupY + 14 + p * 10;
+      ctx.strokeStyle = 'rgba(100,70,40,.5)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(bx, cupY + 2); ctx.lineTo(bx, by - 8); ctx.stroke();
+      ctx.fillStyle = 'rgba(120,80,40,.75)';
+      ctx.beginPath();
+      ctx.roundRect(bx - 8, by - 8, 16, 14, 3);
+      ctx.fill();
+    }
+
+    // Vapor
+    for (var vi = 0; vi < 3; vi++) {
+      var vt = (t * 0.7 + vi * 0.33) % 1;
+      var vx = cx - 16 + vi * 16;
+      var vy = cupY - 5 - vt * 32;
+      var va = .55 * (1 - vt) * Math.min(1, p * 2);
+      ctx.beginPath();
+      ctx.arc(vx + Math.sin(t * 1.5 + vi) * 4, vy, 3.5 * (1 - vt * .5), 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(200,200,200,' + va + ')'; ctx.fill();
+    }
+
+    // Corazón en la taza si está listo (p > .9)
+    if (p > .9) {
+      var ha = (p - .9) / .1;
+      ctx.save(); ctx.globalAlpha = ha;
+      ctx.fillStyle = 'rgba(220,100,120,.7)';
+      ctx.font = '11px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('♡', cx - 14, cupY + cupH / 2 + 4);
+      ctx.restore();
+    }
+  }
+
+  // ── CONSTELACIÓN ─────────────────────────────────────────
+  var CONSTELLATION_STARS = (function() {
+    // Estrellas predefinidas en coordenadas 0-1 (Osa Mayor simplificada)
+    var pts = [
+      [.38,.32],[.46,.28],[.55,.28],[.63,.24],
+      [.62,.36],[.54,.38],[.44,.40],[.35,.44],
+      [.72,.20],[.78,.30],[.68,.42]
+    ];
+    return pts;
+  })();
+
+  function drawStars(ctx, W, H, cx, cy, p) {
+    var t = Date.now() / 1000;
+    var total = CONSTELLATION_STARS.length;
+    var visibleCount = Math.ceil(p * total);
+
+    // Fondo cielo
+    var sky = ctx.createRadialGradient(cx, cy, 10, cx, cy, 110);
+    sky.addColorStop(0, 'rgba(20,15,45,.55)');
+    sky.addColorStop(1, 'rgba(10,5,30,.75)');
+    ctx.fillStyle = sky;
+    ctx.beginPath(); ctx.arc(cx, cy, 100, 0, Math.PI * 2); ctx.fill();
+
+    // Estrellas de fondo (estáticas pequeñas)
+    if (!focusAnimState.bgStars) {
+      focusAnimState.bgStars = [];
+      for (var b = 0; b < 35; b++) {
+        focusAnimState.bgStars.push({
+          x: 15 + Math.random() * 190,
+          y: 15 + Math.random() * 190,
+          r: .5 + Math.random() * 1,
+          phase: Math.random() * Math.PI * 2
+        });
+      }
+    }
+    focusAnimState.bgStars.forEach(function(s) {
+      var dist = Math.sqrt(Math.pow(s.x - cx, 2) + Math.pow(s.y - cy, 2));
+      if (dist > 98) return;
+      var a = .2 + .25 * Math.sin(t * .8 + s.phase);
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(220,220,255,' + a + ')'; ctx.fill();
+    });
+
+    // Líneas constelación
+    var lineOrder = [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[2,4],[5,8],[8,9],[9,10]];
+    lineOrder.forEach(function(pair, li) {
+      if (visibleCount <= pair[0] || visibleCount <= pair[1]) return;
+      var a1 = CONSTELLATION_STARS[pair[0]], a2 = CONSTELLATION_STARS[pair[1]];
+      ctx.beginPath();
+      ctx.moveTo(a1[0] * W, a1[1] * H);
+      ctx.lineTo(a2[0] * W, a2[1] * H);
+      ctx.strokeStyle = 'rgba(160,180,255,.25)'; ctx.lineWidth = .8; ctx.stroke();
+    });
+
+    // Estrellas de constelación
+    CONSTELLATION_STARS.forEach(function(s, i) {
+      if (i >= visibleCount) return;
+      var sx = s[0] * W, sy = s[1] * H;
+      var twinkle = .7 + .3 * Math.sin(t * 1.8 + i * 1.3);
+      var r = (i === visibleCount - 1 && p < 1) ? 5 + 2 * Math.sin(t * 4) : 4;
+      // Halo
+      var sg = ctx.createRadialGradient(sx, sy, 0, sx, sy, r * 3.5);
+      sg.addColorStop(0, 'rgba(200,210,255,' + (.4 * twinkle) + ')');
+      sg.addColorStop(1, 'rgba(200,210,255,0)');
+      ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(sx, sy, r * 3.5, 0, Math.PI * 2); ctx.fill();
+      // Núcleo
+      ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(240,245,255,' + twinkle + ')'; ctx.fill();
+    });
+
+    // Luna creciente si progreso > 70%
+    if (p > .7) {
+      var la = (p - .7) / .3;
+      ctx.save(); ctx.globalAlpha = la;
+      var mx = cx - 58, my = cy - 55;
+      ctx.beginPath(); ctx.arc(mx, my, 13, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,245,200,.9)'; ctx.fill();
+      ctx.beginPath(); ctx.arc(mx + 7, my - 2, 11, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(20,15,45,.95)'; ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // RAF loop para animar cuando no está corriendo
+  function startAnimLoop() {
+    if (focusAnimMode === 'ring') return;
+    cancelAnimationFrame(focusAnimRAF);
+    function loop() {
+      if (focusAnimMode === 'ring') return;
+      renderAnimFrame(focusSecondsLeft / focusTotalSeconds);
+      focusAnimRAF = requestAnimationFrame(loop);
+    }
+    focusAnimRAF = requestAnimationFrame(loop);
+  }
+
+  function stopAnimLoop() {
+    cancelAnimationFrame(focusAnimRAF);
+    focusAnimRAF = null;
   }
 
   function updateDurDisplay() {
@@ -30609,17 +31100,28 @@ function esc(str) {
       <div class="focus-task-label">¿En qué vas a enfocarte?</div>
       <input class="focus-task-input" id="focusTaskInput" placeholder="escribe tu tarea…" maxlength="60">
 
+      <div class="focus-anim-selector" id="focusAnimSelector">
+        <button class="focus-anim-btn active" data-anim="ring">⏱️ Clásico</button>
+        <button class="focus-anim-btn" data-anim="flower">🌸 Flor</button>
+        <button class="focus-anim-btn" data-anim="candle">🕯️ Vela</button>
+        <button class="focus-anim-btn" data-anim="tea">🍵 Té</button>
+        <button class="focus-anim-btn" data-anim="stars">✨ Constelación</button>
+      </div>
+
       <div class="focus-timer-ring" id="focusTimerRing">
         <svg class="focus-timer-svg" width="220" height="220" viewBox="0 0 220 220">
           <circle class="focus-timer-track" cx="110" cy="110" r="96"/>
           <circle class="focus-timer-prog" id="focusProgCircle" cx="110" cy="110" r="96"
             stroke-dasharray="${TOTAL_CIRC}" stroke-dashoffset="0"/>
         </svg>
-        <div class="focus-timer-text">
+        <canvas id="focusAnimCanvas" width="220" height="220" style="display:none"></canvas>
+        <div class="focus-timer-text" id="focusTimerText">
           <div class="focus-timer-digits" id="focusDigits">25:00</div>
           <div class="focus-timer-phase" id="focusPhase">listo</div>
         </div>
       </div>
+
+      <div class="focus-digits-toggle" id="focusDigitsToggle" style="display:none">👁 mostrar tiempo</div>
 
       <div class="focus-duration-row">
         <button class="focus-dur-btn" id="focusDurMinus">−</button>
@@ -30641,6 +31143,29 @@ function esc(str) {
 
     document.body.appendChild(focusOverlay);
 
+    // Wire animation selector
+    var animBtns = focusOverlay.querySelectorAll('.focus-anim-btn');
+    animBtns.forEach(function(btn) {
+      btn.onclick = function() {
+        animBtns.forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        setAnimMode(btn.dataset.anim);
+        if (focusAnimMode !== 'ring') startAnimLoop();
+        else stopAnimLoop();
+      };
+    });
+
+    // Wire digits toggle
+    var digToggle = document.getElementById('focusDigitsToggle');
+    if (digToggle) {
+      digToggle.onclick = function() {
+        focusShowDigits = !focusShowDigits;
+        var digitsEl = document.getElementById('focusDigits');
+        if (digitsEl) digitsEl.style.opacity = focusShowDigits ? '.8' : '0';
+        digToggle.textContent = focusShowDigits ? '👁 ocultar tiempo' : '👁 mostrar tiempo';
+      };
+    }
+
     // Wire events
     document.getElementById('focusCloseBtn').onclick = closeFocusMode;
 
@@ -30659,23 +31184,26 @@ function esc(str) {
         clearInterval(focusTimer);
         focusTimer = setInterval(tick, 1000);
         this.textContent = '⏸';
-        if (ph) ph.textContent = 'enfocada 🔥';
+        if (ph) ph.textContent = '';
         playBeep('start');
         var motEl = document.getElementById('focusMotivator');
         if (motEl) motEl.classList.remove('show');
+        if (focusAnimMode !== 'ring') startAnimLoop();
       } else {
         clearInterval(focusTimer);
         this.textContent = '▶';
-        if (ph) ph.textContent = 'pausado';
+        if (ph) ph.textContent = focusAnimMode === 'ring' ? 'pausado' : '';
+        stopAnimLoop();
       }
     };
 
     document.getElementById('focusResetBtn').onclick = function() {
       focusRunning = false; clearInterval(focusTimer);
+      stopAnimLoop();
       focusSecondsLeft = focusDuration * 60;
       focusTotalSeconds = focusDuration * 60;
       var ph = document.getElementById('focusPhase');
-      if (ph) ph.textContent = 'listo';
+      if (ph) ph.textContent = focusAnimMode === 'ring' ? 'listo' : '';
       var pb = document.getElementById('focusPlayBtn');
       if (pb) pb.textContent = '▶';
       var motEl = document.getElementById('focusMotivator');
@@ -30704,6 +31232,7 @@ function esc(str) {
 
   function closeFocusMode() {
     focusRunning = false; clearInterval(focusTimer);
+    stopAnimLoop();
     if (focusOverlay) {
       focusOverlay.style.animation = 'none';
       focusOverlay.style.opacity = '0';
@@ -30904,6 +31433,745 @@ document.createElement = function(tag) {
       }
     });
   });
+})();
+</script>
+
+<!-- ============================================================
+     SISTEMA DE STICKERS 🌸
+     Stickers flotantes y arrastrables por página
+============================================================ -->
+<style>
+  /* Panel de stickers */
+  .stk-fab {
+    position: fixed; bottom: 5.5rem; right: 1.1rem; z-index: 1200;
+    width: 42px; height: 42px; border-radius: 50%;
+    background: var(--rosa); border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; box-shadow: 0 3px 14px rgba(212,116,138,.45);
+    transition: transform .18s, box-shadow .18s; opacity: 0; pointer-events: none;
+  }
+  .stk-fab.visible { opacity: 1; pointer-events: all; }
+  .stk-fab:hover { transform: scale(1.1); box-shadow: 0 5px 20px rgba(212,116,138,.55); }
+
+  .stk-panel {
+    position: fixed; bottom: 9rem; right: 1.1rem; z-index: 1300;
+    width: 280px; background: var(--card);
+    border: 1.5px solid var(--border); border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.14);
+    padding: 1rem; display: none; flex-direction: column; gap: .75rem;
+    animation: fadeUp .22s ease both;
+  }
+  .stk-panel.open { display: flex; }
+  .stk-panel-title {
+    font-family: var(--font-title); font-style: italic;
+    font-size: .95rem; color: var(--rosa); text-align: center;
+  }
+  .stk-library {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: .4rem;
+    max-height: 180px; overflow-y: auto;
+  }
+  .stk-library::-webkit-scrollbar { width: 3px; }
+  .stk-library::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+  .stk-lib-item {
+    aspect-ratio: 1; border-radius: 10px; overflow: hidden;
+    border: 1.5px solid var(--border); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface); transition: all .15s; position: relative;
+  }
+  .stk-lib-item:hover { border-color: var(--rosa); transform: scale(1.07); }
+  .stk-lib-item img { width: 100%; height: 100%; object-fit: contain; }
+  .stk-lib-item .stk-lib-del {
+    display: none; position: absolute; top: -5px; right: -5px;
+    width: 16px; height: 16px; background: #e07; color: #fff;
+    border-radius: 50%; font-size: .55rem; align-items: center;
+    justify-content: center; cursor: pointer; z-index: 2;
+  }
+  .stk-lib-item:hover .stk-lib-del { display: flex; }
+  .stk-empty-lib {
+    grid-column: 1/-1; text-align: center; padding: 1rem;
+    font-size: .75rem; color: var(--muted); font-weight: 600;
+  }
+  .stk-upload-btn {
+    display: flex; align-items: center; justify-content: center; gap: .4rem;
+    background: var(--rosa-soft); border: 1.5px dashed var(--rosa);
+    border-radius: 12px; padding: .5rem; font-size: .78rem; font-weight: 800;
+    color: var(--rosa); cursor: pointer; font-family: var(--font-body);
+    transition: background .15s;
+  }
+  .stk-upload-btn:hover { background: var(--rosa); color: #fff; }
+  .stk-page-label {
+    font-size: .62rem; font-weight: 700; color: var(--muted2);
+    text-align: center; text-transform: uppercase; letter-spacing: .08em;
+  }
+  .stk-clear-btn {
+    background: none; border: 1px solid var(--border); border-radius: 10px;
+    padding: .3rem; font-size: .7rem; font-weight: 700; color: var(--muted);
+    cursor: pointer; font-family: var(--font-body); transition: all .15s;
+  }
+  .stk-clear-btn:hover { border-color: #e07; color: #e07; }
+
+  /* Sticker en página */
+  .stk-on-page {
+    position: absolute; cursor: grab; user-select: none; touch-action: none;
+    z-index: 900;
+  }
+  .stk-on-page:active { cursor: grabbing; }
+  .stk-on-page img {
+    width: 100%; height: 100%; object-fit: contain;
+    pointer-events: none; display: block;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,.18));
+  }
+  .stk-on-page.stk-selected {
+    outline: 2px solid var(--rosa); outline-offset: 3px; border-radius: 4px;
+  }
+  .stk-resize-handle {
+    position: absolute; bottom: -6px; right: -6px;
+    width: 14px; height: 14px; background: var(--rosa);
+    border-radius: 50%; cursor: nwse-resize; display: none;
+    border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.2);
+  }
+  .stk-on-page.stk-selected .stk-resize-handle { display: block; }
+  .stk-del-handle {
+    position: absolute; top: -8px; left: -8px;
+    width: 18px; height: 18px; background: #e07; color: #fff;
+    border-radius: 50%; font-size: .6rem; display: none;
+    align-items: center; justify-content: center;
+    cursor: pointer; border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,.2);
+  }
+  .stk-on-page.stk-selected .stk-del-handle { display: flex; }
+  .stk-rotate-handle {
+    position: absolute; top: -22px; left: 50%; transform: translateX(-50%);
+    width: 16px; height: 16px; background: #a78bfa; color: #fff;
+    border-radius: 50%; font-size: .6rem; display: none;
+    align-items: center; justify-content: center;
+    cursor: grab; border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,.2);
+  }
+  .stk-on-page.stk-selected .stk-rotate-handle { display: flex; }
+</style>
+
+<script>
+(function() {
+  // ── Páginas que tienen stickers habilitados ──────────────
+  var STICKER_PAGES = [
+    'page-journal','page-salud','page-diario','page-fe',
+    'page-calma','page-selfcare','page-intereses',
+    'page-inicio','page-semana','page-logros','page-habitos',
+    'page-rutinas','page-tareas','page-armario','page-recetario',
+    'page-braindump','page-biblioteca','page-personas','page-notas',
+    'page-finanzas','page-horario','page-historial'
+  ];
+
+  var STK_LIB_KEY  = 'stk_library';   // imágenes guardadas (globales)
+  var STK_PAGE_KEY = 'stk_page_';     // stickers en cada página
+
+  var _currentPage  = 'page-inicio';
+  var _panelOpen    = false;
+  var _library      = [];   // [{id, src}]
+  var _pageStickers = {};   // {pageId: [{id, libId, x, y, w, rot}]}
+
+  // ── Persistencia ────────────────────────────────────────
+  function loadLib() {
+    try { _library = JSON.parse(localStorage.getItem(STK_LIB_KEY) || '[]'); } catch(e) { _library = []; }
+  }
+  function saveLib() {
+    try { localStorage.setItem(STK_LIB_KEY, JSON.stringify(_library)); } catch(e) {}
+  }
+  function loadPageStk(pageId) {
+    if (_pageStickers[pageId]) return;
+    try { _pageStickers[pageId] = JSON.parse(localStorage.getItem(STK_PAGE_KEY + pageId) || '[]'); }
+    catch(e) { _pageStickers[pageId] = []; }
+  }
+  function savePageStk(pageId) {
+    try { localStorage.setItem(STK_PAGE_KEY + pageId, JSON.stringify(_pageStickers[pageId] || [])); } catch(e) {}
+  }
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+  // ── FAB y Panel ──────────────────────────────────────────
+  var fab   = document.createElement('button');
+  fab.className = 'stk-fab';
+  fab.title = 'Stickers';
+  fab.innerHTML = '🌸';
+  document.body.appendChild(fab);
+
+  var panel = document.createElement('div');
+  panel.className = 'stk-panel';
+  panel.innerHTML = [
+    '<div class="stk-panel-title">Mis Stickers</div>',
+    '<div class="stk-library" id="stkLibrary"></div>',
+    '<label class="stk-upload-btn">',
+      '📎 Subir sticker',
+      '<input type="file" accept="image/*" multiple style="display:none" id="stkUploadInput">',
+    '</label>',
+    '<div style="display:flex;gap:.4rem;align-items:center;justify-content:space-between">',
+      '<div class="stk-page-label" id="stkPageLabel"></div>',
+      '<button class="stk-clear-btn" id="stkClearPage">🗑 limpiar página</button>',
+    '</div>',
+  ].join('');
+  document.body.appendChild(panel);
+
+  fab.onclick = function(e) {
+    e.stopPropagation();
+    _panelOpen = !_panelOpen;
+    panel.classList.toggle('open', _panelOpen);
+    if (_panelOpen) renderLibrary();
+  };
+  document.addEventListener('click', function(e) {
+    if (_panelOpen && !panel.contains(e.target) && e.target !== fab) {
+      _panelOpen = false; panel.classList.remove('open');
+    }
+  });
+
+  document.getElementById('stkClearPage').onclick = function() {
+    if (!confirm('¿Quitar todos los stickers de esta página?')) return;
+    _pageStickers[_currentPage] = [];
+    savePageStk(_currentPage);
+    renderPageStickers(_currentPage);
+  };
+
+  // ── Upload ───────────────────────────────────────────────
+  document.getElementById('stkUploadInput').onchange = function(e) {
+    var files = Array.from(e.target.files);
+    var pending = files.length;
+    if (!pending) return;
+    loadLib();
+    files.forEach(function(file) {
+      var reader = new FileReader();
+      reader.onload = function(ev) {
+        _library.push({ id: uid(), src: ev.target.result });
+        pending--;
+        if (pending === 0) { saveLib(); renderLibrary(); }
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  };
+
+  // ── Library render ───────────────────────────────────────
+  function renderLibrary() {
+    loadLib();
+    var grid = document.getElementById('stkLibrary');
+    if (!grid) return;
+    grid.innerHTML = '';
+    if (!_library.length) {
+      grid.innerHTML = '<div class="stk-empty-lib">Sube tus primeros stickers 🌸</div>';
+      return;
+    }
+    _library.forEach(function(stk) {
+      var item = document.createElement('div');
+      item.className = 'stk-lib-item';
+      item.innerHTML = '<img src="' + stk.src + '" loading="lazy"><div class="stk-lib-del">✕</div>';
+      // Click = colocar en página
+      item.querySelector('img').onclick = function(e) {
+        e.stopPropagation();
+        placeSticker(stk.id, stk.src);
+      };
+      // Delete from library
+      item.querySelector('.stk-lib-del').onclick = function(e) {
+        e.stopPropagation();
+        if (!confirm('¿Eliminar este sticker de la biblioteca?')) return;
+        loadLib();
+        _library = _library.filter(function(s) { return s.id !== stk.id; });
+        saveLib();
+        renderLibrary();
+      };
+      grid.appendChild(item);
+    });
+  }
+
+  // ── Place sticker on page ────────────────────────────────
+  function placeSticker(libId, src) {
+    loadPageStk(_currentPage);
+    var pageEl = document.getElementById(_currentPage);
+    if (!pageEl) return;
+    var rect = pageEl.getBoundingClientRect();
+    var cx = window.scrollX + rect.left + rect.width  / 2 - 50;
+    var cy = window.scrollY + rect.top  + 80;
+    var entry = { id: uid(), libId: libId, src: src,
+                  x: cx - pageEl.getBoundingClientRect().left + pageEl.scrollLeft || 80,
+                  y: cy - pageEl.getBoundingClientRect().top  + 60 || 80,
+                  w: 80, rot: 0 };
+    _pageStickers[_currentPage].push(entry);
+    savePageStk(_currentPage);
+    mountSticker(_currentPage, entry);
+    _panelOpen = false; panel.classList.remove('open');
+  }
+
+  // ── Render all stickers for a page ──────────────────────
+  function renderPageStickers(pageId) {
+    // Remove existing sticker elements from this page
+    var pageEl = document.getElementById(pageId);
+    if (!pageEl) return;
+    pageEl.querySelectorAll('.stk-on-page').forEach(function(el) { el.remove(); });
+    loadPageStk(pageId);
+    (_pageStickers[pageId] || []).forEach(function(s) {
+      mountSticker(pageId, s);
+    });
+  }
+
+  // ── Mount a single sticker DOM element ──────────────────
+  function mountSticker(pageId, stkData) {
+    var pageEl = document.getElementById(pageId);
+    if (!pageEl) return;
+
+    // Ensure page is relatively positioned
+    var pos = window.getComputedStyle(pageEl).position;
+    if (pos === 'static') pageEl.style.position = 'relative';
+
+    var el = document.createElement('div');
+    el.className = 'stk-on-page';
+    el.dataset.stkId = stkData.id;
+    el.style.cssText = [
+      'left:' + stkData.x + 'px;',
+      'top:'  + stkData.y + 'px;',
+      'width:' + stkData.w + 'px;',
+      'height:' + stkData.w + 'px;',
+      'transform:rotate(' + (stkData.rot || 0) + 'deg);'
+    ].join('');
+    el.innerHTML = [
+      '<img src="' + stkData.src + '">',
+      '<div class="stk-del-handle">✕</div>',
+      '<div class="stk-resize-handle"></div>',
+      '<div class="stk-rotate-handle">↻</div>',
+    ].join('');
+
+    // ── Drag ──
+    makeDraggable(el, pageId, stkData);
+
+    // ── Select / deselect ──
+    el.addEventListener('pointerdown', function(e) {
+      if (e.target.classList.contains('stk-del-handle')) return;
+      if (e.target.classList.contains('stk-resize-handle')) return;
+      if (e.target.classList.contains('stk-rotate-handle')) return;
+      deselectAll();
+      el.classList.add('stk-selected');
+      e.stopPropagation();
+    });
+
+    // ── Delete ──
+    el.querySelector('.stk-del-handle').onclick = function(e) {
+      e.stopPropagation();
+      loadPageStk(pageId);
+      _pageStickers[pageId] = (_pageStickers[pageId] || []).filter(function(s) { return s.id !== stkData.id; });
+      savePageStk(pageId);
+      el.remove();
+    };
+
+    // ── Resize ──
+    makeResizable(el, pageId, stkData);
+
+    // ── Rotate ──
+    makeRotatable(el, pageId, stkData);
+
+    pageEl.appendChild(el);
+  }
+
+  function deselectAll() {
+    document.querySelectorAll('.stk-on-page.stk-selected').forEach(function(el) {
+      el.classList.remove('stk-selected');
+    });
+  }
+  document.addEventListener('pointerdown', function(e) {
+    if (!e.target.closest('.stk-on-page')) deselectAll();
+  });
+
+  // ── Drag logic ───────────────────────────────────────────
+  function makeDraggable(el, pageId, stkData) {
+    var startX, startY, startLeft, startTop, dragging = false;
+    el.addEventListener('pointerdown', function(e) {
+      if (e.target.classList.contains('stk-del-handle')) return;
+      if (e.target.classList.contains('stk-resize-handle')) return;
+      if (e.target.classList.contains('stk-rotate-handle')) return;
+      dragging = true;
+      startX = e.clientX; startY = e.clientY;
+      startLeft = parseInt(el.style.left) || 0;
+      startTop  = parseInt(el.style.top)  || 0;
+      el.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    el.addEventListener('pointermove', function(e) {
+      if (!dragging) return;
+      var dx = e.clientX - startX, dy = e.clientY - startY;
+      var nx = startLeft + dx, ny = startTop + dy;
+      el.style.left = nx + 'px'; el.style.top = ny + 'px';
+      stkData.x = nx; stkData.y = ny;
+    });
+    el.addEventListener('pointerup', function() {
+      if (!dragging) return;
+      dragging = false;
+      persistSticker(pageId, stkData);
+    });
+  }
+
+  // ── Resize logic ─────────────────────────────────────────
+  function makeResizable(el, pageId, stkData) {
+    var handle = el.querySelector('.stk-resize-handle');
+    var startX, startW, resizing = false;
+    handle.addEventListener('pointerdown', function(e) {
+      resizing = true;
+      startX = e.clientX; startW = stkData.w;
+      handle.setPointerCapture(e.pointerId);
+      e.stopPropagation(); e.preventDefault();
+    });
+    handle.addEventListener('pointermove', function(e) {
+      if (!resizing) return;
+      var w = Math.max(30, startW + (e.clientX - startX));
+      el.style.width = w + 'px'; el.style.height = w + 'px';
+      stkData.w = w;
+    });
+    handle.addEventListener('pointerup', function() {
+      if (!resizing) return;
+      resizing = false;
+      persistSticker(pageId, stkData);
+    });
+  }
+
+  // ── Rotate logic ─────────────────────────────────────────
+  function makeRotatable(el, pageId, stkData) {
+    var handle = el.querySelector('.stk-rotate-handle');
+    var startAngle, startRot, rotating = false;
+    handle.addEventListener('pointerdown', function(e) {
+      rotating = true;
+      var rect = el.getBoundingClientRect();
+      var cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+      startAngle = Math.atan2(e.clientY - cy, e.clientX - cx) * 180 / Math.PI;
+      startRot = stkData.rot || 0;
+      handle.setPointerCapture(e.pointerId);
+      e.stopPropagation(); e.preventDefault();
+    });
+    handle.addEventListener('pointermove', function(e) {
+      if (!rotating) return;
+      var rect = el.getBoundingClientRect();
+      var cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+      var angle = Math.atan2(e.clientY - cy, e.clientX - cx) * 180 / Math.PI;
+      stkData.rot = startRot + (angle - startAngle);
+      el.style.transform = 'rotate(' + stkData.rot + 'deg)';
+    });
+    handle.addEventListener('pointerup', function() {
+      if (!rotating) return;
+      rotating = false;
+      persistSticker(pageId, stkData);
+    });
+  }
+
+  // ── Persist single sticker update ───────────────────────
+  function persistSticker(pageId, stkData) {
+    loadPageStk(pageId);
+    var arr = _pageStickers[pageId] || [];
+    var idx = arr.findIndex ? arr.findIndex(function(s) { return s.id === stkData.id; })
+            : (function(){ for(var i=0;i<arr.length;i++){if(arr[i].id===stkData.id)return i;} return -1; })();
+    if (idx !== -1) arr[idx] = stkData;
+    savePageStk(pageId);
+  }
+
+  // ── Hook into showPage ───────────────────────────────────
+  var _origShowPageStk = window.showPage;
+  window.showPage = function(pageId) {
+    _origShowPageStk(pageId);
+    _currentPage = pageId;
+    var inList = STICKER_PAGES.indexOf(pageId) !== -1;
+    fab.classList.toggle('visible', inList);
+    // Label
+    var lbl = document.getElementById('stkPageLabel');
+    if (lbl) lbl.textContent = 'Página: ' + pageId.replace('page-','');
+    // Render stickers after page transition
+    setTimeout(function() { renderPageStickers(pageId); }, 200);
+  };
+
+  // ── Init: render stickers for the initial page ──────────
+  (function init() {
+    var startPage = 'page-inicio';
+    _currentPage = startPage;
+    if (STICKER_PAGES.indexOf(startPage) !== -1) {
+      fab.classList.add('visible');
+      setTimeout(function() { renderPageStickers(startPage); }, 400);
+    }
+    var lbl = document.getElementById('stkPageLabel');
+    if (lbl) lbl.textContent = 'Página: ' + startPage.replace('page-','');
+  })();
+
+})();
+</script>
+<!-- ============================================================
+     STICKERS POR ENTRADA (Diario / Journal)
+============================================================ -->
+<style>
+  /* Panel de stickers de entrada */
+  .stk-entry-panel {
+    position: fixed; bottom: 9rem; right: 1.1rem; z-index: 1400;
+    width: 280px; background: var(--card);
+    border: 1.5px solid var(--rosa); border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(212,116,138,.22);
+    padding: 1rem; display: none; flex-direction: column; gap: .75rem;
+    animation: fadeUp .22s ease both;
+  }
+  .stk-entry-panel.open { display: flex; }
+  .stk-entry-panel-title {
+    font-family: var(--font-title); font-style: italic;
+    font-size: .9rem; color: var(--rosa); text-align: center;
+  }
+  /* Sticker dentro de una entrada */
+  .stk-in-entry {
+    position: absolute; cursor: grab; user-select: none; touch-action: none;
+    z-index: 10;
+  }
+  .stk-in-entry:active { cursor: grabbing; }
+  .stk-in-entry img {
+    width: 100%; height: 100%; object-fit: contain;
+    pointer-events: none; display: block;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,.15));
+  }
+  .stk-in-entry.stk-selected { outline: 2px solid var(--rosa); outline-offset: 2px; border-radius: 4px; }
+  .stk-in-entry .stk-resize-handle,
+  .stk-in-entry .stk-del-handle,
+  .stk-in-entry .stk-rotate-handle { display: none; }
+  .stk-in-entry.stk-selected .stk-resize-handle,
+  .stk-in-entry.stk-selected .stk-del-handle,
+  .stk-in-entry.stk-selected .stk-rotate-handle { display: flex; }
+</style>
+
+<script>
+(function() {
+  var STK_ENTRY_KEY = 'stk_entry_';
+  var _entryPanel = null;
+  var _currentEntryId = null;
+  var _currentEntryContainer = null;
+
+  function loadEntryStk(entryId) {
+    try { return JSON.parse(localStorage.getItem(STK_ENTRY_KEY + entryId) || '[]'); } catch(e) { return []; }
+  }
+  function saveEntryStk(entryId, arr) {
+    try { localStorage.setItem(STK_ENTRY_KEY + entryId, JSON.stringify(arr)); } catch(e) {}
+  }
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+  // ── Crear panel una sola vez ─────────────────────────────
+  function ensurePanel() {
+    if (_entryPanel) return;
+    _entryPanel = document.createElement('div');
+    _entryPanel.className = 'stk-entry-panel';
+    _entryPanel.id = 'stkEntryPanel';
+    _entryPanel.innerHTML = [
+      '<div class="stk-entry-panel-title">🌸 Stickers de esta entrada</div>',
+      '<div class="stk-library" id="stkEntryLibrary"></div>',
+      '<label class="stk-upload-btn">',
+        '📎 Subir sticker',
+        '<input type="file" accept="image/*" multiple style="display:none" id="stkEntryUploadInput">',
+      '</label>',
+      '<button class="stk-clear-btn" id="stkEntryClear">🗑 limpiar stickers</button>',
+    ].join('');
+    document.body.appendChild(_entryPanel);
+
+    document.getElementById('stkEntryUploadInput').onchange = function(e) {
+      var files = Array.from(e.target.files);
+      if (!files.length) return;
+      // también añadir a la librería global
+      var lib = [];
+      try { lib = JSON.parse(localStorage.getItem('stk_library') || '[]'); } catch(err) {}
+      var pending = files.length;
+      files.forEach(function(file) {
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+          lib.push({ id: uid(), src: ev.target.result });
+          pending--;
+          if (pending === 0) {
+            try { localStorage.setItem('stk_library', JSON.stringify(lib)); } catch(err) {}
+            renderEntryLibrary();
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+      e.target.value = '';
+    };
+
+    document.getElementById('stkEntryClear').onclick = function() {
+      if (!_currentEntryId) return;
+      if (!confirm('¿Quitar todos los stickers de esta entrada?')) return;
+      saveEntryStk(_currentEntryId, []);
+      if (_currentEntryContainer) {
+        _currentEntryContainer.querySelectorAll('.stk-in-entry').forEach(function(el) { el.remove(); });
+        _currentEntryContainer.style.minHeight = '0';
+      }
+    };
+
+    // Cerrar al click fuera
+    document.addEventListener('click', function(e) {
+      if (_entryPanel && _entryPanel.classList.contains('open') &&
+          !_entryPanel.contains(e.target) &&
+          !e.target.closest('[onclick*="stkOpenForEntry"]')) {
+        _entryPanel.classList.remove('open');
+      }
+    });
+  }
+
+  function renderEntryLibrary() {
+    var grid = document.getElementById('stkEntryLibrary');
+    if (!grid) return;
+    var lib = [];
+    try { lib = JSON.parse(localStorage.getItem('stk_library') || '[]'); } catch(e) {}
+    grid.innerHTML = '';
+    if (!lib.length) {
+      grid.innerHTML = '<div class="stk-empty-lib">Sube tus primeros stickers 🌸</div>';
+      return;
+    }
+    lib.forEach(function(stk) {
+      var item = document.createElement('div');
+      item.className = 'stk-lib-item';
+      item.innerHTML = '<img src="' + stk.src + '" loading="lazy">';
+      item.querySelector('img').onclick = function(e) {
+        e.stopPropagation();
+        placeEntrySticker(stk.id, stk.src);
+      };
+      grid.appendChild(item);
+    });
+  }
+
+  function placeEntrySticker(libId, src) {
+    if (!_currentEntryId || !_currentEntryContainer) return;
+    var arr = loadEntryStk(_currentEntryId);
+    var entry = { id: uid(), libId: libId, src: src, x: 20 + arr.length * 10, y: 10, w: 70, rot: 0 };
+    arr.push(entry);
+    saveEntryStk(_currentEntryId, arr);
+    mountEntrySticker(_currentEntryId, _currentEntryContainer, entry);
+    _currentEntryContainer.style.minHeight = '80px';
+    _entryPanel.classList.remove('open');
+  }
+
+  // ── Render todos los stickers de una entrada ─────────────
+  window.stkRenderForEntry = function(entryId, container) {
+    if (!container) return;
+    container.querySelectorAll('.stk-in-entry').forEach(function(el) { el.remove(); });
+    var arr = loadEntryStk(entryId);
+    if (arr.length) container.style.minHeight = '80px';
+    arr.forEach(function(s) { mountEntrySticker(entryId, container, s); });
+  };
+
+  // ── Abrir panel para una entrada ─────────────────────────
+  window.stkOpenForEntry = function(entryId) {
+    ensurePanel();
+    _currentEntryId = entryId;
+    _currentEntryContainer = document.getElementById('diarioEntryViewStickers');
+    renderEntryLibrary();
+    _entryPanel.classList.toggle('open');
+  };
+
+  // ── Montar sticker en contenedor de entrada ───────────────
+  function mountEntrySticker(entryId, container, stkData) {
+    var pos = window.getComputedStyle(container).position;
+    if (pos === 'static') container.style.position = 'relative';
+
+    var el = document.createElement('div');
+    el.className = 'stk-in-entry';
+    el.dataset.stkId = stkData.id;
+    el.style.cssText = [
+      'left:' + stkData.x + 'px;',
+      'top:'  + stkData.y + 'px;',
+      'width:' + stkData.w + 'px;',
+      'height:' + stkData.w + 'px;',
+      'transform:rotate(' + (stkData.rot || 0) + 'deg);'
+    ].join('');
+    el.innerHTML = [
+      '<img src="' + stkData.src + '">',
+      '<div class="stk-del-handle">✕</div>',
+      '<div class="stk-resize-handle"></div>',
+      '<div class="stk-rotate-handle">↻</div>',
+    ].join('');
+
+    // Select
+    el.addEventListener('pointerdown', function(e) {
+      if (e.target.classList.contains('stk-del-handle')) return;
+      if (e.target.classList.contains('stk-resize-handle')) return;
+      if (e.target.classList.contains('stk-rotate-handle')) return;
+      container.querySelectorAll('.stk-in-entry').forEach(function(s) { s.classList.remove('stk-selected'); });
+      el.classList.add('stk-selected');
+      e.stopPropagation();
+    });
+
+    // Delete
+    el.querySelector('.stk-del-handle').onclick = function(e) {
+      e.stopPropagation();
+      var arr = loadEntryStk(entryId).filter(function(s) { return s.id !== stkData.id; });
+      saveEntryStk(entryId, arr);
+      el.remove();
+      if (!arr.length) container.style.minHeight = '0';
+    };
+
+    // Drag
+    var startX, startY, startL, startT, dragging = false;
+    el.addEventListener('pointerdown', function(e) {
+      if (e.target.classList.contains('stk-del-handle')) return;
+      if (e.target.classList.contains('stk-resize-handle')) return;
+      if (e.target.classList.contains('stk-rotate-handle')) return;
+      dragging = true;
+      startX = e.clientX; startY = e.clientY;
+      startL = parseInt(el.style.left) || 0;
+      startT = parseInt(el.style.top)  || 0;
+      el.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    el.addEventListener('pointermove', function(e) {
+      if (!dragging) return;
+      var nx = startL + (e.clientX - startX);
+      var ny = startT + (e.clientY - startY);
+      el.style.left = nx + 'px'; el.style.top = ny + 'px';
+      stkData.x = nx; stkData.y = ny;
+    });
+    el.addEventListener('pointerup', function() {
+      if (!dragging) return; dragging = false;
+      var arr = loadEntryStk(entryId);
+      var idx = arr.findIndex ? arr.findIndex(function(s){return s.id===stkData.id;}) : -1;
+      if (idx !== -1) { arr[idx] = stkData; saveEntryStk(entryId, arr); }
+    });
+
+    // Resize
+    var rHandle = el.querySelector('.stk-resize-handle');
+    var resizing = false, rStartX, rStartW;
+    rHandle.addEventListener('pointerdown', function(e) {
+      resizing = true; rStartX = e.clientX; rStartW = stkData.w;
+      rHandle.setPointerCapture(e.pointerId);
+      e.stopPropagation(); e.preventDefault();
+    });
+    rHandle.addEventListener('pointermove', function(e) {
+      if (!resizing) return;
+      var w = Math.max(30, rStartW + (e.clientX - rStartX));
+      el.style.width = w + 'px'; el.style.height = w + 'px'; stkData.w = w;
+    });
+    rHandle.addEventListener('pointerup', function() {
+      if (!resizing) return; resizing = false;
+      var arr = loadEntryStk(entryId);
+      var idx = arr.findIndex ? arr.findIndex(function(s){return s.id===stkData.id;}) : -1;
+      if (idx !== -1) { arr[idx] = stkData; saveEntryStk(entryId, arr); }
+    });
+
+    // Rotate
+    var rotHandle = el.querySelector('.stk-rotate-handle');
+    var rotating = false, rotStart, rotStartAngle;
+    rotHandle.addEventListener('pointerdown', function(e) {
+      rotating = true;
+      var rect = el.getBoundingClientRect();
+      rotStartAngle = Math.atan2(e.clientY - (rect.top + rect.height/2), e.clientX - (rect.left + rect.width/2)) * 180/Math.PI;
+      rotStart = stkData.rot || 0;
+      rotHandle.setPointerCapture(e.pointerId);
+      e.stopPropagation(); e.preventDefault();
+    });
+    rotHandle.addEventListener('pointermove', function(e) {
+      if (!rotating) return;
+      var rect = el.getBoundingClientRect();
+      var angle = Math.atan2(e.clientY - (rect.top + rect.height/2), e.clientX - (rect.left + rect.width/2)) * 180/Math.PI;
+      stkData.rot = rotStart + (angle - rotStartAngle);
+      el.style.transform = 'rotate(' + stkData.rot + 'deg)';
+    });
+    rotHandle.addEventListener('pointerup', function() {
+      if (!rotating) return; rotating = false;
+      var arr = loadEntryStk(entryId);
+      var idx = arr.findIndex ? arr.findIndex(function(s){return s.id===stkData.id;}) : -1;
+      if (idx !== -1) { arr[idx] = stkData; saveEntryStk(entryId, arr); }
+    });
+
+    container.appendChild(el);
+  }
+
 })();
 </script>
 </body>
