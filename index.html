@@ -5490,10 +5490,116 @@ function todayKey() { return dateKey(new Date()); }
   <div class="app-content" id="appContent">
 
 <!-- Cloud sync loader -->
-<div id="cloudLoader" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:var(--bg);align-items:center;justify-content:center;flex-direction:column;gap:.8rem;">
-  <div style="font-size:2.5rem;animation:pulse 1.5s infinite">🐱</div>
-  <div style="font-family:var(--font-body);font-size:.85rem;font-weight:700;color:var(--muted)">Sincronizando con la nube…</div>
+<style>
+  @keyframes yukiLoaderFadeIn  { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+  @keyframes yukiloaderPetal   { 0%,100%{transform:rotate(0deg) scale(1)} 50%{transform:rotate(18deg) scale(1.12)} }
+  @keyframes yukiloaderFloat   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  @keyframes yukiloaderBarFill { from{width:0%} to{width:90%} }
+  @keyframes yukiloaderDot     { 0%,80%,100%{transform:scale(0);opacity:.3} 40%{transform:scale(1);opacity:1} }
+
+  #cloudLoader {
+    position:fixed; inset:0; z-index:9999;
+    background:linear-gradient(160deg, var(--bg) 0%, var(--surface) 60%, var(--rosa-soft) 100%);
+    display:none; align-items:center; justify-content:center; flex-direction:column; gap:1.1rem;
+  }
+  .ykl-card {
+    background:var(--card); border:1.5px solid var(--border);
+    border-radius:28px; padding:2.2rem 2.6rem 2rem;
+    display:flex; flex-direction:column; align-items:center; gap:1rem;
+    box-shadow:0 12px 48px rgba(244,167,192,.18);
+    animation:yukiloaderFadeIn .5s cubic-bezier(.34,1.56,.64,1) both;
+    min-width:220px;
+  }
+  .ykl-emoji {
+    font-size:3rem; line-height:1;
+    animation:yukiloaderFloat 2.5s ease-in-out infinite;
+    display:block;
+  }
+  .ykl-title {
+    font-family:var(--font-title); font-style:italic;
+    font-size:1.2rem; color:var(--text); text-align:center; line-height:1.2;
+  }
+  .ykl-title em { color:var(--rosa); }
+  .ykl-bar-wrap {
+    width:160px; height:5px; background:var(--border);
+    border-radius:99px; overflow:hidden;
+  }
+  .ykl-bar-fill {
+    height:100%; border-radius:99px;
+    background:linear-gradient(90deg, var(--rosa), var(--verde));
+    animation:yukiloaderBarFill 2.8s cubic-bezier(.4,0,.2,1) forwards;
+  }
+  .ykl-dots { display:flex; gap:6px; }
+  .ykl-dot {
+    width:7px; height:7px; border-radius:50%; background:var(--rosa);
+    animation:yukiloaderDot 1.2s ease-in-out infinite;
+  }
+  .ykl-dot:nth-child(2) { animation-delay:.2s; }
+  .ykl-dot:nth-child(3) { animation-delay:.4s; }
+  .ykl-sub {
+    font-size:.68rem; font-weight:700; color:var(--muted2);
+    letter-spacing:.06em; text-transform:uppercase;
+  }
+  /* Petals floating in bg */
+  .ykl-petal {
+    position:absolute; font-size:1.2rem; pointer-events:none;
+    animation:yukiloaderPetal 3s ease-in-out infinite;
+    opacity:.35;
+  }
+</style>
+<div id="cloudLoader">
+  <span class="ykl-petal" style="top:12%;left:8%;animation-delay:.3s">🌸</span>
+  <span class="ykl-petal" style="top:20%;right:10%;animation-delay:.9s;font-size:.9rem">🌷</span>
+  <span class="ykl-petal" style="bottom:18%;left:12%;animation-delay:1.4s;font-size:.8rem">🪷</span>
+  <span class="ykl-petal" style="bottom:25%;right:8%;animation-delay:.6s">✨</span>
+  <div class="ykl-card">
+    <span class="ykl-emoji" id="yukiloaderEmoji">🌸</span>
+    <div class="ykl-title"><em>Yuki</em></div>
+    <div class="ykl-bar-wrap"><div class="ykl-bar-fill"></div></div>
+    <div class="ykl-dots">
+      <div class="ykl-dot"></div>
+      <div class="ykl-dot"></div>
+      <div class="ykl-dot"></div>
+    </div>
+    <div class="ykl-sub" id="yukiloaderMsg">Cargando tu espacio…</div>
+  </div>
 </div>
+<script>
+(function(){
+  var MSGS = ['Cargando tu espacio…','Sincronizando con la nube…','Preparando tu semana…','Casi lista…'];
+  var EMOJIS = ['🌸','🫧','🪷','💗','🌷','⭐','🦋','🌱'];
+  var mi = 0, ei = 0;
+  var _msgInt, _emojiInt;
+  function startLoaderAnim() {
+    _msgInt = setInterval(function(){
+      mi = (mi+1) % MSGS.length;
+      var el = document.getElementById('yukiloaderMsg');
+      if (el) el.textContent = MSGS[mi];
+    }, 900);
+    _emojiInt = setInterval(function(){
+      ei = (ei+1) % EMOJIS.length;
+      var el = document.getElementById('yukiloaderEmoji');
+      if (el) el.textContent = EMOJIS[ei];
+    }, 600);
+  }
+  function stopLoaderAnim() {
+    clearInterval(_msgInt); clearInterval(_emojiInt);
+  }
+  // Observe loader visibility to start/stop anim
+  var obs = new MutationObserver(function(muts){
+    muts.forEach(function(m){
+      if (m.target.id === 'cloudLoader') {
+        if (m.target.style.display !== 'none') startLoaderAnim();
+        else stopLoaderAnim();
+      }
+    });
+  });
+  document.addEventListener('DOMContentLoaded', function(){
+    var loader = document.getElementById('cloudLoader');
+    if (loader) obs.observe(loader, { attributes:true, attributeFilter:['style'] });
+  });
+})();
+</script>
 
 
 <div id="page-inicio" class="page-section active">
@@ -5918,6 +6024,19 @@ function todayKey() { return dateKey(new Date()); }
         gastos > 0 ? fmt(gastos) + ' gastados' : 'Sin movimientos',
         ingresos > 0 ? Math.min(100, Math.round((ingresos-gastos)/ingresos*100)) : null,
         'page-finanzas', accent
+      ));
+    })();
+
+    // ── Sakura Widget
+    (function(){
+      var sakura = parseInt(localStorage.getItem('yuki_sakura') || '0');
+      row.appendChild(makeWidget(
+        '🌸',
+        'Flores de sakura',
+        sakura.toLocaleString('es-MX'),
+        sakura === 0 ? 'Completa tareas para ganar' : (sakura === 1 ? '1 flor guardada' : sakura + ' flores guardadas'),
+        null,
+        'page-logros', 'var(--rosa)'
       ));
     })();
 
@@ -13787,6 +13906,57 @@ function renderCell(cell, slot, date) {
     editBtn.textContent = '✏️';
     editBtn.onclick = (e) => { e.stopPropagation(); openTaskModal(task.id); };
 
+    // Drag handle
+    const handle = document.createElement('span');
+    handle.className = 'pill-handle';
+    handle.textContent = '⠿';
+    handle.title = 'Arrastrar para ordenar';
+
+    pill.draggable = true;
+    pill.dataset.taskId = task.id;
+
+    pill.addEventListener('dragstart', (e) => {
+      pill.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', task.id);
+      window._dragSrcSlot = slot.id;
+      window._dragSrcDate = dk;
+    });
+    pill.addEventListener('dragend', () => {
+      pill.classList.remove('dragging');
+      cell.classList.remove('drag-over');
+      document.querySelectorAll('.task-pill').forEach(p => p.classList.remove('drag-over-pill'));
+    });
+    pill.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const dragging = cell.querySelector('.dragging');
+      if (!dragging || dragging === pill) return;
+      // Insert before or after based on mouse position
+      const rect = pill.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      if (e.clientY < midY) {
+        cell.insertBefore(dragging, pill);
+      } else {
+        cell.insertBefore(dragging, pill.nextSibling);
+      }
+    });
+    pill.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      // Reorder recurringTasks based on current DOM order
+      const newOrder = [...cell.querySelectorAll('.task-pill')].map(p => p.dataset.taskId).filter(Boolean);
+      // Build new order: extract these tasks, reinsert in new order
+      const slotTasks = recurringTasks.filter(t => t.slotId === slot.id && taskVisibleOnDate(t, date));
+      const otherTasks = recurringTasks.filter(t => !(t.slotId === slot.id && taskVisibleOnDate(t, date)));
+      const reordered = newOrder.map(id => slotTasks.find(t => t.id === id)).filter(Boolean);
+      // Add any tasks not in DOM (edge case)
+      slotTasks.forEach(t => { if (!reordered.find(r => r.id === t.id)) reordered.push(t); });
+      recurringTasks = [...otherTasks, ...reordered];
+      saveData();
+    });
+
+    pill.appendChild(handle);
     pill.appendChild(chk);
     pill.appendChild(txt);
     pill.appendChild(badge);
@@ -14499,6 +14669,48 @@ setInterval(function() {
       subs.forEach(function(sub, i) {
         var row = document.createElement('div');
         row.className = 'ykt-edit-row';
+        row.draggable = true;
+        row.dataset.idx = i;
+        row.style.cursor = 'default';
+
+        // Drag handle
+        var dragHnd = document.createElement('span');
+        dragHnd.textContent = '⠿';
+        dragHnd.style.cssText = 'font-size:.75rem;color:var(--muted2);cursor:grab;padding:0 2px;flex-shrink:0;opacity:.5;transition:opacity .15s;user-select:none';
+        dragHnd.onmouseenter = function(){ dragHnd.style.opacity='1'; };
+        dragHnd.onmouseleave = function(){ dragHnd.style.opacity='.5'; };
+
+        row.addEventListener('dragstart', function(e) {
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', i);
+          row.style.opacity = '.4';
+          window._yktDragIdx = i;
+        });
+        row.addEventListener('dragend', function() {
+          row.style.opacity = '1';
+          editList.querySelectorAll('.ykt-edit-row').forEach(function(r){ r.style.background=''; });
+        });
+        row.addEventListener('dragover', function(e) {
+          e.preventDefault();
+          var fromIdx = window._yktDragIdx;
+          if (fromIdx === i) return;
+          var rect = row.getBoundingClientRect();
+          var mid  = rect.top + rect.height / 2;
+          editList.querySelectorAll('.ykt-edit-row').forEach(function(r){ r.style.background=''; });
+          row.style.background = 'var(--rosa-soft)';
+          // Live reorder in subs array
+          var dragged = subs.splice(fromIdx, 1)[0];
+          var newIdx  = e.clientY < mid ? i : i + (fromIdx < i ? 0 : 0);
+          // simpler: use DOM position
+          var rows = [...editList.querySelectorAll('.ykt-edit-row')];
+          var targetIdx = rows.indexOf(row);
+          subs.splice(targetIdx, 0, dragged);
+          window._yktDragIdx = targetIdx;
+          renderEditRows(subs);
+          updateTotalLbl(subs);
+        });
+        row.addEventListener('drop', function(e){ e.preventDefault(); });
+
         var numLbl = document.createElement('span');
         numLbl.style.cssText = 'font-size:.65rem;font-weight:800;color:var(--muted2);min-width:14px';
         numLbl.textContent = (i+1)+'.';
@@ -14518,6 +14730,7 @@ setInterval(function() {
         del.className = 'ykt-edit-del';
         del.textContent = '✕';
         del.onclick = function(){ subs.splice(i,1); renderEditRows(subs); updateTotalLbl(subs); };
+        row.appendChild(dragHnd);
         row.appendChild(numLbl);
         row.appendChild(txt);
         row.appendChild(min);
@@ -26456,9 +26669,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     grid.innerHTML = items.map(function(it){
       var st = WSH_STATUSES.find(function(s){ return s.id===it.status; }) || WSH_STATUSES[0];
-      return '<div style="background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:.9rem 1rem;display:flex;flex-direction:column;gap:.45rem;position:relative;transition:box-shadow .2s" onmouseover="this.style.boxShadow=\'0 4px 16px rgba(0,0,0,.08)\'" onmouseout="this.style.boxShadow=\'\'">'+
+      // Detectar URL: campo url propio, o nota que sea una URL (items viejos)
+      var urlVal = it.url && it.url.trim() ? it.url.trim() : '';
+      if(!urlVal && it.nota && /^https?:\/\//i.test(it.nota.trim())) urlVal = it.nota.trim();
+      var hasUrl = !!urlVal;
+      var cardClick = hasUrl ? 'onclick="(function(e){if(e.target.tagName===\'BUTTON\'||e.target.tagName===\'SELECT\'||e.target.tagName===\'OPTION\')return;window.open(\''+urlVal.replace(/'/g,"\\'")+'\',' +"'_blank'"+');})(event)" style="cursor:pointer;' : 'style="';
+      return '<div '+cardClick+'background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:.9rem 1rem;display:flex;flex-direction:column;gap:.45rem;position:relative;transition:box-shadow .2s" onmouseover="this.style.boxShadow=\'0 4px 16px rgba(0,0,0,.08)\'" onmouseout="this.style.boxShadow=\'\'">'+
         // Delete btn
-        '<button onclick="wshEliminar(\''+it.id+'\')" style="position:absolute;top:.5rem;right:.5rem;background:none;border:none;color:transparent;font-size:.75rem;cursor:pointer;padding:.1rem .3rem;border-radius:6px;transition:color .15s" onmouseover="this.style.color=\'var(--rosa)\'" onmouseout="this.style.color=\'transparent\'" class="wsh-del-btn">✕</button>'+
+        '<button onclick="wshEliminar(\''+it.id+'\');event.stopPropagation()" style="position:absolute;top:.5rem;right:.5rem;background:none;border:none;color:transparent;font-size:.75rem;cursor:pointer;padding:.1rem .3rem;border-radius:6px;transition:color .15s" onmouseover="this.style.color=\'var(--rosa)\'" onmouseout="this.style.color=\'transparent\'" class="wsh-del-btn">✕</button>'+
         // Status badge
         '<span style="font-size:.6rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:.18rem .6rem;border-radius:20px;display:inline-block;width:fit-content;background:'+st.bg+';color:'+st.color+'">'+st.label+'</span>'+
         // Nombre
@@ -26470,10 +26688,12 @@ document.addEventListener('DOMContentLoaded', function() {
         '</div>'+
         // Precio manual
         (it.precio ? '<p style="font-size:.75rem;font-weight:700;color:var(--muted);margin:0">'+it.precio+'</p>' : '')+
-        // Nota
-        (it.nota ? '<p style="font-size:.7rem;color:var(--muted2);font-weight:600;margin:0;line-height:1.4;font-style:italic">'+it.nota+'</p>' : '')+
+        // Indicador de link (si hay)
+        (hasUrl ? '<span style="font-size:.65rem;color:var(--muted2);font-weight:600;margin:0">🔗 Ver producto</span>' : '')+
+        // Nota (no mostrar si era la URL detectada del campo nota)
+        (it.nota && it.nota !== urlVal ? '<p style="font-size:.7rem;color:var(--muted2);font-weight:600;margin:0;line-height:1.4;font-style:italic">'+it.nota+'</p>' : '')+
         // Cambiar estado
-        '<select onchange="wshCambiarStatus(\''+it.id+'\',this.value)" style="font-size:.68rem;font-weight:700;font-family:var(--font-body);color:var(--muted);border:1.5px solid var(--border);border-radius:8px;padding:.2rem .4rem;background:var(--surface);cursor:pointer;outline:none;margin-top:.2rem">'+
+        '<select onchange="wshCambiarStatus(\''+it.id+'\',this.value);event.stopPropagation()" style="font-size:.68rem;font-weight:700;font-family:var(--font-body);color:var(--muted);border:1.5px solid var(--border);border-radius:8px;padding:.2rem .4rem;background:var(--surface);cursor:pointer;outline:none;margin-top:.2rem">'+
           WSH_STATUSES.map(function(s){ return '<option value="'+s.id+'"'+(it.status===s.id?' selected':'')+'>'+s.label+'</option>'; }).join('')+
         '</select>'+
       '</div>';
@@ -26535,8 +26755,11 @@ document.addEventListener('DOMContentLoaded', function() {
         WSH_STATUSES.map(function(s){ return '<option value="'+s.id+'">'+s.label+'</option>'; }).join('')+
       '</select>'+
 
+      '<label style="font-size:.7rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.07em">Link / URL (opcional)</label>'+
+      '<input id="wshUrl" type="url" placeholder="https://www.tienda.com/producto…" style="width:100%;box-sizing:border-box;margin:.3rem 0 .9rem;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:.6rem .8rem;font-family:var(--font-body);font-size:.84rem;color:var(--text);outline:none">'+
+
       '<label style="font-size:.7rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.07em">Nota (opcional)</label>'+
-      '<textarea id="wshNota" placeholder="Link, color, talla, tienda…" rows="2" style="width:100%;box-sizing:border-box;margin:.3rem 0 1.1rem;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:.6rem .8rem;font-family:var(--font-body);font-size:.84rem;color:var(--text);outline:none;resize:vertical"></textarea>'+
+      '<textarea id="wshNota" placeholder="Color, talla, tienda, detalles…" rows="2" style="width:100%;box-sizing:border-box;margin:.3rem 0 1.1rem;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:.6rem .8rem;font-family:var(--font-body);font-size:.84rem;color:var(--text);outline:none;resize:vertical"></textarea>'+
 
       '<div style="display:flex;gap:.6rem">'+
         '<button onclick="wshGuardar()" style="flex:1;padding:.65rem;border-radius:12px;border:none;background:var(--rosa);color:#fff;font-family:var(--font-body);font-size:.84rem;font-weight:800;cursor:pointer">Guardar ✨</button>'+
@@ -26571,6 +26794,7 @@ document.addEventListener('DOMContentLoaded', function() {
       precio: (document.getElementById('wshPrecio').value||'').trim(),
       rango: rango,
       status: document.getElementById('wshStatusSel').value || 'por_comprar',
+      url: (document.getElementById('wshUrl').value||'').trim(),
       nota: (document.getElementById('wshNota').value||'').trim(),
     });
     wshSave();
