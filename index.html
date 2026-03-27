@@ -1211,6 +1211,24 @@ window.kittyConfirm = function(msg, onYes, onNo) {
     position: relative;
     min-height: 100vh;
   }
+
+  /* ── Imagen de fondo móvil ── */
+  #mobileBgLayer {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0.18;
+    transition: opacity .3s;
+  }
+  @media (max-width: 899px) {
+    #mobileBgLayer { display: block; }
+    #app-screen { position: relative; z-index: 1; }
+  }
   /* img columns stretch to match active page */
   .img-col {
     align-self: stretch;
@@ -5455,6 +5473,7 @@ function todayKey() { return dateKey(new Date()); }
 </div>
 
 <!-- APP SCREEN (hidden until login) -->
+<div id="mobileBgLayer"></div>
 <div id="app-screen">
 <!-- ══ HAMBURGER + DRAWER ══ -->
 <button class="back-btn" id="backBtn" aria-label="Regresar" onclick="yukiGoBack()">‹</button>
@@ -12655,6 +12674,360 @@ window.syncFromCloud = function() {
 })();
 </script>
 
+<!-- CÁPSULA DEL TIEMPO -->
+<style>
+  .capsula-section { max-width:860px;margin:2.5rem auto 0;padding:0 1rem 1rem;animation:fadeUp .5s .35s ease both;opacity:0;animation-fill-mode:both; }
+  .capsula-list { display:flex;flex-direction:column;gap:.75rem;margin-top:1rem; }
+  .capsula-card { background:var(--card);border:1.5px solid var(--border);border-radius:18px;padding:1.1rem 1.3rem;transition:all .18s;position:relative;overflow:hidden; }
+  .capsula-card.locked { background:linear-gradient(135deg,var(--card),var(--surface)); }
+  .capsula-card.unlocked { border-color:var(--rosa);cursor:pointer; }
+  .capsula-card.unlocked:hover { transform:translateY(-2px);box-shadow:0 4px 18px rgba(244,167,192,.2); }
+  .capsula-card-header { display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem; }
+  .capsula-card-title { font-family:var(--font-title);font-style:italic;font-size:.98rem;font-weight:700;color:var(--text); }
+  .capsula-card-date { font-size:.65rem;font-weight:700;color:var(--muted);flex-shrink:0;text-align:right; }
+  .capsula-card-preview { font-size:.78rem;color:var(--muted);font-weight:600;line-height:1.5;margin-top:.4rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
+  .capsula-lock-badge { display:inline-flex;align-items:center;gap:.3rem;background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:.2rem .6rem;font-size:.65rem;font-weight:700;color:var(--muted);margin-top:.5rem; }
+  .capsula-unlock-badge { display:inline-flex;align-items:center;gap:.3rem;background:var(--rosa);color:white;border-radius:20px;padding:.2rem .6rem;font-size:.65rem;font-weight:700;margin-top:.5rem; }
+  .capsula-type-badge { display:inline-flex;align-items:center;gap:.25rem;border-radius:20px;padding:.15rem .55rem;font-size:.6rem;font-weight:800;margin-right:.3rem;margin-top:.5rem; }
+  .capsula-type-audio { background:rgba(139,92,246,.15);color:#7c3aed; }
+  .capsula-type-logro { background:rgba(245,158,11,.12);color:#b45309; }
+  .capsula-type-pred { background:rgba(59,130,246,.12);color:#1d4ed8; }
+  .capsula-nueva-btn { display:inline-flex;align-items:center;gap:.5rem;background:var(--rosa);border:none;border-radius:20px;padding:.55rem 1.2rem;font-size:.82rem;font-weight:700;color:white;cursor:pointer;font-family:var(--font-body);margin-bottom:1rem;transition:opacity .15s; }
+  .capsula-nueva-btn:hover { opacity:.88; }
+  /* Modales cápsula */
+  .capsula-modal-backdrop { display:none;position:fixed;inset:0;background:rgba(244,167,192,.22);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:9100;align-items:flex-end;justify-content:center; }
+  .capsula-modal-backdrop.open { display:flex; }
+  .capsula-modal { background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:600px;max-height:92vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,1rem); }
+  .capsula-modal-header { display:flex;justify-content:space-between;align-items:center;padding:1.1rem 1.3rem .8rem;border-bottom:1px solid var(--border);font-family:var(--font-title);font-style:italic;font-size:1.05rem;font-weight:700; }
+  .capsula-modal-body { padding:1rem 1.3rem;display:flex;flex-direction:column;gap:.8rem; }
+  .capsula-modal-label { font-size:.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.25rem;display:block; }
+  .capsula-modal-input { width:100%;border:1.5px solid var(--border);border-radius:10px;padding:.5rem .7rem;font-family:var(--font-body);font-size:.88rem;color:var(--text);background:var(--surface);outline:none;box-sizing:border-box;font-weight:600;transition:border-color .2s; }
+  .capsula-modal-input:focus { border-color:var(--rosa); }
+  .capsula-modal-textarea { width:100%;border:1.5px solid var(--border);border-radius:10px;padding:.6rem .7rem;font-family:var(--font-body);font-size:.85rem;color:var(--text);background:var(--surface);outline:none;box-sizing:border-box;resize:none;min-height:120px;font-weight:600;line-height:1.6;transition:border-color .2s; }
+  .capsula-modal-textarea:focus { border-color:var(--rosa); }
+  .capsula-modal-footer { display:flex;justify-content:space-between;align-items:center;padding:.9rem 1.3rem;border-top:1px solid var(--border); }
+  .capsula-read-content { background:linear-gradient(135deg,var(--surface),var(--card));border:1.5px solid var(--border);border-radius:14px;padding:1.2rem;font-size:.88rem;color:var(--text);font-weight:600;line-height:1.8;white-space:pre-wrap;margin-top:.5rem;font-family:var(--font-body); }
+  /* Tabs tipo cápsula */
+  .capsula-tipo-tabs { display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.2rem; }
+  .capsula-tipo-tab { flex:1;min-width:0;border:1.5px solid var(--border);border-radius:14px;padding:.5rem .4rem;font-size:.7rem;font-weight:800;cursor:pointer;font-family:var(--font-body);background:var(--surface);color:var(--muted);transition:all .18s;text-align:center;white-space:nowrap; }
+  .capsula-tipo-tab.active { background:var(--rosa);color:white;border-color:var(--rosa); }
+  /* Audio recorder */
+  .capsula-audio-ui { display:flex;flex-direction:column;align-items:center;gap:.8rem;padding:.5rem 0; }
+  .capsula-rec-btn { width:64px;height:64px;border-radius:50%;border:none;cursor:pointer;font-size:1.5rem;display:flex;align-items:center;justify-content:center;transition:all .2s;background:var(--rosa);color:white;box-shadow:0 2px 12px rgba(244,167,192,.4); }
+  .capsula-rec-btn.recording { background:#e53e3e;animation:capsulaRecPulse 1s infinite; }
+  @keyframes capsulaRecPulse { 0%,100%{box-shadow:0 0 0 0 rgba(229,62,62,.4);} 50%{box-shadow:0 0 0 10px rgba(229,62,62,0);} }
+  .capsula-rec-timer { font-size:1.4rem;font-weight:800;font-family:var(--font-title);color:var(--text);letter-spacing:.05em; }
+  .capsula-rec-status { font-size:.72rem;font-weight:700;color:var(--muted); }
+  .capsula-audio-player { width:100%;border-radius:10px;margin-top:.3rem; }
+  /* Logros imágenes */
+  .capsula-img-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-top:.3rem; }
+  .capsula-img-thumb { aspect-ratio:1;border-radius:10px;object-fit:cover;width:100%;border:1.5px solid var(--border); }
+  .capsula-img-add { aspect-ratio:1;border-radius:10px;border:1.5px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:1.5rem;cursor:pointer;background:var(--surface);transition:border-color .18s; }
+  .capsula-img-add:hover { border-color:var(--rosa); }
+  /* Predicciones */
+  .capsula-pred-q { display:flex;flex-direction:column;gap:.25rem; }
+  .capsula-pred-label { font-size:.72rem;font-weight:800;color:var(--rosa);margin-bottom:.15rem; }
+  /* Read modal extras */
+  .capsula-read-audio { width:100%;border-radius:10px;margin:.5rem 0; }
+  .capsula-read-imgs { display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-top:.5rem; }
+  .capsula-read-img { width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1.5px solid var(--border); }
+  .capsula-pred-read-item { background:var(--surface);border-radius:12px;padding:.7rem 1rem;margin-top:.5rem; }
+  .capsula-pred-read-q { font-size:.67rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem; }
+  .capsula-pred-read-a { font-size:.88rem;font-weight:700;color:var(--text);line-height:1.5; }
+</style>
+<section class="capsula-section">
+  <span class="section-sub">⏳ cartas a mi yo futuro</span>
+  <h2 class="section-title"><em>Cápsula</em> del Tiempo</h2>
+  <p style="font-size:.78rem;color:var(--muted);font-weight:600;line-height:1.6;margin-bottom:.8rem">Escríbete una carta, graba tu voz, guarda momentos de luz o hazte predicciones — solo podrás abrirla cuando llegue la fecha 🔒</p>
+  <button class="capsula-nueva-btn" onclick="capsulaAbrirNueva()">✉️ Nueva cápsula</button>
+  <div class="capsula-list" id="capsulaList"></div>
+</section>
+
+<!-- Modal nueva cápsula -->
+<div class="capsula-modal-backdrop" id="capsulaNuevaBackdrop" onclick="if(event.target===this)capsulasCerrarNueva()">
+  <div class="capsula-modal">
+    <div class="capsula-modal-header">
+      <span id="capsulaNuevaTitle">Nueva cápsula ✉️</span>
+      <button onclick="capsulasCerrarNueva()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div class="capsula-modal-body">
+      <!-- Selector de tipo -->
+      <div>
+        <label class="capsula-modal-label">✨ Tipo de cápsula</label>
+        <div class="capsula-tipo-tabs">
+          <button class="capsula-tipo-tab active" onclick="capsulaSwitchTipo('carta')" id="tab-carta">✍️ Carta</button>
+          <button class="capsula-tipo-tab" onclick="capsulaSwitchTipo('audio')" id="tab-audio">🎙️ Audio</button>
+          <button class="capsula-tipo-tab" onclick="capsulaSwitchTipo('logro')" id="tab-logro">🌟 Logros</button>
+          <button class="capsula-tipo-tab" onclick="capsulaSwitchTipo('pred')" id="tab-pred">🔮 Predicciones</button>
+        </div>
+      </div>
+
+      <!-- Título (siempre visible) -->
+      <div><label class="capsula-modal-label">Título</label><input class="capsula-modal-input" id="capsulaTitulo" placeholder="Ej: Para mi yo de dentro de un año…"></div>
+
+      <!-- Panel: Carta -->
+      <div id="panel-carta">
+        <label class="capsula-modal-label">✍️ Tu carta</label>
+        <textarea class="capsula-modal-textarea" id="capsulaTexto" placeholder="Querida yo… ¿qué quieres contarle a tu yo futuro?"></textarea>
+      </div>
+
+      <!-- Panel: Audio -->
+      <div id="panel-audio" style="display:none">
+        <label class="capsula-modal-label">🎙️ Graba tu voz (máx. 30 s)</label>
+        <div class="capsula-audio-ui">
+          <div class="capsula-rec-timer" id="recTimer">00:00</div>
+          <button class="capsula-rec-btn" id="recBtn" onclick="capsulaToggleRec()">🎙️</button>
+          <div class="capsula-rec-status" id="recStatus">Pulsa para grabar</div>
+          <audio id="recPreview" class="capsula-audio-player" controls style="display:none"></audio>
+        </div>
+        <div style="font-size:.67rem;color:var(--muted);font-weight:600;margin-top:.2rem;text-align:center">Tu voz se guarda solo en este dispositivo 🔒</div>
+      </div>
+
+      <!-- Panel: Logros Invisibles -->
+      <div id="panel-logro" style="display:none">
+        <label class="capsula-modal-label">🌟 Momentos de luz — fotos, capturas, dibujos</label>
+        <div class="capsula-img-grid" id="logroGrid">
+          <div class="capsula-img-add" onclick="document.getElementById('logroInput').click()">+</div>
+        </div>
+        <input type="file" id="logroInput" accept="image/*" multiple style="display:none" onchange="capsulaAddImgs(this)">
+        <div style="font-size:.67rem;color:var(--muted);font-weight:600;margin-top:.4rem">Se abrirá automáticamente en 6 meses 🗓️</div>
+        <label class="capsula-modal-label" style="margin-top:.5rem">Nota opcional</label>
+        <textarea class="capsula-modal-textarea" id="logroNota" style="min-height:70px" placeholder="Ej: Este mes fue difícil pero también hubo momentos bonitos…"></textarea>
+      </div>
+
+      <!-- Panel: Predicciones -->
+      <div id="panel-pred" style="display:none">
+        <label class="capsula-modal-label">🔮 Responde estas 3 preguntas hoy</label>
+        <div style="display:flex;flex-direction:column;gap:.6rem">
+          <div class="capsula-pred-q">
+            <div class="capsula-pred-label">¿Quién es tu mejor amiga hoy?</div>
+            <input class="capsula-modal-input" id="predQ1" placeholder="Su nombre o cómo la describirías…">
+          </div>
+          <div class="capsula-pred-q">
+            <div class="capsula-pred-label">¿Qué te da miedo ahora mismo?</div>
+            <input class="capsula-modal-input" id="predQ2" placeholder="Sé honesta contigo misma…">
+          </div>
+          <div class="capsula-pred-q">
+            <div class="capsula-pred-label">¿Cuál es tu meta principal en este momento?</div>
+            <input class="capsula-modal-input" id="predQ3" placeholder="Lo que más quieres lograr…">
+          </div>
+        </div>
+        <div style="font-size:.67rem;color:var(--muted);font-weight:600;margin-top:.5rem">Cuando la cápsula se abra verás cómo han cambiado tus prioridades 🌱</div>
+      </div>
+
+      <!-- Fecha (siempre visible) -->
+      <div id="capsulaFechaWrap">
+        <label class="capsula-modal-label">📅 Revelar el</label>
+        <input class="capsula-modal-input" id="capsulaFecha" type="date">
+        <div style="font-size:.67rem;color:var(--muted);font-weight:600;margin-top:.3rem" id="capsulaFechaHint">No podrás leerla hasta esta fecha 🔒</div>
+      </div>
+    </div>
+    <div class="capsula-modal-footer">
+      <div></div>
+      <div style="display:flex;gap:.6rem">
+        <button onclick="capsulasCerrarNueva()" style="background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:.45rem 1.1rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:var(--muted)">Cancelar</button>
+        <button onclick="capsulaGuardar()" style="background:var(--rosa);border:none;border-radius:20px;padding:.45rem 1.2rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:white">Sellar 🔒</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal leer cápsula -->
+<div class="capsula-modal-backdrop" id="capsulaReadBackdrop" onclick="if(event.target===this)capsulasCerrarRead()">
+  <div class="capsula-modal">
+    <div class="capsula-modal-header">
+      <span id="capsulaReadTitle">Mi cápsula</span>
+      <button onclick="capsulasCerrarRead()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div class="capsula-modal-body">
+      <div style="text-align:center;padding:.5rem 0;font-size:.75rem;color:var(--muted);font-weight:600" id="capsulaReadMeta"></div>
+      <div id="capsulaReadBody"></div>
+    </div>
+    <div class="capsula-modal-footer">
+      <button id="capsulaReadDeleteBtn" onclick="capsulaEliminar()" style="background:none;border:none;color:#e07;font-size:.78rem;font-weight:700;cursor:pointer">🗑️ Eliminar</button>
+      <button onclick="capsulasCerrarRead()" style="background:var(--rosa);border:none;border-radius:20px;padding:.45rem 1.2rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:white;margin-left:auto">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var KEY='yuki_capsulas';var _capsulas=[];var _readId=null;
+  var _tipoActual='carta';
+  var _mediaRec=null;var _recChunks=[];var _recTimer=null;var _recSecs=0;var _audioB64=null;
+  var _logroImgs=[];
+  function load(){try{_capsulas=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){_capsulas=[];}}
+  function save(){localStorage.setItem(KEY,JSON.stringify(_capsulas));}
+  function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+  function fmtDate(d){if(!d)return '';var p=d.split('-');if(p.length<3)return d;var m=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return p[2]+' de '+m[parseInt(p[1],10)-1]+' de '+p[0];}
+  function isUnlocked(c){return !c.revelar||new Date().toISOString().slice(0,10)>=c.revelar;}
+  function tipoLabel(t){return {carta:'✍️ Carta',audio:'🎙️ Audio',logro:'🌟 Logros',pred:'🔮 Predicciones'}[t]||'✉️';}
+  function tipoClass(t){return {carta:'',audio:'capsula-type-audio',logro:'capsula-type-logro',pred:'capsula-type-pred'}[t]||'';}
+  function render(){
+    load();var list=document.getElementById('capsulaList');if(!list)return;
+    var sorted=_capsulas.slice().sort(function(a,b){return(a.revelar||'').localeCompare(b.revelar||'');});
+    if(!sorted.length){list.innerHTML='<div style="text-align:center;padding:2rem 1rem;color:var(--muted);font-size:.82rem;font-weight:600">✉️ Aún no hay cápsulas — ¡crea tu primera!</div>';return;}
+    list.innerHTML='';
+    sorted.forEach(function(c){
+      var unlocked=isUnlocked(c);
+      var card=document.createElement('div');card.className='capsula-card '+(unlocked?'unlocked':'locked');
+      var badge=unlocked?'<span class="capsula-unlock-badge">🔓 ¡Lista para abrir!</span>':'<span class="capsula-lock-badge">🔒 se revela el '+fmtDate(c.revelar)+'</span>';
+      var typeBadge='<span class="capsula-type-badge '+tipoClass(c.tipo)+'">'+tipoLabel(c.tipo)+'</span>';
+      var preview='';
+      if(c.tipo==='audio'){
+        preview=unlocked?'<div class="capsula-card-preview">🎙️ Audio guardado — escucha tu voz de entonces</div>':'<div class="capsula-card-preview" style="filter:blur(3.5px);user-select:none">🎙️ Audio sellado...</div>';
+      } else if(c.tipo==='logro'){
+        var n=c.imagenes?c.imagenes.length:0;
+        preview=unlocked?'<div class="capsula-card-preview">🌟 '+n+' momento'+(n!==1?'s':'')+' de luz guardado'+(n!==1?'s':'')+'</div>':'<div class="capsula-card-preview" style="filter:blur(3.5px);user-select:none">🌟 Momentos sellados...</div>';
+      } else if(c.tipo==='pred'){
+        preview=unlocked?'<div class="capsula-card-preview">🔮 Tus predicciones de entonces — ¿cuántas acertaste?</div>':'<div class="capsula-card-preview" style="filter:blur(3.5px);user-select:none">🔮 Predicciones selladas...</div>';
+      } else {
+        var txt=c.texto||'';
+        preview=unlocked?'<div class="capsula-card-preview">'+txt.slice(0,100)+'…</div>':'<div class="capsula-card-preview" style="filter:blur(3.5px);user-select:none">'+txt.slice(0,80)+'</div>';
+      }
+      card.innerHTML='<div class="capsula-card-header"><div><div class="capsula-card-title">'+(c.titulo||'Mi cápsula')+'</div>'+typeBadge+'</div><div class="capsula-card-date">Sellada el<br>'+fmtDate(c.creada)+'</div></div>'+preview+badge;
+      if(unlocked)card.onclick=function(){capsulaAbrirRead(c.id);};
+      list.appendChild(card);
+    });
+  }
+  // ── Switch tipo ──
+  window.capsulaSwitchTipo=function(tipo){
+    _tipoActual=tipo;
+    ['carta','audio','logro','pred'].forEach(function(t){
+      var p=document.getElementById('panel-'+t);if(p)p.style.display=t===tipo?'':'none';
+      var tab=document.getElementById('tab-'+t);if(tab)tab.classList.toggle('active',t===tipo);
+    });
+    if(tipo==='logro'){
+      var d=new Date();d.setMonth(d.getMonth()+6);
+      document.getElementById('capsulaFecha').value=d.toISOString().slice(0,10);
+      document.getElementById('capsulaFechaHint').textContent='Los logros invisibles se abren en 6 meses 🗓️';
+    } else {
+      document.getElementById('capsulaFechaHint').textContent='No podrás leerla hasta esta fecha 🔒';
+    }
+    if(tipo!=='audio') capsulaStopRec(true);
+  };
+  // ── Audio recorder ──
+  window.capsulaToggleRec=function(){
+    if(_mediaRec&&_mediaRec.state==='recording'){capsulaStopRec(false);return;}
+    if(_audioB64){_audioB64=null;var p2=document.getElementById('recPreview');if(p2){p2.style.display='none';p2.src='';}document.getElementById('recStatus').textContent='Pulsa para grabar de nuevo';}
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){document.getElementById('recStatus').textContent='Tu navegador no soporta grabación 😔';return;}
+    navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+      _recChunks=[];_recSecs=0;
+      _mediaRec=new MediaRecorder(stream);
+      _mediaRec.ondataavailable=function(e){if(e.data.size>0)_recChunks.push(e.data);};
+      _mediaRec.onstop=function(){
+        var blob=new Blob(_recChunks,{type:'audio/webm'});
+        var reader=new FileReader();
+        reader.onload=function(){_audioB64=reader.result;var prev=document.getElementById('recPreview');if(prev){prev.src=_audioB64;prev.style.display='block';}};
+        reader.readAsDataURL(blob);
+        stream.getTracks().forEach(function(t){t.stop();});
+      };
+      _mediaRec.start();
+      var btn=document.getElementById('recBtn');if(btn){btn.classList.add('recording');btn.textContent='⏹️';}
+      document.getElementById('recStatus').textContent='Grabando… (máx. 30 s)';
+      _recTimer=setInterval(function(){
+        _recSecs++;
+        var m=Math.floor(_recSecs/60);var s=_recSecs%60;
+        var t=document.getElementById('recTimer');if(t)t.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+        if(_recSecs>=30)capsulaStopRec(false);
+      },1000);
+    }).catch(function(){document.getElementById('recStatus').textContent='No se pudo acceder al micrófono 😔';});
+  };
+  function capsulaStopRec(silent){
+    if(_recTimer){clearInterval(_recTimer);_recTimer=null;}
+    if(_mediaRec&&_mediaRec.state==='recording')_mediaRec.stop();
+    _mediaRec=null;
+    var btn=document.getElementById('recBtn');if(btn){btn.classList.remove('recording');btn.textContent='🎙️';}
+    var st=document.getElementById('recStatus');if(st&&!silent)st.textContent='¡Grabado! Pulsa ▶ para escuchar';
+    if(silent){_audioB64=null;_recSecs=0;var t=document.getElementById('recTimer');if(t)t.textContent='00:00';var p=document.getElementById('recPreview');if(p){p.style.display='none';p.src='';}}
+  }
+  // ── Logro imágenes ──
+  window.capsulaAddImgs=function(input){
+    Array.from(input.files).forEach(function(file){
+      if(_logroImgs.length>=6)return;
+      var r=new FileReader();
+      r.onload=function(e){_logroImgs.push(e.target.result);renderLogroGrid();};
+      r.readAsDataURL(file);
+    });
+    input.value='';
+  };
+  function renderLogroGrid(){
+    var grid=document.getElementById('logroGrid');if(!grid)return;
+    grid.innerHTML='';
+    _logroImgs.forEach(function(src,i){
+      var img=document.createElement('img');img.className='capsula-img-thumb';img.src=src;
+      img.title='Toca para eliminar';img.onclick=function(){_logroImgs.splice(i,1);renderLogroGrid();};
+      grid.appendChild(img);
+    });
+    if(_logroImgs.length<6){var add=document.createElement('div');add.className='capsula-img-add';add.textContent='+';add.onclick=function(){document.getElementById('logroInput').click();};grid.appendChild(add);}
+  }
+  // ── Abrir modal nueva ──
+  window.capsulaAbrirNueva=function(){
+    document.getElementById('capsulaTitulo').value='';
+    document.getElementById('capsulaTexto').value='';
+    document.getElementById('logroNota').value='';
+    document.getElementById('predQ1').value='';document.getElementById('predQ2').value='';document.getElementById('predQ3').value='';
+    _logroImgs=[];renderLogroGrid();
+    _audioB64=null;_recSecs=0;
+    var t=document.getElementById('recTimer');if(t)t.textContent='00:00';
+    var p=document.getElementById('recPreview');if(p){p.style.display='none';p.src='';}
+    var s=document.getElementById('recStatus');if(s)s.textContent='Pulsa para grabar';
+    var d=new Date();d.setFullYear(d.getFullYear()+1);
+    document.getElementById('capsulaFecha').value=d.toISOString().slice(0,10);
+    capsulaSwitchTipo('carta');
+    document.getElementById('capsulaNuevaBackdrop').classList.add('open');
+  };
+  window.capsulasCerrarNueva=function(){capsulaStopRec(true);document.getElementById('capsulaNuevaBackdrop').classList.remove('open');};
+  // ── Guardar ──
+  window.capsulaGuardar=function(){
+    var titulo=document.getElementById('capsulaTitulo').value.trim()||'Mi cápsula';
+    var fecha=document.getElementById('capsulaFecha').value;
+    var obj={id:uid(),tipo:_tipoActual,titulo:titulo,revelar:fecha,creada:new Date().toISOString().slice(0,10)};
+    if(_tipoActual==='carta'){
+      var texto=document.getElementById('capsulaTexto').value.trim();
+      if(!texto){document.getElementById('capsulaTexto').focus();return;}
+      obj.texto=texto;
+    } else if(_tipoActual==='audio'){
+      if(!_audioB64){document.getElementById('recStatus').textContent='Graba un audio primero 🎙️';return;}
+      obj.audio=_audioB64;
+    } else if(_tipoActual==='logro'){
+      if(!_logroImgs.length&&!document.getElementById('logroNota').value.trim()){document.getElementById('logroNota').focus();return;}
+      obj.imagenes=_logroImgs.slice();obj.texto=document.getElementById('logroNota').value.trim();
+    } else if(_tipoActual==='pred'){
+      var q1=document.getElementById('predQ1').value.trim();var q2=document.getElementById('predQ2').value.trim();var q3=document.getElementById('predQ3').value.trim();
+      if(!q1&&!q2&&!q3){document.getElementById('predQ1').focus();return;}
+      obj.predicciones=[q1,q2,q3];
+    }
+    load();_capsulas.push(obj);save();render();capsulaStopRec(true);capsulasCerrarNueva();
+  };
+  // ── Leer cápsula ──
+  window.capsulaAbrirRead=function(id){
+    load();_readId=id;var c=_capsulas.find(function(x){return x.id===id;});if(!c)return;
+    document.getElementById('capsulaReadTitle').textContent=c.titulo||'Mi cápsula';
+    document.getElementById('capsulaReadMeta').textContent='Sellada el '+fmtDate(c.creada)+(c.revelar?' · revelada el '+fmtDate(c.revelar):'');
+    var body=document.getElementById('capsulaReadBody');body.innerHTML='';
+    if(c.tipo==='audio'&&c.audio){
+      var aud=document.createElement('audio');aud.className='capsula-read-audio';aud.controls=true;aud.src=c.audio;body.appendChild(aud);
+      var hint=document.createElement('div');hint.style.cssText='font-size:.75rem;color:var(--muted);font-weight:600;text-align:center;margin-top:.4rem';hint.textContent='🎙️ Tu voz de hace un tiempo — escúchala con calma';body.appendChild(hint);
+    } else if(c.tipo==='logro'){
+      if(c.imagenes&&c.imagenes.length){var grid=document.createElement('div');grid.className='capsula-read-imgs';c.imagenes.forEach(function(src){var img=document.createElement('img');img.className='capsula-read-img';img.src=src;grid.appendChild(img);});body.appendChild(grid);}
+      if(c.texto){var note=document.createElement('div');note.className='capsula-read-content';note.style.marginTop='.7rem';note.textContent=c.texto;body.appendChild(note);}
+      var hint3=document.createElement('div');hint3.style.cssText='font-size:.72rem;color:var(--muted);font-weight:600;text-align:center;margin-top:.7rem';hint3.textContent='🌟 Aunque te sintieras estancada, hubo momentos de luz';body.appendChild(hint3);
+    } else if(c.tipo==='pred'&&c.predicciones){
+      var pregs=['¿Quién era tu mejor amiga?','¿Qué te daba miedo?','¿Cuál era tu meta principal?'];
+      c.predicciones.forEach(function(resp,i){var item=document.createElement('div');item.className='capsula-pred-read-item';item.innerHTML='<div class="capsula-pred-read-q">'+pregs[i]+'</div><div class="capsula-pred-read-a">'+(resp||'—')+'</div>';body.appendChild(item);});
+      var hint4=document.createElement('div');hint4.style.cssText='font-size:.72rem;color:var(--muted);font-weight:600;text-align:center;margin-top:.8rem';hint4.textContent='🌱 ¿Cuántas cosas han cambiado?';body.appendChild(hint4);
+    } else {
+      var cont=document.createElement('div');cont.className='capsula-read-content';cont.textContent=c.texto||'';body.appendChild(cont);
+    }
+    document.getElementById('capsulaReadBackdrop').classList.add('open');
+  };
+  window.capsulasCerrarRead=function(){document.getElementById('capsulaReadBackdrop').classList.remove('open');};
+  window.capsulaEliminar=function(){if(!_readId)return;load();_capsulas=_capsulas.filter(function(x){return x.id!==_readId;});save();render();capsulasCerrarRead();};
+  document.addEventListener('DOMContentLoaded',function(){load();render();});
+})();
+</script>
+
 </div><!-- end page-journal -->
 
 <!-- ══════════════════════════════════════════
@@ -13603,10 +13976,11 @@ window.syncFromCloud = function() {
   <button class="salud-tab active" id="saludTabRegistros"  onclick="saludShowTab('registros')">📋 Registros</button>
   <button class="salud-tab"        id="saludTabRutina"     onclick="saludShowTab('rutina')">⏰ Mis Horas</button>
   <button class="salud-tab"        id="saludTabEstadisticas" onclick="saludShowTab('estadisticas')">📈 Progreso</button>
+  <button class="salud-tab"        id="saludTabSuenos"     onclick="saludShowTab('suenos')">🌙 Sueños</button>
 </div>
 <script>
 window.saludShowTab = function(tab) {
-  ['registros','rutina','estadisticas'].forEach(function(t) {
+  ['registros','rutina','estadisticas','suenos'].forEach(function(t) {
     var el  = document.getElementById('saludTab' + t.charAt(0).toUpperCase() + t.slice(1) + '-content');
     var btn = document.getElementById('saludTab' + t.charAt(0).toUpperCase() + t.slice(1));
     if (el)  el.style.display = (t === tab) ? '' : 'none';
@@ -17153,6 +17527,175 @@ renderTracker();
 </section>
 </div><!-- end saludTabEstadisticas-content -->
 
+<!-- TAB: Sueños -->
+<div id="saludTabSuenos-content" style="display:none">
+<style>
+  .suenos-wrap { max-width:860px;margin:1.5rem auto 0;padding:0 1rem 4rem; }
+  .suenos-search-wrap { position:relative;margin-bottom:1rem; }
+  .suenos-search { width:100%;padding:.7rem 1rem .7rem 2.6rem;border:1.5px solid var(--border);border-radius:50px;font-family:var(--font-body);font-size:.88rem;font-weight:600;color:var(--text);background:var(--card);outline:none;transition:border-color .2s;box-sizing:border-box; }
+  .suenos-search:focus { border-color:var(--rosa); }
+  .suenos-search-icon { position:absolute;left:.85rem;top:50%;transform:translateY(-50%);font-size:.95rem;pointer-events:none; }
+  .sueno-tags-row { display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1rem; }
+  .sueno-tag-filter { padding:.28rem .75rem;border-radius:20px;border:1.5px solid var(--border);font-size:.72rem;font-weight:700;color:var(--muted);background:var(--card);cursor:pointer;transition:all .15s; }
+  .sueno-tag-filter.active { background:var(--rosa);color:white;border-color:var(--rosa); }
+  .suenos-list { display:flex;flex-direction:column;gap:.7rem; }
+  .sueno-card { background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:1rem 1.2rem;cursor:pointer;transition:all .18s; }
+  .sueno-card:hover { border-color:var(--rosa);transform:translateY(-1px); }
+  .sueno-card-header { display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem;margin-bottom:.4rem; }
+  .sueno-card-title { font-family:var(--font-title);font-style:italic;font-size:.95rem;font-weight:700;color:var(--text); }
+  .sueno-card-date { font-size:.65rem;font-weight:700;color:var(--muted);flex-shrink:0; }
+  .sueno-card-preview { font-size:.78rem;color:var(--muted);font-weight:600;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
+  .sueno-card-footer { display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.55rem;align-items:center; }
+  .sueno-chip { padding:.18rem .5rem;border-radius:20px;font-size:.65rem;font-weight:800;border:1.5px solid;display:inline-flex;align-items:center;gap:.2rem; }
+  .sueno-chip-lucido     { color:#7c5cbf;border-color:#c9b8f0;background:#f3effe; }
+  .sueno-chip-pesadilla  { color:#c0392b;border-color:#f5b7b1;background:#fef5f4; }
+  .sueno-chip-recurrente { color:#1a7a4a;border-color:#a9dfbf;background:#eafaf1; }
+  .sueno-chip-normal     { color:var(--muted);border-color:var(--border);background:var(--surface); }
+  .sueno-add-fab-salud {
+    display:inline-flex;align-items:center;gap:.5rem;background:var(--rosa);border:none;
+    border-radius:20px;padding:.55rem 1.2rem;font-size:.82rem;font-weight:700;color:white;
+    cursor:pointer;font-family:var(--font-body);margin-bottom:1rem;transition:opacity .15s;
+  }
+  .sueno-add-fab-salud:hover { opacity:.88; }
+  /* Modal sueño */
+  .sueno-modal-backdrop { display:none;position:fixed;inset:0;background:rgba(244,167,192,.22);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:9100;align-items:center;justify-content:center;padding:1rem; }
+  .sueno-modal-backdrop.open { display:flex; }
+  .sueno-modal { background:var(--card);border-radius:22px;width:100%;max-width:520px;max-height:92vh;overflow-y:auto; }
+  .sueno-modal-header { display:flex;justify-content:space-between;align-items:center;padding:1.1rem 1.3rem .8rem;border-bottom:1px solid var(--border);font-family:var(--font-title);font-style:italic;font-size:1.05rem;font-weight:700; }
+  .sueno-modal-body { padding:1rem 1.3rem;display:flex;flex-direction:column;gap:.8rem; }
+  .sueno-modal-label { font-size:.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.25rem;display:block; }
+  .sueno-modal-input { width:100%;border:1.5px solid var(--border);border-radius:10px;padding:.5rem .7rem;font-family:var(--font-body);font-size:.88rem;color:var(--text);background:var(--surface);outline:none;box-sizing:border-box;font-weight:600;transition:border-color .2s; }
+  .sueno-modal-input:focus { border-color:var(--rosa); }
+  .sueno-modal-textarea { width:100%;border:1.5px solid var(--border);border-radius:10px;padding:.6rem .7rem;font-family:var(--font-body);font-size:.85rem;color:var(--text);background:var(--surface);outline:none;box-sizing:border-box;resize:none;min-height:120px;font-weight:600;line-height:1.6;transition:border-color .2s; }
+  .sueno-modal-textarea:focus { border-color:var(--rosa); }
+  .sueno-tags-select { display:flex;gap:.4rem;flex-wrap:wrap; }
+  .sueno-tag-btn { padding:.3rem .8rem;border-radius:20px;border:1.5px solid var(--border);font-size:.72rem;font-weight:700;color:var(--muted);background:var(--card);cursor:pointer;transition:all .15s; }
+  .sueno-tag-btn.sel-lucido    { background:#7c5cbf;color:white;border-color:#7c5cbf; }
+  .sueno-tag-btn.sel-pesadilla { background:#c0392b;color:white;border-color:#c0392b; }
+  .sueno-tag-btn.sel-recurrente{ background:#1a7a4a;color:white;border-color:#1a7a4a; }
+  .sueno-tag-btn.sel-normal    { background:var(--muted2);color:white;border-color:var(--muted2); }
+  .sueno-moods-row { display:flex;gap:.5rem;flex-wrap:wrap; }
+  .sueno-mood-btn { font-size:1.3rem;border:2px solid transparent;border-radius:50%;width:36px;height:36px;cursor:pointer;background:var(--surface);display:flex;align-items:center;justify-content:center;transition:all .15s; }
+  .sueno-mood-btn.active { border-color:var(--rosa);background:var(--card);transform:scale(1.15); }
+  .sueno-modal-footer { display:flex;justify-content:space-between;align-items:center;padding:.9rem 1.3rem;border-top:1px solid var(--border); }
+</style>
+<div class="suenos-wrap">
+  <span class="section-sub">🌙 mi mundo interior</span>
+  <h2 class="section-title" style="margin-bottom:1rem"><em>Diario</em> de Sueños</h2>
+  <button class="sueno-add-fab-salud" onclick="suenoAbrirModal(null)">🌙 Nuevo sueño</button>
+  <div class="suenos-search-wrap">
+    <span class="suenos-search-icon">🔍</span>
+    <input class="suenos-search" id="suenosSearch" placeholder="Buscar en mis sueños…" oninput="suenosRender()">
+  </div>
+  <div class="sueno-tags-row">
+    <button class="sueno-tag-filter active" data-tag="todos" onclick="suenosSetFilter(this,'todos')">Todos</button>
+    <button class="sueno-tag-filter" data-tag="lucido"    onclick="suenosSetFilter(this,'lucido')">✨ Lúcido</button>
+    <button class="sueno-tag-filter" data-tag="pesadilla" onclick="suenosSetFilter(this,'pesadilla')">😨 Pesadilla</button>
+    <button class="sueno-tag-filter" data-tag="recurrente" onclick="suenosSetFilter(this,'recurrente')">🔁 Recurrente</button>
+  </div>
+  <div class="suenos-list" id="suenosList"></div>
+</div>
+
+<!-- Modal sueño -->
+<div class="sueno-modal-backdrop" id="suenoModalBackdrop" onclick="if(event.target===this)suenosCerrarModal()">
+  <div class="sueno-modal">
+    <div class="sueno-modal-header">
+      <span id="suenoModalTitle">Nuevo sueño</span>
+      <button onclick="suenosCerrarModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div class="sueno-modal-body">
+      <div><label class="sueno-modal-label">Título</label><input class="sueno-modal-input" id="suenoTitulo" placeholder="¿Cómo llamarías este sueño?"></div>
+      <div><label class="sueno-modal-label">📅 Fecha</label><input class="sueno-modal-input" id="suenoFecha" type="date"></div>
+      <div><label class="sueno-modal-label">✍️ Descripción</label><textarea class="sueno-modal-textarea" id="suenoDesc" placeholder="Describe tu sueño con todos los detalles que recuerdes…"></textarea></div>
+      <div>
+        <label class="sueno-modal-label">🏷️ Tipo de sueño</label>
+        <div class="sueno-tags-select">
+          <button class="sueno-tag-btn" data-tag="normal"     onclick="suenoToggleTag(this)">Normal</button>
+          <button class="sueno-tag-btn" data-tag="lucido"     onclick="suenoToggleTag(this)">✨ Lúcido</button>
+          <button class="sueno-tag-btn" data-tag="pesadilla"  onclick="suenoToggleTag(this)">😨 Pesadilla</button>
+          <button class="sueno-tag-btn" data-tag="recurrente" onclick="suenoToggleTag(this)">🔁 Recurrente</button>
+        </div>
+      </div>
+      <div>
+        <label class="sueno-modal-label">😴 Estado de ánimo al despertar</label>
+        <div class="sueno-moods-row">
+          <button class="sueno-mood-btn" data-mood="😌" onclick="suenoSetMood(this)">😌</button>
+          <button class="sueno-mood-btn" data-mood="😊" onclick="suenoSetMood(this)">😊</button>
+          <button class="sueno-mood-btn" data-mood="😔" onclick="suenoSetMood(this)">😔</button>
+          <button class="sueno-mood-btn" data-mood="😰" onclick="suenoSetMood(this)">😰</button>
+          <button class="sueno-mood-btn" data-mood="😍" onclick="suenoSetMood(this)">😍</button>
+          <button class="sueno-mood-btn" data-mood="🤔" onclick="suenoSetMood(this)">🤔</button>
+          <button class="sueno-mood-btn" data-mood="😶" onclick="suenoSetMood(this)">😶</button>
+        </div>
+      </div>
+    </div>
+    <div class="sueno-modal-footer">
+      <button id="suenoDeleteBtn" onclick="suenoEliminar()" style="background:none;border:none;color:#e07;font-size:.78rem;font-weight:700;cursor:pointer;display:none">🗑️ Eliminar</button>
+      <div style="display:flex;gap:.6rem;margin-left:auto">
+        <button onclick="suenosCerrarModal()" style="background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:.45rem 1.1rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:var(--muted)">Cancelar</button>
+        <button onclick="suenoGuardar()" style="background:var(--rosa);border:none;border-radius:20px;padding:.45rem 1.2rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:white">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var KEY='yuki_suenos';var _suenos=[];var _editId=null;var _filterTag='todos';var _tagsTemp=[];var _moodTemp=null;
+  function load(){try{_suenos=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){_suenos=[];}}
+  function save(){localStorage.setItem(KEY,JSON.stringify(_suenos));}
+  function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+  function fmtDate(d){if(!d)return '';var p=d.split('-');if(p.length<3)return d;var m=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];return p[2]+' '+m[parseInt(p[1],10)-1]+' '+p[0];}
+  function chipHtml(tag){var map={lucido:'sueno-chip-lucido ✨ Lúcido',pesadilla:'sueno-chip-pesadilla 😨 Pesadilla',recurrente:'sueno-chip-recurrente 🔁 Recurrente',normal:'sueno-chip-normal Normal'};var v=(map[tag]||map.normal).split(' ');return '<span class="sueno-chip '+v[0]+'">'+v.slice(1).join(' ')+'</span>';}
+  window.suenosSetFilter=function(btn,tag){_filterTag=tag;document.querySelectorAll('.sueno-tag-filter').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');suenosRender();};
+  window.suenosRender=function(){
+    load();var list=document.getElementById('suenosList');if(!list)return;
+    var q=((document.getElementById('suenosSearch')||{}).value||'').toLowerCase();
+    var filtered=_suenos.filter(function(s){
+      if(_filterTag!=='todos'&&!(s.tags||[]).includes(_filterTag))return false;
+      if(q&&!(s.titulo||'').toLowerCase().includes(q)&&!(s.desc||'').toLowerCase().includes(q))return false;
+      return true;
+    }).sort(function(a,b){return(b.fecha||'').localeCompare(a.fecha||'');});
+    if(!filtered.length){list.innerHTML='<div style="text-align:center;padding:2.5rem 1rem;color:var(--muted);font-size:.82rem;font-weight:600">🌙 Aún no hay sueños registrados</div>';return;}
+    list.innerHTML='';
+    filtered.forEach(function(s){
+      var card=document.createElement('div');card.className='sueno-card';
+      var tags=(s.tags||[]).map(chipHtml).join('');
+      var mood=s.mood?'<span style="font-size:.85rem">'+s.mood+'</span>':'';
+      card.innerHTML='<div class="sueno-card-header"><div class="sueno-card-title">'+(s.titulo||'Sin título')+'</div><div class="sueno-card-date">'+fmtDate(s.fecha)+'</div></div><div class="sueno-card-preview">'+(s.desc||'')+'</div><div class="sueno-card-footer">'+tags+mood+'</div>';
+      card.onclick=function(){suenoAbrirModal(s.id);};
+      list.appendChild(card);
+    });
+  };
+  window.suenoToggleTag=function(btn){var tag=btn.dataset.tag;var cls='sel-'+tag;if(btn.classList.contains(cls)){btn.classList.remove(cls);_tagsTemp=_tagsTemp.filter(function(t){return t!==tag;});}else{btn.classList.add(cls);if(!_tagsTemp.includes(tag))_tagsTemp.push(tag);}};
+  window.suenoSetMood=function(btn){document.querySelectorAll('.sueno-mood-btn').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');_moodTemp=btn.dataset.mood;};
+  window.suenoAbrirModal=function(id){
+    load();_editId=id;_tagsTemp=[];_moodTemp=null;
+    var s=id?_suenos.find(function(x){return x.id===id;}):null;
+    document.getElementById('suenoModalTitle').textContent=s?'Editar sueño':'Nuevo sueño';
+    document.getElementById('suenoTitulo').value=s?(s.titulo||''):'';
+    document.getElementById('suenoFecha').value=s?(s.fecha||new Date().toISOString().slice(0,10)):new Date().toISOString().slice(0,10);
+    document.getElementById('suenoDesc').value=s?(s.desc||''):'';
+    _tagsTemp=s?(s.tags||[]).slice():[];_moodTemp=s?(s.mood||null):null;
+    document.getElementById('suenoDeleteBtn').style.display=s?'':'none';
+    document.querySelectorAll('.sueno-tag-btn').forEach(function(b){b.className='sueno-tag-btn';if(_tagsTemp.includes(b.dataset.tag))b.classList.add('sel-'+b.dataset.tag);});
+    document.querySelectorAll('.sueno-mood-btn').forEach(function(b){b.classList.toggle('active',b.dataset.mood===_moodTemp);});
+    document.getElementById('suenoModalBackdrop').classList.add('open');
+  };
+  window.suenosCerrarModal=function(){document.getElementById('suenoModalBackdrop').classList.remove('open');};
+  window.suenoGuardar=function(){
+    var titulo=document.getElementById('suenoTitulo').value.trim();
+    if(!titulo){document.getElementById('suenoTitulo').focus();return;}
+    load();
+    var obj={id:_editId||uid(),titulo:titulo,fecha:document.getElementById('suenoFecha').value,desc:document.getElementById('suenoDesc').value.trim(),tags:_tagsTemp.slice(),mood:_moodTemp};
+    if(_editId){var idx=_suenos.findIndex(function(x){return x.id===_editId;});if(idx>-1)_suenos[idx]=obj;}else _suenos.push(obj);
+    save();suenosRender();suenosCerrarModal();
+  };
+  window.suenoEliminar=function(){if(!_editId)return;load();_suenos=_suenos.filter(function(x){return x.id!==_editId;});save();suenosRender();suenosCerrarModal();};
+  document.addEventListener('DOMContentLoaded',function(){load();suenosRender();});
+})();
+</script>
+</div><!-- end saludTabSuenos-content -->
+
 <style>
   .rutina-horarios-section { max-width:780px; margin:0 auto; padding:1.2rem 1rem 3rem; }
   .rutina-h-header { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:.8rem; }
@@ -18060,6 +18603,856 @@ renderTracker();
   <button class="limpieza-add-area-btn" id="limpRutinaAddBtn">＋ Nueva rutina recurrente</button>
 </section>
 </div><!-- end page-limpieza -->
+<!-- ══════════════════════════════════════════
+     PÁGINA · ARMARIO 👗
+══════════════════════════════════════════ -->
+<div id="page-armario" class="page-section">
+<style>
+  .armario-section{max-width:860px;margin:2.5rem auto 0;padding:0 1rem 2rem;animation:fadeUp .5s .2s ease both;opacity:0;animation-fill-mode:both;}
+  /* Main tabs */
+  .armario-main-tabs{display:flex;gap:.4rem;margin-bottom:1.2rem;border-bottom:1.5px solid var(--border);padding-bottom:.6rem;}
+  .armario-main-tab{border:none;background:none;padding:.4rem .8rem;font-size:.8rem;font-weight:800;cursor:pointer;font-family:var(--font-body);color:var(--muted);border-radius:10px;transition:all .18s;}
+  .armario-main-tab.active{background:var(--rosa);color:white;}
+  /* Cat tabs */
+  .armario-cat-tabs{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1rem;margin-top:.5rem;}
+  .armario-cat-tab{border:1.5px solid var(--border);border-radius:20px;padding:.35rem .9rem;font-size:.75rem;font-weight:800;cursor:pointer;font-family:var(--font-body);background:var(--surface);color:var(--muted);transition:all .18s;white-space:nowrap;}
+  .armario-cat-tab.active{background:var(--rosa);color:white;border-color:var(--rosa);}
+  /* Vibe filter */
+  .armario-vibe-tabs{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.8rem;}
+  .armario-vibe-tab{border:1.5px solid var(--border);border-radius:20px;padding:.28rem .75rem;font-size:.7rem;font-weight:800;cursor:pointer;font-family:var(--font-body);background:var(--surface);color:var(--muted);transition:all .18s;}
+  .armario-vibe-tab.active{background:#a78bfa;color:white;border-color:#a78bfa;}
+  /* Grid prendas */
+  .armario-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:.75rem;margin-top:.5rem;}
+  .armario-prenda-card{background:var(--card);border:1.5px solid var(--border);border-radius:16px;overflow:hidden;position:relative;transition:all .18s;cursor:pointer;}
+  .armario-prenda-card:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.08);}
+  .armario-prenda-card.sucia{opacity:.5;filter:grayscale(.6);}
+  .armario-prenda-img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block;background:var(--surface);}
+  .armario-prenda-img-placeholder{width:100%;aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;font-size:2.5rem;background:linear-gradient(135deg,var(--surface),var(--card));}
+  .armario-prenda-info{padding:.45rem .55rem;}
+  .armario-prenda-nombre{font-size:.75rem;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .armario-prenda-color{font-size:.62rem;font-weight:600;color:var(--muted);}
+  .armario-prenda-vibes{display:flex;flex-wrap:wrap;gap:.2rem;margin-top:.25rem;}
+  .armario-prenda-vibe-dot{font-size:.55rem;background:var(--surface);border-radius:20px;padding:.1rem .35rem;color:var(--muted);font-weight:700;}
+  .armario-sucia-badge{position:absolute;top:.4rem;right:.4rem;background:#e07;color:white;border-radius:20px;padding:.15rem .45rem;font-size:.6rem;font-weight:800;}
+  .armario-add-btn{display:inline-flex;align-items:center;gap:.5rem;background:var(--rosa);border:none;border-radius:20px;padding:.5rem 1.1rem;font-size:.8rem;font-weight:700;color:white;cursor:pointer;font-family:var(--font-body);transition:opacity .15s;margin-bottom:.5rem;}
+  .armario-add-btn:hover{opacity:.88;}
+  /* Outfits */
+  .armario-outfits-section{margin-top:1.5rem;}
+  .armario-outfit-list{display:flex;flex-direction:column;gap:.7rem;margin-top:.7rem;}
+  .armario-outfit-card{background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:.9rem 1.1rem;transition:all .18s;cursor:pointer;}
+  .armario-outfit-card:hover{border-color:var(--rosa);transform:translateY(-1px);}
+  .armario-outfit-mood{font-size:.75rem;font-weight:800;color:var(--rosa);margin-bottom:.3rem;}
+  .armario-outfit-nombre{font-family:var(--font-title);font-style:italic;font-size:1rem;font-weight:700;color:var(--text);}
+  .armario-outfit-prendas{font-size:.72rem;color:var(--muted);font-weight:600;margin-top:.25rem;line-height:1.5;}
+  .armario-outfit-add-btn{display:inline-flex;align-items:center;gap:.4rem;border:1.5px dashed var(--border);border-radius:20px;padding:.4rem 1rem;font-size:.75rem;font-weight:700;color:var(--muted);cursor:pointer;background:none;font-family:var(--font-body);transition:all .18s;margin-top:.5rem;}
+  .armario-outfit-add-btn:hover{border-color:var(--rosa);color:var(--rosa);}
+  /* Canvas drag */
+  .armario-canvas-wrap{position:relative;width:100%;aspect-ratio:3/4;max-width:380px;margin:0 auto;background:linear-gradient(135deg,var(--surface),var(--card));border-radius:20px;border:1.5px solid var(--border);overflow:hidden;touch-action:none;}
+  .armario-canvas-bg-btns{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.6rem;}
+  .armario-canvas-bg-btn{border:1.5px solid var(--border);border-radius:20px;padding:.25rem .7rem;font-size:.7rem;font-weight:700;cursor:pointer;font-family:var(--font-body);background:var(--surface);color:var(--muted);transition:all .15s;}
+  .armario-canvas-bg-btn.active{border-color:var(--rosa);color:var(--rosa);}
+  .armario-sticker{position:absolute;cursor:grab;user-select:none;touch-action:none;}
+  .armario-sticker:active{cursor:grabbing;}
+  .armario-sticker img{width:100%;height:100%;object-fit:contain;border-radius:8px;display:block;}
+  .armario-sticker-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:3rem;border-radius:8px;background:rgba(255,255,255,.08);}
+  .armario-sticker-selected{outline:2px solid var(--rosa);outline-offset:2px;}
+  .armario-sticker-del{position:absolute;top:-8px;right:-8px;width:20px;height:20px;background:#e07;color:white;border-radius:50%;font-size:.65rem;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;display:none;}
+  .armario-sticker-selected .armario-sticker-del{display:flex;}
+  .armario-canvas-tray{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:.4rem;margin-top:.7rem;max-height:160px;overflow-y:auto;padding:.2rem;}
+  .armario-tray-item{border:1.5px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:all .15s;background:var(--surface);}
+  .armario-tray-item:hover{border-color:var(--rosa);}
+  .armario-tray-img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block;}
+  .armario-tray-ph{width:100%;aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;font-size:1.4rem;}
+  .armario-canvas-layer-btns{display:flex;gap:.4rem;margin-top:.5rem;flex-wrap:wrap;}
+  .armario-layer-btn{border:1.5px solid var(--border);border-radius:20px;padding:.28rem .75rem;font-size:.7rem;font-weight:700;cursor:pointer;font-family:var(--font-body);background:var(--surface);color:var(--muted);transition:all .15s;}
+  .armario-layer-btn:hover{border-color:var(--rosa);color:var(--rosa);}
+  /* OOTD */
+  .armario-ootd-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:.3rem;margin-top:.7rem;}
+  .armario-ootd-day-header{font-size:.6rem;font-weight:800;color:var(--muted);text-align:center;padding:.2rem 0;}
+  .armario-ootd-day{aspect-ratio:1;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.65rem;font-weight:700;color:var(--muted);transition:all .15s;position:relative;overflow:hidden;}
+  .armario-ootd-day:hover{border-color:var(--rosa);}
+  .armario-ootd-day.has-ootd{border-color:var(--rosa);}
+  .armario-ootd-day.today{background:rgba(244,167,192,.15);border-color:var(--rosa);font-weight:800;color:var(--rosa);}
+  .armario-ootd-day img{width:100%;height:100%;object-fit:cover;border-radius:8px;}
+  .armario-ootd-analysis{background:linear-gradient(135deg,var(--surface),var(--card));border:1.5px solid var(--border);border-radius:16px;padding:1rem 1.1rem;margin-top:1rem;}
+  .armario-ootd-stat{display:flex;justify-content:space-between;align-items:center;padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.78rem;}
+  .armario-ootd-stat:last-child{border-bottom:none;}
+  .armario-ootd-stat-label{color:var(--muted);font-weight:600;}
+  .armario-ootd-stat-val{font-weight:800;color:var(--text);}
+  /* Maleta */
+  .armario-maleta-list{display:flex;flex-direction:column;gap:.7rem;margin-top:.7rem;}
+  .armario-maleta-card{background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:.9rem 1.1rem;cursor:pointer;transition:all .18s;}
+  .armario-maleta-card:hover{border-color:var(--rosa);}
+  .armario-maleta-nombre{font-family:var(--font-title);font-style:italic;font-size:.98rem;font-weight:700;color:var(--text);}
+  .armario-maleta-meta{font-size:.68rem;color:var(--muted);font-weight:600;margin-top:.2rem;}
+  /* Clima banner */
+  .armario-clima-banner{background:linear-gradient(135deg,var(--surface),var(--card));border:1.5px solid var(--border);border-radius:14px;padding:.7rem 1rem;display:flex;align-items:center;gap:.7rem;margin-bottom:.8rem;}
+  .armario-clima-icon{font-size:1.8rem;}
+  .armario-clima-temp{font-size:1.1rem;font-weight:800;color:var(--text);}
+  .armario-clima-desc{font-size:.72rem;color:var(--muted);font-weight:600;}
+  /* Modales */
+  .armario-modal-backdrop{display:none;position:fixed;inset:0;background:rgba(244,167,192,.22);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:9200;align-items:flex-end;justify-content:center;}
+  .armario-modal-backdrop.open{display:flex;}
+  .armario-modal{background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:600px;max-height:92vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,1rem);}
+  .armario-modal-header{display:flex;justify-content:space-between;align-items:center;padding:1.1rem 1.3rem .8rem;border-bottom:1px solid var(--border);font-family:var(--font-title);font-style:italic;font-size:1.05rem;font-weight:700;}
+  .armario-modal-body{padding:1rem 1.3rem;display:flex;flex-direction:column;gap:.8rem;}
+  .armario-modal-label{font-size:.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.25rem;display:block;}
+  .armario-modal-input{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:.5rem .7rem;font-family:var(--font-body);font-size:.88rem;color:var(--text);background:var(--surface);outline:none;box-sizing:border-box;font-weight:600;transition:border-color .2s;}
+  .armario-modal-input:focus{border-color:var(--rosa);}
+  .armario-modal-footer{display:flex;justify-content:flex-end;gap:.6rem;padding:.9rem 1.3rem;border-top:1px solid var(--border);}
+  .armario-foto-preview{width:100%;aspect-ratio:3/4;max-width:160px;margin:0 auto;border-radius:14px;object-fit:cover;display:block;border:1.5px solid var(--border);}
+  .armario-foto-placeholder{width:100%;aspect-ratio:3/4;max-width:160px;margin:0 auto;border-radius:14px;border:2px dashed var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.4rem;cursor:pointer;background:var(--surface);font-size:.78rem;font-weight:700;color:var(--muted);transition:border-color .2s;}
+  .armario-foto-placeholder:hover{border-color:var(--rosa);}
+  .armario-prenda-selector{display:grid;grid-template-columns:repeat(auto-fill,minmax(75px,1fr));gap:.5rem;max-height:200px;overflow-y:auto;padding:.2rem;}
+  .armario-prenda-sel-item{border:1.5px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:all .15s;position:relative;}
+  .armario-prenda-sel-item.selected{border-color:var(--rosa);box-shadow:0 0 0 2px rgba(244,167,192,.3);}
+  .armario-prenda-sel-img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block;background:var(--surface);}
+  .armario-prenda-sel-ph{width:100%;aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;font-size:1.4rem;background:var(--surface);}
+  .armario-prenda-sel-nombre{font-size:.58rem;font-weight:700;color:var(--text);padding:.2rem .3rem;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .armario-prenda-sel-check{position:absolute;top:.2rem;right:.2rem;background:var(--rosa);color:white;border-radius:50%;width:16px;height:16px;font-size:.65rem;display:none;align-items:center;justify-content:center;}
+  .armario-prenda-sel-item.selected .armario-prenda-sel-check{display:flex;}
+  .armario-detail-img{width:100%;max-width:200px;margin:0 auto;border-radius:16px;object-fit:cover;display:block;border:1.5px solid var(--border);}
+  .armario-action-row{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.5rem;}
+  .armario-action-btn{flex:1;min-width:0;border:1.5px solid var(--border);border-radius:20px;padding:.45rem .8rem;font-size:.75rem;font-weight:700;cursor:pointer;font-family:var(--font-body);background:var(--surface);color:var(--text);transition:all .18s;text-align:center;}
+  .armario-action-btn:hover{border-color:var(--rosa);}
+  .armario-action-btn.danger{color:#e07;border-color:rgba(238,0,119,.2);}
+  .armario-action-btn.danger:hover{background:rgba(238,0,119,.06);}
+  .armario-mood-tags{display:flex;flex-wrap:wrap;gap:.4rem;}
+  .armario-mood-tag{border:1.5px solid var(--border);border-radius:20px;padding:.3rem .8rem;font-size:.75rem;font-weight:700;cursor:pointer;background:var(--surface);color:var(--muted);font-family:var(--font-body);transition:all .18s;}
+  .armario-mood-tag.selected{background:var(--rosa);color:white;border-color:var(--rosa);}
+  .armario-vibe-tags-sel{display:flex;flex-wrap:wrap;gap:.4rem;}
+  .armario-vibe-tag-sel{border:1.5px solid var(--border);border-radius:20px;padding:.28rem .75rem;font-size:.72rem;font-weight:700;cursor:pointer;background:var(--surface);color:var(--muted);font-family:var(--font-body);transition:all .18s;}
+  .armario-vibe-tag-sel.selected{background:#a78bfa;color:white;border-color:#a78bfa;}
+  /* Maleta detail */
+  .armario-maleta-day-row{display:flex;gap:.7rem;align-items:center;padding:.5rem 0;border-bottom:1px solid var(--border);}
+  .armario-maleta-day-row:last-child{border-bottom:none;}
+  .armario-maleta-day-label{font-size:.7rem;font-weight:800;color:var(--muted);min-width:60px;}
+</style>
+
+<section class="armario-section">
+  <span class="section-sub">👗 tu estilo sin estrés</span>
+  <h2 class="section-title"><em>Armario</em> de Emergencia</h2>
+
+  <!-- Main tabs -->
+  <div class="armario-main-tabs">
+    <button class="armario-main-tab active" onclick="armarioMainTab('prendas')" id="armTabPrendas">👗 Prendas</button>
+    <button class="armario-main-tab" onclick="armarioMainTab('outfits')" id="armTabOutfits">✨ Outfits</button>
+    <button class="armario-main-tab" onclick="armarioMainTab('canvas')" id="armTabCanvas">🎨 Canvas</button>
+    <button class="armario-main-tab" onclick="armarioMainTab('ootd')" id="armTabOotd">📅 OOTD</button>
+    <button class="armario-main-tab" onclick="armarioMainTab('maleta')" id="armTabMaleta">🧳 Maleta</button>
+  </div>
+
+  <!-- ── TAB PRENDAS ── -->
+  <div id="armPanelPrendas">
+    <!-- Clima banner -->
+    <div class="armario-clima-banner" id="armClimaBanner" style="display:none">
+      <div class="armario-clima-icon" id="armClimaIcon">🌤️</div>
+      <div>
+        <div class="armario-clima-temp" id="armClimaTemp">–°C</div>
+        <div class="armario-clima-desc" id="armClimaDesc">Cargando clima…</div>
+      </div>
+    </div>
+    <button class="armario-add-btn" onclick="armarioAbrirNuevaPrenda()">+ Añadir prenda</button>
+    <!-- Cat tabs -->
+    <div class="armario-cat-tabs">
+      <button class="armario-cat-tab active" onclick="armarioSetCat('todas')" id="armCatTodas">Todas</button>
+      <button class="armario-cat-tab" onclick="armarioSetCat('tops')" id="armCatTops">👚 Tops</button>
+      <button class="armario-cat-tab" onclick="armarioSetCat('pantalones')" id="armCatPantalones">👖 Pantalones</button>
+      <button class="armario-cat-tab" onclick="armarioSetCat('vestidos')" id="armCatVestidos">👗 Vestidos</button>
+      <button class="armario-cat-tab" onclick="armarioSetCat('zapatos')" id="armCatZapatos">👟 Zapatos</button>
+    </div>
+    <!-- Vibe filter -->
+    <div class="armario-vibe-tabs" id="armVibeFilter"></div>
+    <div class="armario-grid" id="armarioGrid"></div>
+  </div>
+
+  <!-- ── TAB OUTFITS ── -->
+  <div id="armPanelOutfits" style="display:none">
+    <div class="armario-outfits-section" style="margin-top:0">
+      <p style="font-size:.78rem;color:var(--muted);font-weight:600;margin-bottom:.6rem">Combinaciones listas para cada momento 🌸</p>
+      <div class="armario-outfit-list" id="armarioOutfitList"></div>
+      <button class="armario-outfit-add-btn" onclick="armarioAbrirNuevoOutfit()">+ Nuevo outfit</button>
+    </div>
+  </div>
+
+  <!-- ── TAB CANVAS ── -->
+  <div id="armPanelCanvas" style="display:none">
+    <p style="font-size:.78rem;color:var(--muted);font-weight:600;margin-bottom:.6rem">Arrastra las prendas para armar tu outfit visualmente 🎨</p>
+    <!-- Fondo canvas -->
+    <div class="armario-canvas-bg-btns" id="armCanvasBgBtns">
+      <button class="armario-canvas-bg-btn active" onclick="armarioSetBg('neutral')" id="armBgNeutral">☁️ Neutro</button>
+      <button class="armario-canvas-bg-btn" onclick="armarioSetBg('rosa')" id="armBgRosa">🌸 Rosa</button>
+      <button class="armario-canvas-bg-btn" onclick="armarioSetBg('oscuro')" id="armBgOscuro">🌙 Oscuro</button>
+      <button class="armario-canvas-bg-btn" onclick="armarioSetBg('crema')" id="armBgCrema">🧁 Crema</button>
+    </div>
+    <div class="armario-canvas-wrap" id="armCanvas"></div>
+    <!-- Layer controls -->
+    <div class="armario-canvas-layer-btns">
+      <button class="armario-layer-btn" onclick="armarioLayerUp()">⬆️ Subir capa</button>
+      <button class="armario-layer-btn" onclick="armarioLayerDown()">⬇️ Bajar capa</button>
+      <button class="armario-layer-btn" onclick="armarioCanvasClear()">🗑️ Limpiar</button>
+    </div>
+    <!-- Tray de prendas -->
+    <p style="font-size:.7rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin:.8rem 0 .3rem">Toca para añadir al canvas</p>
+    <div class="armario-canvas-tray" id="armCanvasTray"></div>
+  </div>
+
+  <!-- ── TAB OOTD ── -->
+  <div id="armPanelOotd" style="display:none">
+    <p style="font-size:.78rem;color:var(--muted);font-weight:600;margin-bottom:.5rem">Tu diario de looks — un look al día 📸</p>
+    <!-- Nav mes -->
+    <div style="display:flex;align-items:center;gap:.7rem;margin-bottom:.6rem">
+      <button onclick="armarioOotdMes(-1)" style="background:none;border:1.5px solid var(--border);border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center">‹</button>
+      <span style="font-weight:800;font-size:.88rem;color:var(--text);flex:1;text-align:center" id="armOotdMesLabel"></span>
+      <button onclick="armarioOotdMes(1)" style="background:none;border:1.5px solid var(--border);border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center">›</button>
+    </div>
+    <!-- Días semana -->
+    <div class="armario-ootd-cal" id="armOotdCal">
+      <div class="armario-ootd-day-header">Lu</div>
+      <div class="armario-ootd-day-header">Ma</div>
+      <div class="armario-ootd-day-header">Mi</div>
+      <div class="armario-ootd-day-header">Ju</div>
+      <div class="armario-ootd-day-header">Vi</div>
+      <div class="armario-ootd-day-header">Sa</div>
+      <div class="armario-ootd-day-header">Do</div>
+    </div>
+    <!-- Análisis -->
+    <div class="armario-ootd-analysis" id="armOotdAnalysis" style="display:none">
+      <p style="font-size:.78rem;font-weight:800;color:var(--text);margin-bottom:.5rem">📊 Análisis del mes</p>
+      <div id="armOotdStats"></div>
+    </div>
+  </div>
+
+  <!-- ── TAB MALETA ── -->
+  <div id="armPanelMaleta" style="display:none">
+    <p style="font-size:.78rem;color:var(--muted);font-weight:600;margin-bottom:.6rem">Planifica tu ropa para viajes — sin llevar de más 🧳</p>
+    <div class="armario-maleta-list" id="armMaletaList"></div>
+    <button class="armario-outfit-add-btn" onclick="armarioAbrirNuevaMaleta()">+ Nueva maleta</button>
+  </div>
+</section>
+
+<!-- Modal nueva prenda -->
+<div class="armario-modal-backdrop" id="armarioPrendaBackdrop" onclick="if(event.target===this)armarioCerrarPrenda()">
+  <div class="armario-modal">
+    <div class="armario-modal-header">
+      <span>Nueva prenda 👗</span>
+      <button onclick="armarioCerrarPrenda()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div class="armario-modal-body">
+      <div>
+        <label class="armario-modal-label">📸 Foto (opcional)</label>
+        <div id="armarioFotoPlaceholder" class="armario-foto-placeholder" onclick="document.getElementById('armarioFotoInput').click()">
+          <span style="font-size:2rem">📸</span><span>Toca para añadir</span>
+        </div>
+        <img id="armarioFotoPreview" class="armario-foto-preview" style="display:none" onclick="document.getElementById('armarioFotoInput').click()">
+        <input type="file" id="armarioFotoInput" accept="image/*" style="display:none" onchange="armarioFotoChanged(this)">
+      </div>
+      <div>
+        <label class="armario-modal-label">Nombre (opcional)</label>
+        <input class="armario-modal-input" id="armarioPrendaNombre" placeholder="Ej: Blusa blanca favorita">
+      </div>
+      <div>
+        <label class="armario-modal-label">Categoría</label>
+        <select class="armario-modal-input" id="armarioPrendaCat">
+          <option value="tops">👚 Tops / Blusas</option>
+          <option value="pantalones">👖 Pantalones / Faldas</option>
+          <option value="vestidos">👗 Vestidos</option>
+          <option value="zapatos">👟 Zapatos / Accesorios</option>
+        </select>
+      </div>
+      <div>
+        <label class="armario-modal-label">Color / nota (opcional)</label>
+        <input class="armario-modal-input" id="armarioPrendaColor" placeholder="Ej: azul marino, de algodón…">
+      </div>
+      <div>
+        <label class="armario-modal-label">✨ Vibes / energía</label>
+        <div class="armario-vibe-tags-sel" id="armPrendaVibesSel"></div>
+      </div>
+    </div>
+    <div class="armario-modal-footer">
+      <button onclick="armarioCerrarPrenda()" style="background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:.45rem 1.1rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:var(--muted)">Cancelar</button>
+      <button onclick="armarioGuardarPrenda()" style="background:var(--rosa);border:none;border-radius:20px;padding:.45rem 1.2rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:white">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal detalle prenda -->
+<div class="armario-modal-backdrop" id="armarioDetailBackdrop" onclick="if(event.target===this)armarioCerrarDetail()">
+  <div class="armario-modal">
+    <div class="armario-modal-header">
+      <span id="armarioDetailTitle">Prenda</span>
+      <button onclick="armarioCerrarDetail()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div class="armario-modal-body">
+      <img id="armarioDetailImg" class="armario-detail-img" style="display:none">
+      <div id="armarioDetailPh" style="display:none;font-size:4rem;text-align:center;padding:1rem 0"></div>
+      <div id="armarioDetailColor" style="font-size:.78rem;color:var(--muted);font-weight:600;text-align:center"></div>
+      <div id="armarioDetailVibes" style="display:flex;flex-wrap:wrap;gap:.3rem;justify-content:center;margin-top:.3rem"></div>
+      <div class="armario-action-row" id="armarioDetailActions"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal nuevo outfit -->
+<div class="armario-modal-backdrop" id="armarioOutfitBackdrop" onclick="if(event.target===this)armarioCerrarOutfit()">
+  <div class="armario-modal">
+    <div class="armario-modal-header">
+      <span>Nuevo outfit ✨</span>
+      <button onclick="armarioCerrarOutfit()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div class="armario-modal-body">
+      <div>
+        <label class="armario-modal-label">Nombre del outfit</label>
+        <input class="armario-modal-input" id="armarioOutfitNombre" placeholder="Ej: Look de examen segura">
+      </div>
+      <div>
+        <label class="armario-modal-label">🏷️ Mood / ocasión</label>
+        <div class="armario-mood-tags" id="armarioMoodTags"></div>
+        <input class="armario-modal-input" id="armarioMoodCustom" placeholder="O escribe un mood nuevo…" style="margin-top:.5rem">
+      </div>
+      <div>
+        <label class="armario-modal-label">👗 Selecciona prendas</label>
+        <div class="armario-prenda-selector" id="armarioPrendaSelector"></div>
+      </div>
+    </div>
+    <div class="armario-modal-footer">
+      <button onclick="armarioCerrarOutfit()" style="background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:.45rem 1.1rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:var(--muted)">Cancelar</button>
+      <button onclick="armarioGuardarOutfit()" style="background:var(--rosa);border:none;border-radius:20px;padding:.45rem 1.2rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:white">Guardar outfit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal OOTD día -->
+<div class="armario-modal-backdrop" id="armOotdDayBackdrop" onclick="if(event.target===this)armOotdCerrar()">
+  <div class="armario-modal">
+    <div class="armario-modal-header">
+      <span id="armOotdDayTitle">Look del día 📸</span>
+      <button onclick="armOotdCerrar()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div class="armario-modal-body">
+      <div>
+        <label class="armario-modal-label">📸 Foto de tu look</label>
+        <div id="armOotdFotoPlaceholder" class="armario-foto-placeholder" style="max-width:200px" onclick="document.getElementById('armOotdFotoInput').click()">
+          <span style="font-size:2rem">📸</span><span>Añadir foto</span>
+        </div>
+        <img id="armOotdFotoPreview" class="armario-foto-preview" style="display:none;max-width:200px" onclick="document.getElementById('armOotdFotoInput').click()">
+        <input type="file" id="armOotdFotoInput" accept="image/*" style="display:none" onchange="armOotdFotoChanged(this)">
+      </div>
+      <div>
+        <label class="armario-modal-label">Nota del día (opcional)</label>
+        <input class="armario-modal-input" id="armOotdNota" placeholder="Ej: Me sentí súper bien con este look">
+      </div>
+      <div id="armOotdDeleteWrap" style="display:none">
+        <button onclick="armOotdEliminar()" style="background:none;border:none;color:#e07;font-size:.78rem;font-weight:700;cursor:pointer">🗑️ Eliminar este look</button>
+      </div>
+    </div>
+    <div class="armario-modal-footer">
+      <button onclick="armOotdCerrar()" style="background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:.45rem 1.1rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:var(--muted)">Cancelar</button>
+      <button onclick="armOotdGuardar()" style="background:var(--rosa);border:none;border-radius:20px;padding:.45rem 1.2rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:white">Guardar look</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal nueva maleta -->
+<div class="armario-modal-backdrop" id="armMaletaBackdrop" onclick="if(event.target===this)armMaletaCerrar()">
+  <div class="armario-modal">
+    <div class="armario-modal-header">
+      <span>Nueva maleta 🧳</span>
+      <button onclick="armMaletaCerrar()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div class="armario-modal-body">
+      <div>
+        <label class="armario-modal-label">Nombre del viaje</label>
+        <input class="armario-modal-input" id="armMaletaNombre" placeholder="Ej: Cancún con amigas 🌊">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">
+        <div>
+          <label class="armario-modal-label">Desde</label>
+          <input class="armario-modal-input" id="armMaletaDesde" type="date">
+        </div>
+        <div>
+          <label class="armario-modal-label">Hasta</label>
+          <input class="armario-modal-input" id="armMaletaHasta" type="date">
+        </div>
+      </div>
+      <div>
+        <label class="armario-modal-label">👗 Prendas a llevar</label>
+        <div class="armario-prenda-selector" id="armMaletaPrendaSel"></div>
+      </div>
+    </div>
+    <div class="armario-modal-footer">
+      <button onclick="armMaletaCerrar()" style="background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:.45rem 1.1rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:var(--muted)">Cancelar</button>
+      <button onclick="armMaletaGuardar()" style="background:var(--rosa);border:none;border-radius:20px;padding:.45rem 1.2rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:white">Crear maleta</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var KEY_P='yuki_armario_prendas';var KEY_O='yuki_armario_outfits';
+  var KEY_OOTD='yuki_armario_ootd';var KEY_MALETA='yuki_armario_maletas';
+  var KEY_CFG='yuki_armario_cfg';
+  var _prendas=[];var _outfits=[];var _ootd={};var _maletas=[];
+  var _cfg={ciudad:''};
+  var _catActual='todas';var _vibeActual='todas';
+  var _fotoB64=null;var _detailId=null;
+  var _selectedPrendas=[];var _selectedMood='';
+  var _selectedVibes=[];
+  var _ootdFotoB64=null;var _ootdDateKey=null;
+  var _maletaSel=[];
+  var _canvasStickers=[];var _canvasSelected=null;var _canvasBg='neutral';
+  var _ootdMesOffset=0;
+
+  var ALL_VIBES=['⚔️ Guerrera','☕ Soft girl','🛋️ Modo pijama','🎓 Estudiante','🌙 Cena','🌸 Romántica','💼 Profesional'];
+  var DEFAULT_MOODS=['🌙 Cena con amigas','🎓 Día de examen','🛋️ Flojera productiva','💼 Presentación','⚔️ Modo guerrera'];
+  var CAT_EMOJI={tops:'👚',pantalones:'👖',vestidos:'👗',zapatos:'👟'};
+  var BG_COLORS={neutral:'linear-gradient(135deg,#f5f5f0,#ede9e4)',rosa:'linear-gradient(135deg,#fce4ec,#f8bbd9)',oscuro:'linear-gradient(135deg,#1a1a2e,#16213e)',crema:'linear-gradient(135deg,#fdf6ec,#f5e6d0)'};
+
+  function loadP(){try{_prendas=JSON.parse(localStorage.getItem(KEY_P)||'[]');}catch(e){_prendas=[];}}
+  function loadO(){try{_outfits=JSON.parse(localStorage.getItem(KEY_O)||'[]');}catch(e){_outfits=[];}}
+  function loadOotd(){try{_ootd=JSON.parse(localStorage.getItem(KEY_OOTD)||'{}');}catch(e){_ootd=[];}}
+  function loadMaletas(){try{_maletas=JSON.parse(localStorage.getItem(KEY_MALETA)||'[]');}catch(e){_maletas=[];}}
+  function loadCfg(){try{_cfg=JSON.parse(localStorage.getItem(KEY_CFG)||'{}');}catch(e){_cfg={};}_cfg.ciudad=_cfg.ciudad||'';}
+  function saveP(){localStorage.setItem(KEY_P,JSON.stringify(_prendas));}
+  function saveO(){localStorage.setItem(KEY_O,JSON.stringify(_outfits));}
+  function saveOotd(){localStorage.setItem(KEY_OOTD,JSON.stringify(_ootd));}
+  function saveMaletas(){localStorage.setItem(KEY_MALETA,JSON.stringify(_maletas));}
+  function saveCfg(){localStorage.setItem(KEY_CFG,JSON.stringify(_cfg));}
+  function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+  function today(){return new Date().toISOString().slice(0,10);}
+
+  // ── Main tabs ──
+  window.armarioMainTab=function(tab){
+    ['prendas','outfits','canvas','ootd','maleta'].forEach(function(t){
+      document.getElementById('armPanel'+t.charAt(0).toUpperCase()+t.slice(1)).style.display=t===tab?'':'none';
+      var btn=document.getElementById('armTab'+t.charAt(0).toUpperCase()+t.slice(1));
+      if(btn)btn.classList.toggle('active',t===tab);
+    });
+    if(tab==='canvas'){renderCanvasTray();}
+    if(tab==='ootd'){renderOotdCal();}
+    if(tab==='maleta'){renderMaletas();}
+    if(tab==='outfits'){renderOutfits();}
+  };
+
+  // ── Vibe filter ──
+  function renderVibeFilter(){
+    var div=document.getElementById('armVibeFilter');if(!div)return;
+    div.innerHTML='';
+    var all=document.createElement('button');all.className='armario-vibe-tab'+(_vibeActual==='todas'?' active':'');
+    all.textContent='Todas';all.onclick=function(){_vibeActual='todas';renderVibeFilter();renderGrid();};
+    div.appendChild(all);
+    ALL_VIBES.forEach(function(v){
+      var btn=document.createElement('button');btn.className='armario-vibe-tab'+(_vibeActual===v?' active':'');
+      btn.textContent=v;btn.onclick=function(){_vibeActual=v;renderVibeFilter();renderGrid();};
+      div.appendChild(btn);
+    });
+  }
+
+  // ── Grid prendas ──
+  function renderGrid(){
+    loadP();var grid=document.getElementById('armarioGrid');if(!grid)return;
+    var filtradas=_prendas.filter(function(p){
+      var catOk=_catActual==='todas'||p.cat===_catActual;
+      var vibeOk=_vibeActual==='todas'||(p.vibes&&p.vibes.indexOf(_vibeActual)!==-1);
+      return catOk&&vibeOk;
+    });
+    if(!filtradas.length){grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:2rem 1rem;color:var(--muted);font-size:.82rem;font-weight:600">👗 Ninguna prenda aquí todavía</div>';return;}
+    grid.innerHTML='';
+    filtradas.forEach(function(p){
+      var card=document.createElement('div');card.className='armario-prenda-card'+(p.sucia?' sucia':'');
+      var imgEl=p.foto?'<img class="armario-prenda-img" src="'+p.foto+'" loading="lazy">'
+        :'<div class="armario-prenda-img-placeholder">'+(CAT_EMOJI[p.cat]||'👗')+'</div>';
+      var suchaBadge=p.sucia?'<div class="armario-sucia-badge">🧺 lavando</div>':'';
+      var vibesDots=p.vibes&&p.vibes.length?'<div class="armario-prenda-vibes">'+p.vibes.slice(0,2).map(function(v){return'<span class="armario-prenda-vibe-dot">'+v+'</span>';}).join('')+'</div>':'';
+      var nombre=p.nombre||(CAT_EMOJI[p.cat]||'👗');
+      card.innerHTML=imgEl+suchaBadge+'<div class="armario-prenda-info"><div class="armario-prenda-nombre">'+nombre+'</div><div class="armario-prenda-color">'+(p.color||'')+'</div>'+vibesDots+'</div>';
+      card.onclick=function(){armarioAbrirDetail(p.id);};
+      grid.appendChild(card);
+    });
+  }
+
+  // ── Outfits ──
+  function renderOutfits(){
+    loadO();loadP();var list=document.getElementById('armarioOutfitList');if(!list)return;
+    if(!_outfits.length){list.innerHTML='<div style="font-size:.78rem;color:var(--muted);font-weight:600;padding:.5rem 0">Aún no hay outfits — crea el primero ✨</div>';return;}
+    list.innerHTML='';
+    _outfits.forEach(function(o){
+      var card=document.createElement('div');card.className='armario-outfit-card';
+      var prendaNombres=o.prendas?o.prendas.map(function(id){var p=_prendas.find(function(x){return x.id===id;});return p?(p.nombre||CAT_EMOJI[p.cat]||'👗'):'';}).filter(Boolean).join(' · '):'';
+      card.innerHTML='<div class="armario-outfit-mood">'+(o.mood||'✨ Outfit')+'</div><div class="armario-outfit-nombre">'+(o.nombre||'Mi outfit')+'</div>'+(prendaNombres?'<div class="armario-outfit-prendas">'+prendaNombres+'</div>':'');
+      card.onclick=function(){if(confirm('¿Eliminar este outfit?')){loadO();_outfits=_outfits.filter(function(x){return x.id!==o.id;});saveO();renderOutfits();}};
+      list.appendChild(card);
+    });
+  }
+
+  // ── Cat tabs ──
+  window.armarioSetCat=function(cat){
+    _catActual=cat;
+    ['todas','tops','pantalones','vestidos','zapatos'].forEach(function(c){
+      var tab=document.getElementById('armCat'+c.charAt(0).toUpperCase()+c.slice(1));
+      if(tab)tab.classList.toggle('active',c===cat);
+    });
+    renderGrid();
+  };
+
+  // ── Nueva prenda ──
+  window.armarioAbrirNuevaPrenda=function(){
+    _fotoB64=null;_selectedVibes=[];
+    document.getElementById('armarioPrendaNombre').value='';
+    document.getElementById('armarioPrendaColor').value='';
+    document.getElementById('armarioPrendaCat').value='tops';
+    document.getElementById('armarioFotoPreview').style.display='none';
+    document.getElementById('armarioFotoPlaceholder').style.display='flex';
+    // Render vibes selector
+    var vibesDiv=document.getElementById('armPrendaVibesSel');vibesDiv.innerHTML='';
+    ALL_VIBES.forEach(function(v){
+      var tag=document.createElement('button');tag.className='armario-vibe-tag-sel';tag.textContent=v;
+      tag.onclick=function(){
+        var idx=_selectedVibes.indexOf(v);
+        if(idx===-1){_selectedVibes.push(v);tag.classList.add('selected');}
+        else{_selectedVibes.splice(idx,1);tag.classList.remove('selected');}
+      };
+      vibesDiv.appendChild(tag);
+    });
+    document.getElementById('armarioPrendaBackdrop').classList.add('open');
+  };
+  window.armarioCerrarPrenda=function(){document.getElementById('armarioPrendaBackdrop').classList.remove('open');};
+  window.armarioFotoChanged=function(input){
+    if(!input.files||!input.files[0])return;
+    var r=new FileReader();
+    r.onload=function(e){
+      _fotoB64=e.target.result;
+      var prev=document.getElementById('armarioFotoPreview');
+      prev.src=_fotoB64;prev.style.display='block';
+      document.getElementById('armarioFotoPlaceholder').style.display='none';
+    };
+    r.readAsDataURL(input.files[0]);input.value='';
+  };
+  window.armarioGuardarPrenda=function(){
+    loadP();
+    var nombre=document.getElementById('armarioPrendaNombre').value.trim();
+    _prendas.push({id:uid(),nombre:nombre,cat:document.getElementById('armarioPrendaCat').value,color:document.getElementById('armarioPrendaColor').value.trim(),foto:_fotoB64||null,vibes:_selectedVibes.slice(),sucia:false,usos:0,ultimoUso:null});
+    saveP();renderGrid();renderVibeFilter();armarioCerrarPrenda();
+  };
+
+  // ── Detalle prenda ──
+  window.armarioAbrirDetail=function(id){
+    loadP();_detailId=id;var p=_prendas.find(function(x){return x.id===id;});if(!p)return;
+    var nombre=p.nombre||(CAT_EMOJI[p.cat]||'Prenda');
+    document.getElementById('armarioDetailTitle').textContent=nombre;
+    var img=document.getElementById('armarioDetailImg');var ph=document.getElementById('armarioDetailPh');
+    if(p.foto){img.src=p.foto;img.style.display='block';ph.style.display='none';}
+    else{ph.textContent=CAT_EMOJI[p.cat]||'👗';ph.style.display='block';img.style.display='none';}
+    document.getElementById('armarioDetailColor').textContent=p.color||'';
+    var vibesDiv=document.getElementById('armarioDetailVibes');vibesDiv.innerHTML='';
+    if(p.vibes&&p.vibes.length){p.vibes.forEach(function(v){var span=document.createElement('span');span.style.cssText='background:rgba(167,139,250,.15);color:#7c3aed;border-radius:20px;padding:.15rem .55rem;font-size:.65rem;font-weight:800;';span.textContent=v;vibesDiv.appendChild(span);});}
+    // Uso info
+    var usoInfo=document.createElement('div');usoInfo.style.cssText='font-size:.7rem;color:var(--muted);font-weight:600;text-align:center;margin-top:.3rem;';
+    var diasSinUso=p.ultimoUso?Math.floor((Date.now()-new Date(p.ultimoUso))/86400000):null;
+    usoInfo.textContent=p.usos?(p.usos+' uso'+(p.usos!==1?'s':'')+(diasSinUso!==null?' · hace '+diasSinUso+' días':'')):'Sin registrar aún';
+    vibesDiv.appendChild(usoInfo);
+    var actions=document.getElementById('armarioDetailActions');actions.innerHTML='';
+    var cestoBtn=document.createElement('button');cestoBtn.className='armario-action-btn';
+    cestoBtn.textContent=p.sucia?'✅ Ya está limpia':'🧺 Marcar en lavado';
+    cestoBtn.onclick=function(){loadP();var pf=_prendas.find(function(x){return x.id===id;});if(pf){pf.sucia=!pf.sucia;saveP();renderGrid();armarioCerrarDetail();}};
+    actions.appendChild(cestoBtn);
+    var usoBtn=document.createElement('button');usoBtn.className='armario-action-btn';
+    usoBtn.textContent='✓ Marcar usada hoy';
+    usoBtn.onclick=function(){loadP();var pf=_prendas.find(function(x){return x.id===id;});if(pf){pf.usos=(pf.usos||0)+1;pf.ultimoUso=today();saveP();armarioCerrarDetail();}};
+    actions.appendChild(usoBtn);
+    var delBtn=document.createElement('button');delBtn.className='armario-action-btn danger';
+    delBtn.textContent='🗑️ Eliminar';
+    delBtn.onclick=function(){if(confirm('¿Eliminar esta prenda?')){loadP();_prendas=_prendas.filter(function(x){return x.id!==id;});saveP();renderGrid();armarioCerrarDetail();}};
+    actions.appendChild(delBtn);
+    document.getElementById('armarioDetailBackdrop').classList.add('open');
+  };
+  window.armarioCerrarDetail=function(){document.getElementById('armarioDetailBackdrop').classList.remove('open');};
+
+  // ── Nuevo outfit ──
+  window.armarioAbrirNuevoOutfit=function(){
+    loadP();_selectedPrendas=[];_selectedMood='';
+    document.getElementById('armarioOutfitNombre').value='';
+    document.getElementById('armarioMoodCustom').value='';
+    var tagsDiv=document.getElementById('armarioMoodTags');tagsDiv.innerHTML='';
+    DEFAULT_MOODS.forEach(function(m){
+      var tag=document.createElement('button');tag.className='armario-mood-tag';tag.textContent=m;
+      tag.onclick=function(){_selectedMood=m;tagsDiv.querySelectorAll('.armario-mood-tag').forEach(function(t){t.classList.remove('selected');});tag.classList.add('selected');document.getElementById('armarioMoodCustom').value='';};
+      tagsDiv.appendChild(tag);
+    });
+    var sel=document.getElementById('armarioPrendaSelector');sel.innerHTML='';
+    if(!_prendas.length){sel.innerHTML='<div style="font-size:.75rem;color:var(--muted);font-weight:600;grid-column:1/-1">Primero añade prendas 👗</div>';}
+    _prendas.forEach(function(p){
+      var item=document.createElement('div');item.className='armario-prenda-sel-item';
+      var imgEl=p.foto?'<img class="armario-prenda-sel-img" src="'+p.foto+'" loading="lazy">'
+        :'<div class="armario-prenda-sel-ph">'+(CAT_EMOJI[p.cat]||'👗')+'</div>';
+      item.innerHTML=imgEl+'<div class="armario-prenda-sel-nombre">'+(p.nombre||CAT_EMOJI[p.cat]||'')+'</div><div class="armario-prenda-sel-check">✓</div>';
+      item.onclick=function(){var idx=_selectedPrendas.indexOf(p.id);if(idx===-1){_selectedPrendas.push(p.id);item.classList.add('selected');}else{_selectedPrendas.splice(idx,1);item.classList.remove('selected');}};
+      sel.appendChild(item);
+    });
+    document.getElementById('armarioOutfitBackdrop').classList.add('open');
+  };
+  window.armarioCerrarOutfit=function(){document.getElementById('armarioOutfitBackdrop').classList.remove('open');};
+  window.armarioGuardarOutfit=function(){
+    var nombre=document.getElementById('armarioOutfitNombre').value.trim();if(!nombre){document.getElementById('armarioOutfitNombre').focus();return;}
+    var mood=document.getElementById('armarioMoodCustom').value.trim()||_selectedMood||'✨ Outfit';
+    loadO();_outfits.push({id:uid(),nombre:nombre,mood:mood,prendas:_selectedPrendas.slice()});
+    saveO();renderOutfits();armarioCerrarOutfit();
+  };
+
+  // ── CANVAS ──
+  window.armarioSetBg=function(bg){
+    _canvasBg=bg;
+    var canvas=document.getElementById('armCanvas');
+    if(canvas)canvas.style.background=BG_COLORS[bg]||BG_COLORS.neutral;
+    document.querySelectorAll('.armario-canvas-bg-btn').forEach(function(b){b.classList.remove('active');});
+    var btn=document.getElementById('armBg'+bg.charAt(0).toUpperCase()+bg.slice(1));
+    if(btn)btn.classList.add('active');
+  };
+  function renderCanvasTray(){
+    loadP();var tray=document.getElementById('armCanvasTray');if(!tray)return;
+    tray.innerHTML='';
+    if(!_prendas.length){tray.innerHTML='<div style="font-size:.75rem;color:var(--muted);font-weight:600;grid-column:1/-1">Añade prendas primero 👗</div>';return;}
+    _prendas.forEach(function(p){
+      var item=document.createElement('div');item.className='armario-tray-item';
+      var imgEl=p.foto?'<img class="armario-tray-img" src="'+p.foto+'" loading="lazy">'
+        :'<div class="armario-tray-ph">'+(CAT_EMOJI[p.cat]||'👗')+'</div>';
+      item.innerHTML=imgEl;item.title=(p.nombre||CAT_EMOJI[p.cat]||'Prenda');
+      item.onclick=function(){armarioCanvasAddSticker(p);};
+      tray.appendChild(item);
+    });
+  }
+  function armarioCanvasAddSticker(p){
+    var canvas=document.getElementById('armCanvas');if(!canvas)return;
+    var id='stk'+uid();
+    var stk=document.createElement('div');stk.className='armario-sticker';stk.id=id;
+    var size=Math.min(canvas.offsetWidth,canvas.offsetHeight)*0.38;
+    stk.style.cssText='width:'+size+'px;height:'+(size*1.33)+'px;left:'+(canvas.offsetWidth/2-size/2)+'px;top:'+(canvas.offsetHeight/2-size*0.67)+'px;z-index:'+(10+_canvasStickers.length)+';';
+    var inner=p.foto?'<img src="'+p.foto+'" style="width:100%;height:100%;object-fit:contain;border-radius:8px;display:block">'
+      :'<div class="armario-sticker-ph">'+(CAT_EMOJI[p.cat]||'👗')+'</div>';
+    stk.innerHTML=inner+'<div class="armario-sticker-del" onclick="armarioCanvasRemoveSticker(\''+id+'\')">✕</div>';
+    _canvasStickers.push({id:id,pid:p.id});
+    canvas.appendChild(stk);
+    makeDraggable(stk,canvas);
+    selectSticker(stk);
+  }
+  function selectSticker(stk){
+    document.querySelectorAll('.armario-sticker').forEach(function(s){s.classList.remove('armario-sticker-selected');});
+    if(stk){stk.classList.add('armario-sticker-selected');_canvasSelected=stk.id;}
+    else _canvasSelected=null;
+  }
+  window.armarioCanvasRemoveSticker=function(id){
+    var el=document.getElementById(id);if(el)el.remove();
+    _canvasStickers=_canvasStickers.filter(function(s){return s.id!==id;});
+    if(_canvasSelected===id)_canvasSelected=null;
+  };
+  window.armarioCanvasClear=function(){
+    var canvas=document.getElementById('armCanvas');if(!canvas)return;
+    canvas.querySelectorAll('.armario-sticker').forEach(function(s){s.remove();});
+    _canvasStickers=[];_canvasSelected=null;
+  };
+  window.armarioLayerUp=function(){
+    if(!_canvasSelected)return;
+    var el=document.getElementById(_canvasSelected);if(!el)return;
+    el.style.zIndex=parseInt(el.style.zIndex||10)+1;
+  };
+  window.armarioLayerDown=function(){
+    if(!_canvasSelected)return;
+    var el=document.getElementById(_canvasSelected);if(!el)return;
+    el.style.zIndex=Math.max(1,parseInt(el.style.zIndex||10)-1);
+  };
+  function makeDraggable(el,container){
+    var startX,startY,startLeft,startTop,dragging=false;
+    function onStart(cx,cy){
+      dragging=true;startX=cx;startY=cy;
+      startLeft=parseInt(el.style.left)||0;startTop=parseInt(el.style.top)||0;
+      selectSticker(el);
+    }
+    function onMove(cx,cy){
+      if(!dragging)return;
+      var dx=cx-startX;var dy=cy-startY;
+      var cw=container.offsetWidth;var ch=container.offsetHeight;
+      var ew=el.offsetWidth;var eh=el.offsetHeight;
+      el.style.left=Math.max(0,Math.min(cw-ew,startLeft+dx))+'px';
+      el.style.top=Math.max(0,Math.min(ch-eh,startTop+dy))+'px';
+    }
+    function onEnd(){dragging=false;}
+    // Mouse
+    el.addEventListener('mousedown',function(e){if(e.target.classList.contains('armario-sticker-del'))return;e.preventDefault();onStart(e.clientX,e.clientY);});
+    document.addEventListener('mousemove',function(e){onMove(e.clientX,e.clientY);});
+    document.addEventListener('mouseup',onEnd);
+    // Touch
+    el.addEventListener('touchstart',function(e){if(e.target.classList.contains('armario-sticker-del'))return;e.preventDefault();var t=e.touches[0];onStart(t.clientX,t.clientY);},{passive:false});
+    document.addEventListener('touchmove',function(e){if(!dragging)return;e.preventDefault();var t=e.touches[0];onMove(t.clientX,t.clientY);},{passive:false});
+    document.addEventListener('touchend',onEnd);
+  }
+
+  // ── OOTD ──
+  window.armarioOotdMes=function(dir){_ootdMesOffset+=dir;renderOotdCal();};
+  function renderOotdCal(){
+    loadOotd();
+    var now=new Date();
+    var año=now.getFullYear();var mes=now.getMonth()+_ootdMesOffset;
+    // Normalizar
+    var d=new Date(año,mes,1);
+    año=d.getFullYear();mes=d.getMonth();
+    var meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    document.getElementById('armOotdMesLabel').textContent=meses[mes]+' '+año;
+    var diasEnMes=new Date(año,mes+1,0).getDate();
+    var primerDia=new Date(año,mes,1).getDay();// 0=Dom
+    var offset=(primerDia+6)%7;// Lu=0
+    var cal=document.getElementById('armOotdCal');
+    // Remove day cells (keep headers)
+    var headers=cal.querySelectorAll('.armario-ootd-day-header');
+    cal.innerHTML='';
+    headers.forEach(function(h){cal.appendChild(h.cloneNode(true));});
+    // Empty cells
+    for(var i=0;i<offset;i++){var emp=document.createElement('div');cal.appendChild(emp);}
+    var todayStr=today();
+    for(var day=1;day<=diasEnMes;day++){
+      var key=año+'-'+(mes<9?'0':'')+(mes+1)+'-'+(day<10?'0':'')+day;
+      var entry=_ootd[key];
+      var cell=document.createElement('div');cell.className='armario-ootd-day'+(entry?' has-ootd':'')+(key===todayStr?' today':'');
+      if(entry&&entry.foto){var img=document.createElement('img');img.src=entry.foto;img.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:8px;';cell.appendChild(img);}
+      else{cell.textContent=day;}
+      (function(k,e){cell.onclick=function(){armOotdAbrirDia(k,e);};})(key,entry);
+      cal.appendChild(cell);
+    }
+    // Análisis
+    renderOotdAnalysis(año,mes,diasEnMes);
+  }
+  function renderOotdAnalysis(año,mes,diasEnMes){
+    loadP();
+    var conEntrada=0;var usoConteo={};
+    for(var d=1;d<=diasEnMes;d++){
+      var k=año+'-'+(mes<9?'0':'')+(mes+1)+'-'+(d<10?'0':'')+d;
+      if(_ootd[k]){conEntrada++;var e=_ootd[k];if(e.prendas)e.prendas.forEach(function(id){usoConteo[id]=(usoConteo[id]||0)+1;});}
+    }
+    var an=document.getElementById('armOotdAnalysis');var st=document.getElementById('armOotdStats');
+    if(!conEntrada){an.style.display='none';return;}
+    an.style.display='block';st.innerHTML='';
+    // Looks registrados
+    addStat(st,'📸 Looks registrados',conEntrada+' de '+diasEnMes+' días');
+    // Prenda estrella
+    var topId=Object.keys(usoConteo).sort(function(a,b){return usoConteo[b]-usoConteo[a];})[0];
+    if(topId){var tp=_prendas.find(function(x){return x.id===topId;});addStat(st,'⭐ Prenda estrella del mes',(tp?(tp.nombre||CAT_EMOJI[tp.cat]||'👗'):'—'));}
+    // Prendas sin usar este mes (de las que tienen más de 30 días sin tocar)
+    var sinUsar=_prendas.filter(function(p){
+      var dias=p.ultimoUso?Math.floor((Date.now()-new Date(p.ultimoUso))/86400000):null;
+      return dias!==null&&dias>30;
+    });
+    if(sinUsar.length){addStat(st,'💭 Sin usar +30 días',sinUsar.slice(0,2).map(function(p){return p.nombre||CAT_EMOJI[p.cat]||'👗';}).join(', ')+(sinUsar.length>2?' y más…':''));}
+  }
+  function addStat(container,label,val){
+    var row=document.createElement('div');row.className='armario-ootd-stat';
+    row.innerHTML='<span class="armario-ootd-stat-label">'+label+'</span><span class="armario-ootd-stat-val">'+val+'</span>';
+    container.appendChild(row);
+  }
+  // Modal OOTD día
+  window.armOotdAbrirDia=function(key,entry){
+    _ootdDateKey=key;_ootdFotoB64=null;
+    var parts=key.split('-');var meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    document.getElementById('armOotdDayTitle').textContent='Look del '+parseInt(parts[2])+' de '+meses[parseInt(parts[1])-1];
+    document.getElementById('armOotdNota').value=entry?entry.nota||'':'';
+    var prev=document.getElementById('armOotdFotoPreview');var ph=document.getElementById('armOotdFotoPlaceholder');
+    if(entry&&entry.foto){prev.src=entry.foto;prev.style.display='block';ph.style.display='none';}
+    else{prev.style.display='none';ph.style.display='flex';}
+    document.getElementById('armOotdDeleteWrap').style.display=entry?'block':'none';
+    document.getElementById('armOotdDayBackdrop').classList.add('open');
+  };
+  window.armOotdCerrar=function(){document.getElementById('armOotdDayBackdrop').classList.remove('open');};
+  window.armOotdFotoChanged=function(input){
+    if(!input.files||!input.files[0])return;
+    var r=new FileReader();
+    r.onload=function(e){_ootdFotoB64=e.target.result;var prev=document.getElementById('armOotdFotoPreview');prev.src=_ootdFotoB64;prev.style.display='block';document.getElementById('armOotdFotoPlaceholder').style.display='none';};
+    r.readAsDataURL(input.files[0]);input.value='';
+  };
+  window.armOotdGuardar=function(){
+    if(!_ootdDateKey)return;
+    loadOotd();
+    var existing=_ootd[_ootdDateKey]||{};
+    _ootd[_ootdDateKey]={foto:_ootdFotoB64||existing.foto||null,nota:document.getElementById('armOotdNota').value.trim(),prendas:existing.prendas||[]};
+    saveOotd();renderOotdCal();armOotdCerrar();
+  };
+  window.armOotdEliminar=function(){
+    if(!_ootdDateKey)return;loadOotd();delete _ootd[_ootdDateKey];saveOotd();renderOotdCal();armOotdCerrar();
+  };
+
+  // ── MALETA ──
+  function renderMaletas(){
+    loadMaletas();var list=document.getElementById('armMaletaList');if(!list)return;
+    if(!_maletas.length){list.innerHTML='<div style="font-size:.78rem;color:var(--muted);font-weight:600;padding:.5rem 0">Aún no hay maletas — ¡planifica tu próximo viaje! 🧳</div>';return;}
+    list.innerHTML='';
+    loadP();
+    _maletas.forEach(function(m){
+      var card=document.createElement('div');card.className='armario-maleta-card';
+      var pNombres=m.prendas?m.prendas.map(function(id){var p=_prendas.find(function(x){return x.id===id;});return p?(p.nombre||CAT_EMOJI[p.cat]||'👗'):'';}).filter(Boolean).join(', '):'';
+      card.innerHTML='<div class="armario-maleta-nombre">'+m.nombre+'</div><div class="armario-maleta-meta">'+(m.desde||'')+(m.hasta?' → '+m.hasta:'')+'</div>'+(pNombres?'<div style="font-size:.72rem;color:var(--muted);font-weight:600;margin-top:.3rem;line-height:1.5">'+pNombres+'</div>':'');
+      card.onclick=function(){if(confirm('¿Eliminar esta maleta?')){loadMaletas();_maletas=_maletas.filter(function(x){return x.id!==m.id;});saveMaletas();renderMaletas();}};
+      list.appendChild(card);
+    });
+  }
+  window.armarioAbrirNuevaMaleta=function(){
+    loadP();_maletaSel=[];
+    document.getElementById('armMaletaNombre').value='';
+    document.getElementById('armMaletaDesde').value='';
+    document.getElementById('armMaletaHasta').value='';
+    var sel=document.getElementById('armMaletaPrendaSel');sel.innerHTML='';
+    _prendas.forEach(function(p){
+      var item=document.createElement('div');item.className='armario-prenda-sel-item';
+      var imgEl=p.foto?'<img class="armario-prenda-sel-img" src="'+p.foto+'" loading="lazy">'
+        :'<div class="armario-prenda-sel-ph">'+(CAT_EMOJI[p.cat]||'👗')+'</div>';
+      item.innerHTML=imgEl+'<div class="armario-prenda-sel-nombre">'+(p.nombre||CAT_EMOJI[p.cat]||'')+'</div><div class="armario-prenda-sel-check">✓</div>';
+      item.onclick=function(){var idx=_maletaSel.indexOf(p.id);if(idx===-1){_maletaSel.push(p.id);item.classList.add('selected');}else{_maletaSel.splice(idx,1);item.classList.remove('selected');}};
+      sel.appendChild(item);
+    });
+    document.getElementById('armMaletaBackdrop').classList.add('open');
+  };
+  window.armMaletaCerrar=function(){document.getElementById('armMaletaBackdrop').classList.remove('open');};
+  window.armMaletaGuardar=function(){
+    var nombre=document.getElementById('armMaletaNombre').value.trim();if(!nombre){document.getElementById('armMaletaNombre').focus();return;}
+    loadMaletas();_maletas.push({id:uid(),nombre:nombre,desde:document.getElementById('armMaletaDesde').value,hasta:document.getElementById('armMaletaHasta').value,prendas:_maletaSel.slice()});
+    saveMaletas();renderMaletas();armMaletaCerrar();
+  };
+
+  // ── Clima ──
+  function fetchClima(){
+    loadCfg();
+    var ciudad=_cfg.ciudad||'';
+    if(!ciudad){document.getElementById('armClimaBanner').style.display='none';return;}
+    fetch('https://wttr.in/'+encodeURIComponent(ciudad)+'?format=j1').then(function(r){return r.json();}).then(function(data){
+      var c=data.current_condition[0];
+      var temp=c.temp_C;var desc=c.weatherDesc[0].value;
+      var icon='🌤️';
+      if(desc.toLowerCase().indexOf('rain')!==-1)icon='🌧️';
+      else if(desc.toLowerCase().indexOf('snow')!==-1)icon='❄️';
+      else if(desc.toLowerCase().indexOf('cloud')!==-1)icon='☁️';
+      else if(parseInt(temp)>28)icon='☀️';
+      else if(parseInt(temp)<10)icon='🧊';
+      document.getElementById('armClimaIcon').textContent=icon;
+      document.getElementById('armClimaTemp').textContent=temp+'°C';
+      document.getElementById('armClimaDesc').textContent=desc+' en '+ciudad;
+      document.getElementById('armClimaBanner').style.display='flex';
+    }).catch(function(){document.getElementById('armClimaBanner').style.display='none';});
+  }
+
+  // Escuchar cambios de ciudad desde Config
+  document.addEventListener('yukiCiudadChanged',function(e){
+    if(_cfg)_cfg.ciudad=e.detail||'';saveCfg();fetchClima();
+  });
+
+  document.addEventListener('DOMContentLoaded',function(){
+    loadP();loadO();loadOotd();loadMaletas();loadCfg();
+    renderGrid();renderVibeFilter();renderOutfits();
+    fetchClima();
+    // Canvas bg inicial
+    var canvas=document.getElementById('armCanvas');
+    if(canvas)canvas.style.background=BG_COLORS.neutral;
+  });
+})();
+</script>
+</div><!-- end page-armario -->
+
+
 <!-- ══════════════════════════════════════════
      PÁGINA · FINANZAS
 ══════════════════════════════════════════ -->
@@ -22673,6 +24066,7 @@ const NAV_PAGES = [
   { icon:'🧠', label:'Braindump',   page:'page-braindump' },
   { icon:'🍏', label:'Salud',       page:'page-salud'     },
   { icon:'✨', label:'Selfcare',    page:'page-selfcare'  },
+  { icon:'👗', label:'Armario',     page:'page-armario'   },
   { icon:'🍽️', label:'Recetario',   page:'page-recetario' },
   { icon:'🧺', label:'Despensa',    page:'page-despensa'  },
   { icon:'🧹', label:'Limpieza',    page:'page-limpieza'  },
@@ -22701,6 +24095,7 @@ const DRAWER_STRUCTURE = {
       { icon:'', label:'Intereses',   page:'page-intereses' },
       { icon:'', label:'Braindump',   page:'page-braindump' },
       { icon:'', label:'Biblioteca',  page:'page-biblioteca'},
+      { icon:'', label:'Personas',    page:'page-personas'  },
     ]},
     { id:'bienestar', icon:'🌱', label:'Bienestar', items: [
       { icon:'', label:'Salud',    page:'page-salud'    },
@@ -22709,6 +24104,7 @@ const DRAWER_STRUCTURE = {
       { icon:'', label:'Hábitos',  page:'page-habitos'  },
     ]},
     { id:'hogar', icon:'⭐', label:'Hogar', items: [
+      { icon:'', label:'Armario',   page:'page-armario'   },
       { icon:'', label:'Recetario', page:'page-recetario' },
       { icon:'', label:'Despensa',  page:'page-despensa'  },
       { icon:'', label:'Limpieza',  page:'page-limpieza'  },
@@ -26809,6 +28205,136 @@ document.addEventListener('DOMContentLoaded', function() {
 })();
 </script>
 </div><!-- end page-listas -->
+<div id="page-personas" class="page-section">
+<style>
+  .personas-section { max-width:860px;margin:2rem auto 0;padding:0 1rem 4rem;animation:fadeUp .5s .1s ease both;opacity:0;animation-fill-mode:both; }
+  .personas-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:.9rem;margin-top:1.2rem; }
+  .persona-card { background:var(--card);border:1.5px solid var(--border);border-radius:18px;padding:1rem .9rem;display:flex;flex-direction:column;align-items:center;gap:.5rem;cursor:pointer;transition:all .18s;position:relative;text-align:center; }
+  .persona-card:hover { border-color:var(--rosa);transform:translateY(-2px);box-shadow:0 4px 16px rgba(244,167,192,.18); }
+  .persona-avatar { width:62px;height:62px;border-radius:50%;background:var(--surface);border:2.5px solid var(--border);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:1.6rem;flex-shrink:0; }
+  .persona-avatar img { width:100%;height:100%;object-fit:cover;display:block; }
+  .persona-name { font-family:var(--font-title);font-style:italic;font-size:.92rem;font-weight:700;color:var(--text); }
+  .persona-relation { font-size:.65rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em; }
+  .persona-bday-badge { position:absolute;top:8px;right:8px;background:var(--rosa);color:white;font-size:.58rem;font-weight:800;padding:.15rem .38rem;border-radius:20px;display:none; }
+  .persona-add-btn { background:var(--card);border:2px dashed var(--border);border-radius:18px;padding:1rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.4rem;cursor:pointer;transition:all .18s;min-height:130px;color:var(--muted);font-size:.78rem;font-weight:700; }
+  .persona-add-btn:hover { border-color:var(--rosa);color:var(--rosa); }
+  .persona-modal-backdrop { display:none;position:fixed;inset:0;background:rgba(244,167,192,.22);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:9100;align-items:center;justify-content:center;padding:1rem; }
+  .persona-modal-backdrop.open { display:flex; }
+  .persona-modal { background:var(--card);border-radius:22px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto; }
+  .persona-modal-header { display:flex;justify-content:space-between;align-items:center;padding:1.1rem 1.3rem .8rem;border-bottom:1px solid var(--border);font-family:var(--font-title);font-style:italic;font-size:1.05rem;font-weight:700; }
+  .persona-modal-body { padding:1rem 1.3rem;display:flex;flex-direction:column;gap:.75rem; }
+  .persona-modal-label { font-size:.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.25rem;display:block; }
+  .persona-modal-input { width:100%;border:1.5px solid var(--border);border-radius:10px;padding:.5rem .7rem;font-family:var(--font-body);font-size:.88rem;color:var(--text);background:var(--surface);outline:none;box-sizing:border-box;transition:border-color .2s;font-weight:600; }
+  .persona-modal-input:focus { border-color:var(--rosa); }
+  .persona-modal-textarea { width:100%;border:1.5px solid var(--border);border-radius:10px;padding:.5rem .7rem;font-family:var(--font-body);font-size:.85rem;color:var(--text);background:var(--surface);outline:none;box-sizing:border-box;resize:none;min-height:70px;font-weight:600;transition:border-color .2s; }
+  .persona-modal-textarea:focus { border-color:var(--rosa); }
+  .persona-modal-footer { display:flex;justify-content:space-between;align-items:center;gap:.6rem;padding:.9rem 1.3rem;border-top:1px solid var(--border); }
+  .persona-avatar-upload { width:72px;height:72px;border-radius:50%;background:var(--surface);border:2.5px dashed var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;font-size:1.8rem;flex-shrink:0;transition:border-color .2s;margin:0 auto .5rem; }
+  .persona-avatar-upload:hover { border-color:var(--rosa); }
+  .persona-regalo-row { display:flex;gap:.5rem;align-items:center; }
+  .persona-regalo-input { flex:1;border:1.5px solid var(--border);border-radius:10px;padding:.42rem .7rem;font-family:var(--font-body);font-size:.85rem;color:var(--text);background:var(--surface);outline:none;font-weight:600; }
+  .persona-regalo-add { background:var(--rosa);color:white;border:none;border-radius:50%;width:28px;height:28px;font-size:1.1rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center; }
+  .persona-regalos-list { display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.4rem; }
+  .persona-regalo-chip { background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:.22rem .6rem;font-size:.72rem;font-weight:700;color:var(--text);display:flex;align-items:center;gap:.3rem; }
+  .persona-regalo-chip button { background:none;border:none;cursor:pointer;color:var(--muted);font-size:.75rem;padding:0;line-height:1; }
+</style>
+<section class="personas-section">
+  <span class="section-sub">💝 mis vínculos</span>
+  <h2 class="section-title"><em>Personas</em> Importantes</h2>
+  <div class="personas-grid" id="personasGrid"></div>
+</section>
+
+<div class="persona-modal-backdrop" id="personaModalBackdrop" onclick="if(event.target===this)personaCerrarModal()">
+  <div class="persona-modal">
+    <div class="persona-modal-header">
+      <span id="personaModalTitle">Nueva persona</span>
+      <button onclick="personaCerrarModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div class="persona-modal-body">
+      <div style="text-align:center">
+        <div class="persona-avatar-upload" id="personaAvatarUpload" onclick="document.getElementById('personaAvatarFile').click()">
+          <img id="personaAvatarPreview" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover">
+          <span id="personaAvatarEmoji">🧡</span>
+        </div>
+        <input type="file" id="personaAvatarFile" accept="image/*" style="display:none" onchange="personaHandleAvatar(this)">
+        <div style="font-size:.65rem;color:var(--muted);font-weight:600">toca para cambiar foto</div>
+      </div>
+      <div><label class="persona-modal-label">Nombre</label><input class="persona-modal-input" id="personaNombre" placeholder="Ej: Mamá, Sofia, Abuelita…"></div>
+      <div><label class="persona-modal-label">Relación</label><input class="persona-modal-input" id="personaRelacion" placeholder="Ej: mejor amiga, hermana, pareja…"></div>
+      <div><label class="persona-modal-label">🎂 Cumpleaños</label><input class="persona-modal-input" id="personaCumple" type="date"></div>
+      <div><label class="persona-modal-label">💬 Detalles personales</label><textarea class="persona-modal-textarea" id="personaDetalles" placeholder="Gustos, alergias, cosas importantes a recordar…"></textarea></div>
+      <div>
+        <label class="persona-modal-label">🎁 Ideas de regalos</label>
+        <div class="persona-regalo-row">
+          <input class="persona-regalo-input" id="personaRegaloInput" placeholder="Agrega una idea…" onkeydown="if(event.key==='Enter')personaAddRegalo()">
+          <button class="persona-regalo-add" onclick="personaAddRegalo()">+</button>
+        </div>
+        <div class="persona-regalos-list" id="personaRegalosList"></div>
+      </div>
+    </div>
+    <div class="persona-modal-footer">
+      <button id="personaDeleteBtn" onclick="personaEliminar()" style="background:none;border:none;color:#e07;font-size:.78rem;font-weight:700;cursor:pointer;display:none">🗑️ Eliminar</button>
+      <div style="display:flex;gap:.6rem;margin-left:auto">
+        <button onclick="personaCerrarModal()" style="background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:.45rem 1.1rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:var(--muted)">Cancelar</button>
+        <button onclick="personaGuardar()" style="background:var(--rosa);border:none;border-radius:20px;padding:.45rem 1.2rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:white">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var KEY='yuki_personas';var _personas=[];var _editId=null;var _regalosTemp=[];var _avatarTemp=null;
+  function load(){try{_personas=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){_personas=[];}}
+  function save(){localStorage.setItem(KEY,JSON.stringify(_personas));}
+  function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+  function isBdaySoon(d){if(!d)return false;var t=new Date();var b=new Date(d);var n=new Date(t.getFullYear(),b.getMonth(),b.getDate());if(n<t)n.setFullYear(t.getFullYear()+1);return(n-t)/(864e5)<=14;}
+  function render(){
+    var grid=document.getElementById('personasGrid');if(!grid)return;
+    grid.innerHTML='';
+    _personas.forEach(function(p){
+      var card=document.createElement('div');card.className='persona-card';
+      var av=p.avatar?'<div class="persona-avatar"><img src="'+p.avatar+'" alt=""></div>':'<div class="persona-avatar">🧡</div>';
+      card.innerHTML=av+'<div class="persona-bday-badge" style="'+(isBdaySoon(p.cumple)?'display:block':'')+'">🎂 pronto</div><div class="persona-name">'+p.nombre+'</div><div class="persona-relation">'+(p.relacion||'')+'</div>';
+      card.onclick=function(){personaAbrirModal(p.id);};
+      grid.appendChild(card);
+    });
+    var add=document.createElement('div');add.className='persona-add-btn';
+    add.innerHTML='<span style="font-size:1.5rem">＋</span><span>Agregar persona</span>';
+    add.onclick=function(){personaAbrirModal(null);};grid.appendChild(add);
+  }
+  function renderRegalos(){var list=document.getElementById('personaRegalosList');if(!list)return;list.innerHTML='';_regalosTemp.forEach(function(r,i){var c=document.createElement('span');c.className='persona-regalo-chip';c.innerHTML='🎁 '+r+' <button onclick="personaRemoveRegalo('+i+')">✕</button>';list.appendChild(c);});}
+  window.personaAbrirModal=function(id){
+    load();_editId=id;_regalosTemp=[];_avatarTemp=null;
+    var p=id?_personas.find(function(x){return x.id===id;}):null;
+    document.getElementById('personaModalTitle').textContent=p?'Editar persona':'Nueva persona';
+    document.getElementById('personaNombre').value=p?(p.nombre||''):'';
+    document.getElementById('personaRelacion').value=p?(p.relacion||''):'';
+    document.getElementById('personaCumple').value=p?(p.cumple||''):'';
+    document.getElementById('personaDetalles').value=p?(p.detalles||''):'';
+    _regalosTemp=p?(p.regalos||[]).slice():[];_avatarTemp=p?(p.avatar||null):null;
+    document.getElementById('personaDeleteBtn').style.display=p?'':'none';
+    var img=document.getElementById('personaAvatarPreview');var em=document.getElementById('personaAvatarEmoji');
+    if(_avatarTemp){img.src=_avatarTemp;img.style.display='';em.style.display='none';}else{img.style.display='none';em.style.display='';}
+    renderRegalos();document.getElementById('personaModalBackdrop').classList.add('open');
+  };
+  window.personaCerrarModal=function(){document.getElementById('personaModalBackdrop').classList.remove('open');document.getElementById('personaAvatarFile').value='';};
+  window.personaHandleAvatar=function(input){var file=input.files&&input.files[0];if(!file)return;var r=new FileReader();r.onload=function(e){_avatarTemp=e.target.result;var img=document.getElementById('personaAvatarPreview');var em=document.getElementById('personaAvatarEmoji');img.src=_avatarTemp;img.style.display='';em.style.display='none';};r.readAsDataURL(file);};
+  window.personaAddRegalo=function(){var inp=document.getElementById('personaRegaloInput');var v=inp.value.trim();if(!v)return;_regalosTemp.push(v);inp.value='';renderRegalos();};
+  window.personaRemoveRegalo=function(i){_regalosTemp.splice(i,1);renderRegalos();};
+  window.personaGuardar=function(){
+    var nombre=document.getElementById('personaNombre').value.trim();if(!nombre){document.getElementById('personaNombre').focus();return;}
+    load();
+    var obj={id:_editId||uid(),nombre:nombre,relacion:document.getElementById('personaRelacion').value.trim(),cumple:document.getElementById('personaCumple').value,detalles:document.getElementById('personaDetalles').value.trim(),regalos:_regalosTemp.slice(),avatar:_avatarTemp};
+    if(_editId){var idx=_personas.findIndex(function(x){return x.id===_editId;});if(idx>-1)_personas[idx]=obj;}else _personas.push(obj);
+    save();render();personaCerrarModal();
+  };
+  window.personaEliminar=function(){if(!_editId)return;load();_personas=_personas.filter(function(x){return x.id!==_editId;});save();render();personaCerrarModal();};
+  document.addEventListener('DOMContentLoaded',function(){load();render();});
+})();
+</script>
+</div><!-- end page-personas -->
+
 <div id="page-buscar" class="page-section">
 <style>
   .buscar-section { max-width:860px;margin:2rem auto 0;padding:0 1rem 4rem;animation:fadeUp .5s .1s ease both;opacity:0;animation-fill-mode:both; }
@@ -27476,6 +29002,15 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
   </div>
 
+  <!-- Ciudad para clima del armario -->
+  <div class="config-block">
+    <div class="config-block-title">🌤️ Ciudad para el clima</div>
+    <p style="font-size:.72rem;color:var(--muted);font-weight:600;margin-bottom:.8rem;line-height:1.5">El Armario usará el clima de tu ciudad para sugerirte prendas 👗</p>
+    <input type="text" class="config-input" id="configCiudadInput" placeholder="Ej: Ciudad de México, Guadalajara…" style="max-width:280px">
+    <button class="config-save-btn" style="margin-top:.5rem;width:auto;padding:.35rem .9rem;font-size:.75rem" onclick="configGuardarCiudad()">Guardar</button>
+    <span class="config-save-ok" id="configCiudadOk">✓ Guardado</span>
+  </div>
+
   <!-- Notificaciones -->
   <div class="config-block" id="configNotifBlock">
     <div class="config-block-title">🔔 Notificaciones</div>
@@ -27541,6 +29076,47 @@ document.addEventListener('DOMContentLoaded', function() {
         <div style="font-size:.68rem;color:var(--muted2);font-weight:600">Las imágenes se guardan separadas por tema de color</div>
       </div>
     </button>
+  </div>
+
+  <!-- Imagen de fondo (móvil) -->
+  <div class="config-block" id="configMobileBgBlock">
+    <div class="config-block-title">📱 Fondo personalizado (móvil)</div>
+    <p style="font-size:.72rem;color:var(--muted);font-weight:600;margin-bottom:.9rem;line-height:1.5">Elige una imagen de fondo para la app en tu dispositivo móvil 🌸</p>
+
+    <!-- Preview -->
+    <div id="mobileBgPreview" style="width:100%;height:110px;border-radius:14px;overflow:hidden;background:var(--surface);border:1.5px solid var(--border);margin-bottom:.8rem;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer" onclick="document.getElementById('mobileBgFileInput').click()" title="Cambiar imagen de fondo">
+      <img id="mobileBgPreviewImg" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none;position:absolute;inset:0">
+      <span id="mobileBgPreviewEmpty" style="font-size:1.5rem;opacity:.4">🖼️</span>
+      <div style="position:absolute;bottom:6px;right:8px;background:rgba(0,0,0,.35);color:white;font-size:.62rem;font-weight:700;padding:.2rem .5rem;border-radius:20px;backdrop-filter:blur(4px)">cambiar</div>
+    </div>
+    <input type="file" id="mobileBgFileInput" accept="image/*" style="display:none" onchange="mobileBgHandleUpload(this)">
+
+    <!-- Botones -->
+    <div style="display:flex;gap:.5rem;margin-bottom:.9rem">
+      <button class="config-action-btn" style="flex:1;justify-content:center" onclick="document.getElementById('mobileBgFileInput').click()">
+        <span>📁</span>
+        <div><div>Elegir imagen</div></div>
+      </button>
+      <button class="config-action-btn" id="mobileBgRemoveBtn" style="flex:1;justify-content:center;display:none" onclick="mobileBgRemove()">
+        <span>🗑️</span>
+        <div><div>Quitar fondo</div></div>
+      </button>
+    </div>
+
+    <!-- Opacidad -->
+    <div id="mobileBgOpacityRow" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem">
+        <span style="font-size:.75rem;font-weight:700;color:var(--text)">Opacidad</span>
+        <span id="mobileBgOpacityLabel" style="font-size:.75rem;font-weight:800;color:var(--rosa)">18%</span>
+      </div>
+      <input type="range" id="mobileBgOpacitySlider" min="5" max="80" value="18" step="1"
+        style="width:100%;accent-color:var(--rosa);cursor:pointer"
+        oninput="mobileBgSetOpacity(this.value)">
+      <div style="display:flex;justify-content:space-between;margin-top:.2rem">
+        <span style="font-size:.62rem;color:var(--muted);font-weight:600">más sutil</span>
+        <span style="font-size:.62rem;color:var(--muted);font-weight:600">más intenso</span>
+      </div>
+    </div>
   </div>
 
   <!-- Exportar PDF -->
@@ -28022,6 +29598,132 @@ document.addEventListener('DOMContentLoaded', function() {
   if (currentTheme !== 'rosa') applyTheme(currentTheme);
   else document.body.setAttribute('data-theme', 'rosa');
   setTimeout(function(){ renderThemeGrid(); configLoadProfile(); }, 300);
+})();
+</script>
+
+<script>
+// ============================================================
+//  IMAGEN DE FONDO MÓVIL
+// ============================================================
+(function(){
+  var BG_IMG_KEY     = 'yuki_mobile_bg_img';
+  var BG_OPACITY_KEY = 'yuki_mobile_bg_opacity';
+
+  function getBgLayer()   { return document.getElementById('mobileBgLayer'); }
+  function getPreviewImg(){ return document.getElementById('mobileBgPreviewImg'); }
+  function getEmptyIcon() { return document.getElementById('mobileBgPreviewEmpty'); }
+  function getOpacityRow(){ return document.getElementById('mobileBgOpacityRow'); }
+  function getRemoveBtn() { return document.getElementById('mobileBgRemoveBtn'); }
+  function getSlider()    { return document.getElementById('mobileBgOpacitySlider'); }
+  function getLabel()     { return document.getElementById('mobileBgOpacityLabel'); }
+
+  function applyBg(dataUrl, opacity) {
+    var layer = getBgLayer();
+    if (!layer) return;
+    if (dataUrl) {
+      layer.style.backgroundImage = 'url(' + dataUrl + ')';
+      layer.style.opacity = (opacity / 100).toFixed(2);
+      layer.style.display = '';
+    } else {
+      layer.style.backgroundImage = '';
+      layer.style.display = 'none';
+    }
+  }
+
+  function syncUI(dataUrl, opacity) {
+    var img    = getPreviewImg();
+    var empty  = getEmptyIcon();
+    var row    = getOpacityRow();
+    var btn    = getRemoveBtn();
+    var slider = getSlider();
+    var label  = getLabel();
+    if (!img) return;
+    if (dataUrl) {
+      img.src = dataUrl;
+      img.style.display = '';
+      if (empty)  empty.style.display = 'none';
+      if (row)    row.style.display = '';
+      if (btn)    btn.style.display = '';
+      if (slider) slider.value = opacity;
+      if (label)  label.textContent = opacity + '%';
+    } else {
+      img.src = '';
+      img.style.display = 'none';
+      if (empty)  empty.style.display = '';
+      if (row)    row.style.display = 'none';
+      if (btn)    btn.style.display = 'none';
+    }
+  }
+
+  function loadSaved() {
+    var dataUrl = localStorage.getItem(BG_IMG_KEY);
+    var opacity = parseInt(localStorage.getItem(BG_OPACITY_KEY) || '18', 10);
+    applyBg(dataUrl, opacity);
+    syncUI(dataUrl, opacity);
+  }
+
+  window.mobileBgHandleUpload = function(input) {
+    var file = input.files && input.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var dataUrl = e.target.result;
+      var opacity = parseInt(localStorage.getItem(BG_OPACITY_KEY) || '18', 10);
+      localStorage.setItem(BG_IMG_KEY, dataUrl);
+      applyBg(dataUrl, opacity);
+      syncUI(dataUrl, opacity);
+    };
+    reader.readAsDataURL(file);
+    input.value = '';
+  };
+
+  window.mobileBgSetOpacity = function(val) {
+    var opacity = parseInt(val, 10);
+    localStorage.setItem(BG_OPACITY_KEY, opacity);
+    var label = getLabel();
+    if (label) label.textContent = opacity + '%';
+    var dataUrl = localStorage.getItem(BG_IMG_KEY);
+    applyBg(dataUrl, opacity);
+  };
+
+  window.mobileBgRemove = function() {
+    localStorage.removeItem(BG_IMG_KEY);
+    applyBg(null, 18);
+    syncUI(null, 18);
+  };
+
+  // Sincronizar UI cuando se abre config
+  var _prevShowPage = window.showPage;
+  window.showPage = function(pageId) {
+    if (_prevShowPage) _prevShowPage(pageId);
+    if (pageId === 'page-config') {
+      setTimeout(function() {
+        var dataUrl = localStorage.getItem(BG_IMG_KEY);
+        var opacity = parseInt(localStorage.getItem(BG_OPACITY_KEY) || '18', 10);
+        syncUI(dataUrl, opacity);
+      }, 60);
+    }
+  };
+
+  document.addEventListener('DOMContentLoaded', loadSaved);
+})();
+</script>
+<script>
+(function(){
+  var KEY_CFG='yuki_armario_cfg';
+  function loadCfg(){try{return JSON.parse(localStorage.getItem(KEY_CFG)||'{}')}catch(e){return{};}}
+  window.configGuardarCiudad=function(){
+    var ciudad=document.getElementById('configCiudadInput').value.trim();
+    var cfg=loadCfg();cfg.ciudad=ciudad;
+    localStorage.setItem(KEY_CFG,JSON.stringify(cfg));
+    var ok=document.getElementById('configCiudadOk');if(ok){ok.style.display='inline';setTimeout(function(){ok.style.display='none';},2000);}
+    document.dispatchEvent(new CustomEvent('yukiCiudadChanged',{detail:ciudad}));
+  };
+  document.addEventListener('DOMContentLoaded',function(){
+    var cfg=loadCfg();
+    var inp=document.getElementById('configCiudadInput');
+    if(inp&&cfg.ciudad)inp.value=cfg.ciudad;
+  });
 })();
 </script>
 </div><!-- end page-config -->
