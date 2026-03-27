@@ -357,6 +357,7 @@ window.kittyConfirm = function(msg, onYes, onNo) {
     --text:     #5a2d4a;
     --muted:    #b07090;
     --muted2:   #d4a0b8;
+    --alerta:   #e8703a;
 
     --manana-bg:   #fff4e6;
     --manana-border:#f9c580;
@@ -5948,7 +5949,7 @@ function todayKey() { return dateKey(new Date()); }
       var total = habitos.length;
       var done  = habitos.filter(function(h){ return h.completions && h.completions[todayKey]; }).length;
       var pct   = total > 0 ? Math.round(done/total*100) : 0;
-      var accent = done === total && total > 0 ? 'var(--verde)' : '#e8703a';
+      var accent = done === total && total > 0 ? 'var(--verde)' : 'var(--alerta)';
       row.appendChild(makeWidget(
         '🔥',
         'Hábitos',
@@ -5979,7 +5980,7 @@ function todayKey() { return dateKey(new Date()); }
         var today = new Date(); today.setHours(0,0,0,0);
         var diff = Math.round((d - today) / 86400000);
         var diffStr = diff === 0 ? '¡Hoy! 😰' : diff === 1 ? 'Mañana' : 'En ' + diff + ' días';
-        var accent = diff <= 1 ? '#e05a6a' : diff <= 3 ? '#e8703a' : 'var(--rosa)';
+        var accent = diff <= 1 ? '#e05a6a' : diff <= 3 ? 'var(--alerta)' : 'var(--rosa)';
         row.appendChild(makeWidget(
           '📚',
           'Próximo examen',
@@ -20330,7 +20331,7 @@ document.addEventListener('DOMContentLoaded', function() {
     background:var(--surface); border-radius:20px; padding:.15rem .55rem;
     display:flex; align-items:center; gap:.2rem;
   }
-  .habito-stat.racha { color:#e8703a; }
+  .habito-stat.racha { color:var(--alerta); }
   .habito-stat.pct { color:var(--rosa); }
   .habito-progress-bar {
     height:4px; background:var(--surface); border-radius:4px;
@@ -20954,7 +20955,7 @@ function utTimerDraw() {
   arc.style.strokeDashoffset = offset;
 
   // Color: rosa → naranja → rojo según queda poco
-  var color = pct > 0.5 ? 'var(--rosa)' : pct > 0.2 ? '#e8703a' : '#e84040';
+  var color = pct > 0.5 ? 'var(--rosa)' : pct > 0.2 ? 'var(--alerta)' : '#e84040';
   arc.style.stroke = color;
 
   var m = Math.floor(_utTimerLeft / 60);
@@ -27315,6 +27316,29 @@ document.addEventListener('DOMContentLoaded', function() {
     display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem;
     margin-top: .3rem;
   }
+  .theme-section-header {
+    font-size: .65rem; font-weight: 800; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--muted); margin: .7rem 0 .3rem;
+    padding-bottom: .2rem; border-bottom: 1.5px solid var(--border);
+  }
+  .theme-section-header:first-child { margin-top: 0; }
+  .config-block-collapsible .config-block-title {
+    cursor: pointer; user-select: none;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .config-block-collapsible .config-block-title::after {
+    content: '▾'; font-size: .85rem; transition: transform .2s; color: var(--muted);
+  }
+  .config-block-collapsible.collapsed .config-block-title::after {
+    transform: rotate(-90deg);
+  }
+  .config-block-collapsible .theme-collapse-body {
+    overflow: hidden; transition: max-height .3s ease, opacity .2s ease;
+    max-height: 600px; opacity: 1;
+  }
+  .config-block-collapsible.collapsed .theme-collapse-body {
+    max-height: 0; opacity: 0;
+  }
   /* Config toggle */
   .config-toggle-row {
     display: flex;
@@ -27484,9 +27508,14 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 
   <!-- Tema de color -->
-  <div class="config-block">
-    <div class="config-block-title">🎨 Tema de color</div>
-    <div class="theme-grid" id="themeGrid"></div>
+  <div class="config-block config-block-collapsible" id="themeConfigBlock">
+    <div class="config-block-title" onclick="(function(){ var b=document.getElementById('themeConfigBlock'); b.classList.toggle('collapsed'); })()">🎨 Tema de color</div>
+    <div class="theme-collapse-body">
+      <div class="theme-section-header">Color único</div>
+      <div class="theme-grid" id="themeGridSolid"></div>
+      <div class="theme-section-header">Colores combinados</div>
+      <div class="theme-grid" id="themeGridCombo"></div>
+    </div>
   </div>
 
   <!-- Imágenes decorativas -->
@@ -27772,6 +27801,15 @@ document.addEventListener('DOMContentLoaded', function() {
     { id:'candy',   label:'Candy 🍬', vars:{ '--bg':'#fff0fb','--surface':'#fce4f8','--card':'#fff7fe','--border':'#f0c0e8','--rosa':'#e060c0','--rosa-soft':'#fce4f8','--text':'#5a0a4a','--muted':'#b040a0','--muted2':'#d890c8' }},
     { id:'formal', label:'Formal 🤍', vars:{ '--bg':'#ffffff','--surface':'#f7f7f7','--card':'#ffffff','--border':'#e8e8e8','--rosa':'#007aff','--rosa-soft':'#f0f5ff','--verde':'#34c759','--verde-soft':'#f0fff4','--beige':'#007aff','--beige-soft':'#f0f5ff','--pink-light':'#f0f5ff','--text':'#000000','--muted':'#8e8e93','--muted2':'#c7c7cc','--manana-bg':'#fffbf0','--manana-border':'#ffe5a0','--tarde-bg':'#fff0f0','--tarde-border':'#ffc0c0','--noche-bg':'#f0f0ff','--noche-border':'#c0c0f0' }},
     { id:'tierra', label:'Tierra 🪨', vars:{ '--bg':'#2e1f14','--surface':'#3d2a1a','--card':'#4a3322','--border':'#6b4a30','--rosa':'#c4845a','--rosa-soft':'#5a3520','--verde':'#a89060','--verde-soft':'#3a3020','--beige':'#c4845a','--beige-soft':'#5a3520','--pink-light':'#5a3520','--text':'#f2e0cc','--muted':'#c4a882','--muted2':'#8a6a50','--manana-bg':'#3d2e18','--manana-border':'#7a5a30','--tarde-bg':'#3d2418','--tarde-border':'#7a4030','--noche-bg':'#221a2e','--noche-border':'#4a3060' }},
+    { id:'oceano',  label:'Océano 🌊', vars:{ '--bg':'#0a1a2e','--surface':'#0f2540','--card':'#132d4a','--border':'#1e4a6e','--rosa':'#4a9fd4','--rosa-soft':'#0f2540','--verde':'#3a9090','--verde-soft':'#0f2a2a','--beige':'#4a9fd4','--beige-soft':'#0f2540','--pink-light':'#0f2540','--text':'#c8e8ff','--muted':'#6aaad4','--muted2':'#2a5a7a','--manana-bg':'#0f2030','--manana-border':'#1e4060','--tarde-bg':'#0a1e30','--tarde-border':'#1a3a58','--noche-bg':'#081828','--noche-border':'#142e4a' }},
+    { id:'bosque',  label:'Bosque 🌲', vars:{ '--bg':'#1a2e1c','--surface':'#223a24','--card':'#2a4430','--border':'#3a5a3e','--rosa':'#6a9870','--rosa-soft':'#223a24','--verde':'#507858','--verde-soft':'#1e3020','--beige':'#6a9870','--beige-soft':'#223a24','--pink-light':'#223a24','--text':'#c8deca','--muted':'#78a87e','--muted2':'#3a5e40','--manana-bg':'#1e3020','--manana-border':'#385840','--tarde-bg':'#1c2e1e','--tarde-border':'#32503a','--noche-bg':'#181e18','--noche-border':'#2e4030' }},
+    { id:'aurora',  label:'Aurora 🌅', vars:{ '--bg':'#2a1a08','--surface':'#3a2510','--card':'#442c14','--border':'#6a4020','--rosa':'#e8a060','--rosa-soft':'#3a2510','--verde':'#d4a830','--verde-soft':'#352808','--beige':'#e8a060','--beige-soft':'#3a2510','--pink-light':'#3a2510','--text':'#fae8c8','--muted':'#d08848','--muted2':'#8a5828','--manana-bg':'#342008','--manana-border':'#6a4018','--tarde-bg':'#2e1a08','--tarde-border':'#5a3414','--noche-bg':'#281420','--noche-border':'#4e2838' }},
+    { id:'mystic',  label:'Mystic ✨',  vars:{ '--bg':'#f5f0ff','--surface':'#e8e0f8','--card':'#fdf8ff','--border':'#c8b8ee','--rosa':'#c47a9a','--rosa-soft':'#F7CAC9','--verde':'#7aaae0','--verde-soft':'#ddeeff','--beige':'#a888d8','--beige-soft':'#F7CAC9','--pink-light':'#F7CAC9','--text':'#2e1a4a','--muted':'#9868c0','--muted2':'#c8a8e0','--manana-bg':'#eee8ff','--manana-border':'#c0a8e8','--tarde-bg':'#F7CAC9','--tarde-border':'#d8a0b8','--noche-bg':'#e0eeff','--noche-border':'#90b8e8' }},
+    { id:'mermaid', label:'Mermaid 🧜‍♀️', vars:{ '--bg':'#f0eeff','--surface':'#e4ddf8','--card':'#f8f5ff','--border':'#c8c0e8','--rosa':'#c8a0c0','--rosa-soft':'#f5e8f5','--verde':'#90c0d8','--verde-soft':'#daf0f8','--beige':'#d4c0a8','--beige-soft':'#f5f0e8','--pink-light':'#f5e8f5','--text':'#2a2048','--muted':'#9888c0','--muted2':'#c8c0e0','--manana-bg':'#f5f0ff','--manana-border':'#c8b8e8','--tarde-bg':'#f5e8f5','--tarde-border':'#d0a8c8','--noche-bg':'#e0f0f8','--noche-border':'#90b8d0' }},
+    { id:'unicorn', label:'Unicorn 🦄', vars:{ '--bg':'#fdf0f8','--surface':'#f5e0f0','--card':'#fef8fc','--border':'#e0c0d8','--rosa':'#d4a0c8','--rosa-soft':'#fce8f5','--verde':'#b0d0e0','--verde-soft':'#e0f0f8','--beige':'#c8b0d8','--beige-soft':'#f0e8f8','--pink-light':'#fce8f5','--text':'#3a1a4a','--muted':'#a880b8','--muted2':'#d8b8e0','--manana-bg':'#fce8f8','--manana-border':'#d8a8d0','--tarde-bg':'#f0e0f8','--tarde-border':'#c8a0d0','--noche-bg':'#e8f0f8','--noche-border':'#a8c8e0' }},
+    { id:'petal',   label:'Petal 🌸',   vars:{ '--bg':'#f5ede0','--surface':'#e8d4bc','--card':'#fdf7f0','--border':'#c4a882','--rosa':'#ba4353','--rosa-soft':'#F9DCEC','--verde':'#ad9f22','--verde-soft':'#f0eec8','--beige':'#d0a583','--beige-soft':'#f5ede0','--pink-light':'#F9DCEC','--text':'#5f4e34','--muted':'#8a6a4a','--muted2':'#c4a882','--manana-bg':'#fdf0e0','--manana-border':'#d4b890','--tarde-bg':'#F9DCEC','--tarde-border':'#d4a0b0','--noche-bg':'#f0eec8','--noche-border':'#c0b840' }},
+    { id:'elegantrose', label:'Elegant Rose 🥀', vars:{ '--bg':'#fff5f5','--surface':'#FFE4E1','--card':'#fff9f9','--border':'#e8c0c0','--rosa':'#C08081','--rosa-soft':'#FFE4E1','--verde':'#a8b8a0','--verde-soft':'#e8ede5','--beige':'#d4a8a0','--beige-soft':'#FFE4E1','--pink-light':'#FFE4E1','--text':'#4a2020','--muted':'#a06060','--muted2':'#d4a0a0','--manana-bg':'#fff0f0','--manana-border':'#e8b8b8','--tarde-bg':'#FFE4E1','--tarde-border':'#C08081','--noche-bg':'#eef0ec','--noche-border':'#a0b098' }},
+    { id:'strawberry', label:'Strawberry 🍓', vars:{ '--bg':'#fff0f2','--surface':'#fdd8dc','--card':'#fff7f8','--border':'#f0b0b8','--rosa':'#d63a50','--rosa-soft':'#fdd8dc','--verde':'#4a8a50','--verde-soft':'#c8e8ca','--beige':'#e8786a','--beige-soft':'#fde0dc','--pink-light':'#fdd8dc','--text':'#4a0e18','--muted':'#c03048','--muted2':'#e8909a','--manana-bg':'#c8e8ca','--manana-border':'#78b880','--tarde-bg':'#fdd8dc','--tarde-border':'#e09098','--noche-bg':'#d8f0da','--noche-border':'#5a9e60' }},
   ];
 
   var currentTheme = localStorage.getItem('config_theme') || 'rosa';
@@ -27798,6 +27836,12 @@ document.addEventListener('DOMContentLoaded', function() {
       if (!t.vars[k]) root.style.setProperty(k, BASE_VARS[k]);
     });
     Object.keys(t.vars).forEach(function(k){ root.style.setProperty(k, t.vars[k]); });
+
+    // Override naranja hardcodeado para temas que lo necesitan
+    var alertaColor = themeId === 'mystic' ? '#c47a9a'
+                    : themeId === 'mermaid' ? '#8ab0d0'
+                    : 'var(--alerta)';
+    root.style.setProperty('--alerta', alertaColor);
     currentTheme = themeId;
     localStorage.setItem('config_theme', themeId);
     document.body.setAttribute('data-theme', themeId);
@@ -27821,22 +27865,31 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function renderThemeGrid() {
-    var grid = document.getElementById('themeGrid'); if(!grid) return;
-    grid.innerHTML = '';
-    THEMES.forEach(function(t) {
-      var btn = document.createElement('button');
-      btn.className = 'theme-btn' + (t.id === currentTheme ? ' active' : '');
-      var swatch = document.createElement('div');
-      swatch.className = 'theme-swatch';
-      swatch.style.background = t.vars['--bg'];
-      swatch.style.border = '2px solid ' + t.vars['--border'];
-      swatch.style.boxShadow = '0 0 0 3px ' + t.vars['--rosa'] + '44';
-      swatch.textContent = t.label.split(' ')[1];
-      btn.appendChild(swatch);
-      btn.appendChild(document.createTextNode(t.label.split(' ')[0]));
-      btn.onclick = (function(id){ return function(){ applyTheme(id); }; })(t.id);
-      grid.appendChild(btn);
-    });
+    var solidIds = ['rosa','lila','menta','melocoton','azul','neutro','noche','candy','formal','tierra','oceano','bosque','aurora'];
+    var comboIds = ['mystic','mermaid','unicorn','petal','elegantrose','strawberry'];
+
+    function fillGrid(gridId, ids) {
+      var grid = document.getElementById(gridId); if(!grid) return;
+      grid.innerHTML = '';
+      ids.forEach(function(id) {
+        var t = THEMES.find(function(x){ return x.id === id; }); if(!t) return;
+        var btn = document.createElement('button');
+        btn.className = 'theme-btn' + (t.id === currentTheme ? ' active' : '');
+        var swatch = document.createElement('div');
+        swatch.className = 'theme-swatch';
+        swatch.style.background = t.vars['--bg'];
+        swatch.style.border = '2px solid ' + t.vars['--border'];
+        swatch.style.boxShadow = '0 0 0 3px ' + t.vars['--rosa'] + '44';
+        swatch.textContent = t.label.split(' ')[1];
+        btn.appendChild(swatch);
+        btn.appendChild(document.createTextNode(t.label.split(' ')[0]));
+        btn.onclick = (function(id){ return function(){ applyTheme(id); }; })(t.id);
+        grid.appendChild(btn);
+      });
+    }
+
+    fillGrid('themeGridSolid', solidIds);
+    fillGrid('themeGridCombo', comboIds);
   }
 
   function configLoadProfile() {
@@ -28360,6 +28413,19 @@ function pdfOpenWindow(title, htmlContent) {
   }
   [data-theme="formal"] h2,
   [data-theme="formal"] h3 { font-weight: 700; }
+
+  /* ── Tema Mystic: reemplazar naranjas hardcodeados por coral-malva ── */
+  [data-theme="mystic"] .habito-stat.racha { color: #c47a9a !important; }
+
+  /* ── Tema Petal: títulos en verde ── */
+  [data-theme="petal"] .section-title,
+  [data-theme="petal"] .section-title em,
+  [data-theme="petal"] .page-title,
+  [data-theme="petal"] .config-block-title,
+  [data-theme="petal"] h1,
+  [data-theme="petal"] h2,
+  [data-theme="petal"] h3,
+  [data-theme="petal"] h4 { color: #ad9f22 !important; }
 </style>
 </head>
 <body>
