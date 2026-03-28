@@ -5911,6 +5911,8 @@ function todayKey() { return dateKey(new Date()); }
   <!-- Cita del momento -->
   <div id="citaWidgetHome" style="background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:1rem 1.2rem;margin-bottom:1.5rem;display:none"></div>
 
+  <!-- Widget Rutinas de Hoy (same style as other widget-cards) -->
+
   <!-- Vision Board -->
   <div class="vb-section">
     <span class="section-sub">✨ inspiración</span>
@@ -6134,11 +6136,128 @@ function todayKey() { return dateKey(new Date()); }
   // Render on load and refresh when returning to inicio
   setTimeout(window.renderWidgets, 300);
 
+  // ── Widget Rutina de Hoy ─────────────────────────────────
+  window.renderRutinaWidget = function() {
+    var row = document.getElementById('widgetsRow');
+    if (!row) return;
+
+    // Quitar widget anterior si existe
+    var old = document.getElementById('rwhCard');
+    if (old) old.remove();
+
+    // ── Fecha de hoy ──
+    var now = new Date();
+    var todayKey = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+
+    var totalPasos = 0, donePasos = 0;
+    var rutinasHoy = []; // [{emoji, nombre, done, total}]
+
+    // ── 1. Rutinas generales (page-rutinas) ──
+    try {
+      var templates    = JSON.parse(localStorage.getItem('rutina_templates')    || '[]');
+      var asignaciones = JSON.parse(localStorage.getItem('rutina_asignaciones') || '{}');
+      var completions  = JSON.parse(localStorage.getItem('rutina_completions')  || '{}');
+      var assignedId   = asignaciones[todayKey];
+      var tpl = assignedId ? templates.find(function(t){ return t.id === assignedId; }) : null;
+      if (tpl) {
+        var franjas = ['mad','m','med','t','at','n'];
+        var rt = 0, rd = 0;
+        franjas.forEach(function(f) {
+          var pasos = (tpl.pasos && tpl.pasos[f]) ? tpl.pasos[f] : [];
+          pasos.forEach(function(p, idx) {
+            rt++;
+            if (completions[assignedId+'|'+todayKey+'|'+f+'|'+idx]) rd++;
+          });
+        });
+        totalPasos += rt; donePasos += rd;
+        rutinasHoy.push({ emoji: tpl.emoji||'🌿', nombre: tpl.name, done: rd, total: rt });
+      }
+    } catch(e){}
+
+    // ── 2. Ejercicio ──
+    try {
+      var ejTpls = JSON.parse(localStorage.getItem('ej_templates') || '[]');
+      var ejRegs = JSON.parse(localStorage.getItem('ej_registros') || '{}');
+      var ejHoy  = ejRegs[todayKey] || [];
+      ejHoy.forEach(function(reg) {
+        var t = ejTpls.find(function(x){ return x.id === reg.templateId; });
+        if (!t) return;
+        var rt2 = t.pasos ? t.pasos.length : 0;
+        var rd2 = reg.completedSteps ? reg.completedSteps.length : 0;
+        totalPasos += rt2; donePasos += rd2;
+        rutinasHoy.push({ emoji: t.emoji||'💪', nombre: t.name, done: rd2, total: rt2 });
+      });
+    } catch(e){}
+
+    // ── 3. Belleza ──
+    try {
+      var belTpls = JSON.parse(localStorage.getItem('belleza_templates') || '[]');
+      var belRegs = JSON.parse(localStorage.getItem('belleza_registros') || '{}');
+      var belHoy  = belRegs[todayKey] || [];
+      belHoy.forEach(function(reg) {
+        var t = belTpls.find(function(x){ return x.id === reg.templateId; });
+        if (!t) return;
+        var rt3 = t.pasos ? t.pasos.length : 0;
+        var rd3 = reg.completedSteps ? reg.completedSteps.length : 0;
+        totalPasos += rt3; donePasos += rd3;
+        rutinasHoy.push({ emoji: t.emoji||'✨', nombre: t.name, done: rd3, total: rt3 });
+      });
+    } catch(e){}
+
+    // ── Calcular valores del widget ──
+    var pct     = totalPasos > 0 ? Math.round(donePasos / totalPasos * 100) : 0;
+    var allDone = totalPasos > 0 && donePasos === totalPasos;
+    var pending = totalPasos - donePasos;
+    var n       = rutinasHoy.length;
+
+    // ── Textos ──
+    var icon, value, sub, accent;
+    if (n === 0) {
+      icon   = '🌿';
+      value  = 'Sin rutinas';
+      sub    = 'Asigna una para hoy';
+      accent = 'var(--muted)';
+    } else if (allDone) {
+      icon   = '✅';
+      value  = '¡Todo listo!';
+      sub    = n + (n===1?' rutina':' rutinas') + ' completada' + (n===1?'':'s');
+      accent = '#16a34a';
+    } else {
+      icon   = rutinasHoy.length === 1 ? (rutinasHoy[0].emoji) : '🌿';
+      value  = pending + ' pendiente' + (pending===1?'':'s');
+      sub    = donePasos + '/' + totalPasos + ' pasos · ' + n + (n===1?' rutina':' rutinas');
+      accent = 'var(--rosa)';
+    }
+
+    // ── Construir card igual a makeWidget ──
+    var card = document.createElement('div');
+    card.className = 'widget-card';
+    card.id = 'rwhCard';
+    card.onclick = function(){ if(window.showPage) window.showPage('page-rutinas'); };
+    card.innerHTML =
+      '<div class="widget-icon">' + icon + '</div>' +
+      '<div>' +
+        '<div class="widget-value" style="color:' + accent + '">' + value + '</div>' +
+        '<div class="widget-sub">'  + sub   + '</div>' +
+      '</div>' +
+      '<div class="widget-label">Rutinas de hoy</div>' +
+      '<div class="widget-bar"><div class="widget-bar-fill" style="width:' + pct + '%;background:' + (allDone ? '#16a34a' : 'var(--rosa)') + '"></div></div>';
+
+    row.appendChild(card);
+  };
+
+  setTimeout(window.renderRutinaWidget, 600);
+  setTimeout(window.renderRutinaWidget, 1200); // segundo intento por si loadRutinas tarda
+
   // Hook showPage to re-render widgets when going to inicio
   var _origShow = window.showPage;
   window.showPage = function(pageId) {
     if (_origShow) _origShow(pageId);
-    if (pageId === 'page-inicio') { setTimeout(window.renderWidgets, 350); setTimeout(function(){ if(window._renderCitaWidget) window._renderCitaWidget(); }, 400); }
+    if (pageId === 'page-inicio') {
+      setTimeout(window.renderWidgets, 350);
+      setTimeout(function(){ if(window._renderCitaWidget) window._renderCitaWidget(); }, 400);
+      setTimeout(function(){ if(window.renderRutinaWidget) window.renderRutinaWidget(); }, 420);
+    }
     if (pageId === 'page-calma') setTimeout(function(){
       eventoRender();
       recuperInit();
@@ -8715,6 +8834,36 @@ if (document.readyState !== 'loading') {
   loadRutinas();
   renderRutinas();
 }
+
+// Patch renderRutinas para actualizar widget de inicio automáticamente
+(function() {
+  var _origRenderRutinas = window.renderRutinas || renderRutinas;
+  var _patched = function() {
+    _origRenderRutinas.apply(this, arguments);
+    if (window.renderRutinaWidget) {
+      clearTimeout(window._rwhTimer);
+      window._rwhTimer = setTimeout(window.renderRutinaWidget, 80);
+    }
+  };
+  window.renderRutinas = _patched;
+  if (typeof renderRutinas !== 'undefined') {
+    try { renderRutinas = _patched; } catch(e) {}
+  }
+
+  // Patch saveEjercicio y saveBelleza para refrescar widget también
+  function patchSave(fnName) {
+    var orig = window[fnName];
+    if (!orig) { setTimeout(function(){ patchSave(fnName); }, 800); return; }
+    window[fnName] = function() {
+      orig.apply(this, arguments);
+      if (window.renderRutinaWidget) {
+        clearTimeout(window._rwhTimer);
+        window._rwhTimer = setTimeout(window.renderRutinaWidget, 120);
+      }
+    };
+  }
+  setTimeout(function(){ patchSave('saveEjercicio'); patchSave('saveBelleza'); }, 500);
+})();
 </script>
 
 <style>
@@ -12381,6 +12530,16 @@ window.syncFromCloud = function() {
 <div id="page-journal" class="page-section">
 <div id="sec-journal-nav" style="scroll-margin-top:60px"></div>
 
+<!-- Journal Tabs -->
+<div style="max-width:780px;margin:0 auto;padding:1.2rem 1rem 0">
+  <div class="diario-tabs">
+    <button class="diario-tab active" id="journalTabBtnReflexion" onclick="journalShowTab('reflexion')">✍️ Reflexión</button>
+    <button class="diario-tab" id="journalTabBtnCuadernos" onclick="journalShowTab('cuadernos')">📔 Cuadernos</button>
+  </div>
+</div>
+
+<div id="journalTabReflexion">
+
 <!-- PROMPT DEL DÍA -->
 <section class="prompt-section" id="sec-prompt">
   <span class="section-sub">✍️ reflexión</span>
@@ -13078,6 +13237,29 @@ window.syncFromCloud = function() {
 })();
 </script>
 
+</div><!-- end journalTabReflexion -->
+
+<div id="journalTabCuadernos" style="display:none;max-width:780px;margin:0 auto;padding:0 1rem 4rem">
+  <div id="scrapbookShelfJournal"></div>
+</div>
+
+<script>
+window.journalShowTab = function(tab) {
+  var r = document.getElementById('journalTabReflexion');
+  var c = document.getElementById('journalTabCuadernos');
+  var br = document.getElementById('journalTabBtnReflexion');
+  var bc = document.getElementById('journalTabBtnCuadernos');
+  if (tab === 'reflexion') {
+    if(r) r.style.display=''; if(c) c.style.display='none';
+    if(br) br.classList.add('active'); if(bc) bc.classList.remove('active');
+  } else {
+    if(r) r.style.display='none'; if(c) c.style.display='';
+    if(br) br.classList.remove('active'); if(bc) bc.classList.add('active');
+    if(window.scrapbookRenderShelf) window.scrapbookRenderShelf('journal');
+  }
+};
+</script>
+
 </div><!-- end page-journal -->
 
 <!-- ══════════════════════════════════════════
@@ -13097,6 +13279,7 @@ window.syncFromCloud = function() {
   <div class="diario-tabs">
     <button class="diario-tab active" id="tabEntradas" onclick="diarioShowTab('entradas')">📋 Entradas</button>
     <button class="diario-tab" id="tabCalendario" onclick="diarioShowTab('calendario')">📅 Calendario</button>
+    <button class="diario-tab" id="tabCuadernos" onclick="diarioShowTab('cuadernos')">📔 Cuadernos</button>
   </div>
 
   <!-- TAB: Entradas -->
@@ -13197,6 +13380,11 @@ window.syncFromCloud = function() {
       </div>
       <div class="diario-cal-grid" id="diarioCalGrid"></div>
     </div>
+  </div>
+
+  <!-- TAB: Cuadernos -->
+  <div id="diarioTabCuadernos" style="display:none">
+    <div id="scrapbookShelf"></div>
   </div>
 
 </section>
@@ -13701,21 +13889,25 @@ window.syncFromCloud = function() {
   load(); renderCal(); renderList();
 
   window.diarioShowTab = function(tab) {
-    var tabEntradas = document.getElementById('diarioTabEntradas');
-    var tabCal = document.getElementById('diarioTabCalendario');
-    var btnEntradas = document.getElementById('tabEntradas');
-    var btnCal = document.getElementById('tabCalendario');
+    var tabEntradas  = document.getElementById('diarioTabEntradas');
+    var tabCal       = document.getElementById('diarioTabCalendario');
+    var tabCuad      = document.getElementById('diarioTabCuadernos');
+    var btnEntradas  = document.getElementById('tabEntradas');
+    var btnCal       = document.getElementById('tabCalendario');
+    var btnCuad      = document.getElementById('tabCuadernos');
+    [tabEntradas, tabCal, tabCuad].forEach(function(el){ if(el) el.style.display='none'; });
+    [btnEntradas, btnCal, btnCuad].forEach(function(el){ if(el) el.classList.remove('active'); });
     if (tab === 'entradas') {
-      tabEntradas.style.display = '';
-      tabCal.style.display = 'none';
-      btnEntradas.classList.add('active');
-      btnCal.classList.remove('active');
-    } else {
-      tabEntradas.style.display = 'none';
-      tabCal.style.display = '';
-      btnEntradas.classList.remove('active');
-      btnCal.classList.add('active');
+      if(tabEntradas) tabEntradas.style.display = '';
+      if(btnEntradas) btnEntradas.classList.add('active');
+    } else if (tab === 'calendario') {
+      if(tabCal) tabCal.style.display = '';
+      if(btnCal) btnCal.classList.add('active');
       renderCal();
+    } else if (tab === 'cuadernos') {
+      if(tabCuad) tabCuad.style.display = '';
+      if(btnCuad) btnCuad.classList.add('active');
+      if(window.scrapbookRenderShelf) window.scrapbookRenderShelf();
     }
   };
 
@@ -14268,6 +14460,8 @@ function render() {
 
       const cell = document.createElement('div');
       cell.className = 'cell ' + slot.cellCls + (isToday ? ' today-cell' : '');
+      cell.dataset.slot = slot.id;
+      cell.dataset.date = dateKey(date);
       renderCell(cell, slot, date);
       slotWrap.appendChild(cell);
 
@@ -14293,6 +14487,8 @@ function render() {
 // ── Render a single cell
 function renderCell(cell, slot, date) {
   cell.innerHTML = '';
+  cell.dataset.slot = slot.id;
+  cell.dataset.date = dateKey(date);
   const pillCls = slot.pillCls;
   const dk = dateKey(date);
 
@@ -14309,11 +14505,23 @@ function renderCell(cell, slot, date) {
     const chk = document.createElement('span');
     chk.className = 'pill-check';
     chk.textContent = done ? '✓' : '';
+    chk.dataset.ckey = cKey;
+    chk.dataset.slotId = slot.id;
+    chk.dataset.dateKey = dateKey(date);
     chk.onclick = (e) => {
       e.stopPropagation();
-      completions[cKey] = !done;
-      if (!done && window.starBurst) window.starBurst(chk);
-      saveData(); updateProgress(); renderCell(cell, slot, date);
+      // Re-read current value from completions (not stale closure)
+      const currentDone = !!completions[cKey];
+      completions[cKey] = !currentDone;
+      if (!currentDone && window.starBurst) window.starBurst(chk);
+      saveData(); updateProgress();
+      // Find the live cell in the DOM to avoid rendering into a detached node
+      const liveCell = document.querySelector(`.week-cell[data-slot="${slot.id}"][data-date="${dateKey(date)}"]`);
+      if (liveCell) {
+        renderCell(liveCell, slot, date);
+      } else {
+        render();
+      }
       if (window.renderWidgets) window.renderWidgets();
     };
 
@@ -29197,28 +29405,33 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 
   <!-- Imagen de fondo (móvil) -->
-  <div class="config-block" id="configMobileBgBlock">
-    <div class="config-block-title">📱 Fondo personalizado (móvil)</div>
+  <div class="config-block config-block-collapsible collapsed" id="configMobileBgBlock">
+    <div class="config-block-title" onclick="(function(){ var b=document.getElementById('configMobileBgBlock'); b.classList.toggle('collapsed'); })()">📱 Fondo personalizado (móvil)</div>
+    <div class="theme-collapse-body">
     <p style="font-size:.72rem;color:var(--muted);font-weight:600;margin-bottom:.9rem;line-height:1.5">Elige una imagen de fondo para la app en tu dispositivo móvil 🌸</p>
 
-    <!-- Preview -->
-    <div id="mobileBgPreview" style="width:100%;height:110px;border-radius:14px;overflow:hidden;background:var(--surface);border:1.5px solid var(--border);margin-bottom:.8rem;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer" onclick="document.getElementById('mobileBgFileInput').click()" title="Cambiar imagen de fondo">
+    <!-- Preview -->\n    <div id="mobileBgPreview" style="width:100%;height:110px;border-radius:14px;overflow:hidden;background:var(--surface);border:1.5px solid var(--border);margin-bottom:.8rem;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer" onclick="document.getElementById('mobileBgFileInput').click()" title="Cambiar imagen de fondo">
       <img id="mobileBgPreviewImg" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none;position:absolute;inset:0">
       <span id="mobileBgPreviewEmpty" style="font-size:1.5rem;opacity:.4">🖼️</span>
       <div style="position:absolute;bottom:6px;right:8px;background:rgba(0,0,0,.35);color:white;font-size:.62rem;font-weight:700;padding:.2rem .5rem;border-radius:20px;backdrop-filter:blur(4px)">cambiar</div>
     </div>
     <input type="file" id="mobileBgFileInput" accept="image/*" style="display:none" onchange="mobileBgHandleUpload(this)">
 
-    <!-- Botones -->
-    <div style="display:flex;gap:.5rem;margin-bottom:.9rem">
+    <!-- Botones -->\n    <div style="display:flex;gap:.5rem;margin-bottom:.9rem">
       <button class="config-action-btn" style="flex:1;justify-content:center" onclick="document.getElementById('mobileBgFileInput').click()">
         <span>📁</span>
-        <div><div>Elegir imagen</div></div>
+        <div><div>Subir imagen</div></div>
       </button>
       <button class="config-action-btn" id="mobileBgRemoveBtn" style="flex:1;justify-content:center;display:none" onclick="mobileBgRemove()">
         <span>🗑️</span>
         <div><div>Quitar fondo</div></div>
       </button>
+    </div>
+
+    <!-- Galería de wallpapers guardados -->
+    <div id="mobileBgGallery" style="display:none;margin-bottom:.9rem">
+      <div style="font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.5rem">Mis wallpapers guardados</div>
+      <div id="mobileBgGalleryGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem"></div>
     </div>
 
     <!-- Opacidad -->
@@ -29234,6 +29447,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <span style="font-size:.62rem;color:var(--muted);font-weight:600">más sutil</span>
         <span style="font-size:.62rem;color:var(--muted);font-weight:600">más intenso</span>
       </div>
+    </div>
     </div>
   </div>
 
@@ -29258,6 +29472,23 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 
   <!-- Datos -->
+  <!-- Modo Edición de Stickers -->
+  <div class="config-block" id="configStickerBlock">
+    <div class="config-block-title">🌸 Stickers</div>
+    <p style="font-size:.75rem;color:var(--muted);margin-bottom:.8rem;font-weight:600">
+      Activa el modo edición para colocar, mover, rotar o eliminar stickers en las páginas. Al desactivarlo, los stickers quedan fijos.
+    </p>
+    <div class="config-toggle-row">
+      <span style="font-size:.82rem;font-weight:700;color:var(--text)">Modo edición</span>
+      <button class="config-toggle-btn" id="stickerEditToggle" onclick="toggleStickerEditMode()">
+        <div class="config-toggle-knob"></div>
+      </button>
+    </div>
+    <p id="stickerEditStatus" style="font-size:.72rem;color:var(--muted2);margin-top:.5rem;font-weight:600">
+      Los stickers están fijos 🔒
+    </p>
+  </div>
+
   <div class="config-block">
     <div class="config-block-title">💾 Mis datos</div>
     <button class="config-action-btn" onclick="configExportData()">
@@ -29474,7 +29705,13 @@ document.addEventListener('DOMContentLoaded', function() {
   var _origShowCitas = window.showPage;
   window.showPage = function(pageId) {
     if (_origShowCitas) _origShowCitas(pageId);
-    if (pageId === 'page-config') setTimeout(renderCitasConfig, 100);
+    if (pageId === 'page-config') {
+      setTimeout(renderCitasConfig, 100);
+      // Sincronizar estado del toggle de stickers
+      setTimeout(function() {
+        if (window.applyEditMode) window.applyEditMode();
+      }, 150);
+    }
   };
 
   // Exponer para mirrorKeys
@@ -29726,6 +29963,7 @@ document.addEventListener('DOMContentLoaded', function() {
 (function(){
   var BG_IMG_KEY     = 'yuki_mobile_bg_img';
   var BG_OPACITY_KEY = 'yuki_mobile_bg_opacity';
+  var BG_GALLERY_KEY = 'yuki_mobile_bg_gallery'; // [{id, src}]
 
   function getBgLayer()   { return document.getElementById('mobileBgLayer'); }
   function getPreviewImg(){ return document.getElementById('mobileBgPreviewImg'); }
@@ -29734,6 +29972,76 @@ document.addEventListener('DOMContentLoaded', function() {
   function getRemoveBtn() { return document.getElementById('mobileBgRemoveBtn'); }
   function getSlider()    { return document.getElementById('mobileBgOpacitySlider'); }
   function getLabel()     { return document.getElementById('mobileBgOpacityLabel'); }
+
+  function loadGallery() {
+    try { return JSON.parse(localStorage.getItem(BG_GALLERY_KEY) || '[]'); } catch(e) { return []; }
+  }
+  function saveGallery(arr) {
+    try { localStorage.setItem(BG_GALLERY_KEY, JSON.stringify(arr)); } catch(e) {}
+  }
+
+  function renderGallery() {
+    var gallery = loadGallery();
+    var wrap    = document.getElementById('mobileBgGallery');
+    var grid    = document.getElementById('mobileBgGalleryGrid');
+    if (!wrap || !grid) return;
+    if (gallery.length === 0) { wrap.style.display = 'none'; return; }
+    wrap.style.display = '';
+    grid.innerHTML = '';
+    var currentSrc = localStorage.getItem(BG_IMG_KEY);
+    gallery.forEach(function(item) {
+      var cell = document.createElement('div');
+      var isActive = (item.src === currentSrc);
+      cell.style.cssText = [
+        'position:relative;border-radius:10px;overflow:hidden;',
+        'aspect-ratio:16/9;cursor:pointer;border:2px solid ',
+        isActive ? 'var(--rosa)' : 'transparent',
+        ';transition:border-color .2s'
+      ].join('');
+      var img = document.createElement('img');
+      img.src = item.src;
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
+      img.onclick = function() {
+        var opacity = parseInt(localStorage.getItem(BG_OPACITY_KEY) || '18', 10);
+        localStorage.setItem(BG_IMG_KEY, item.src);
+        applyBg(item.src, opacity);
+        syncUI(item.src, opacity);
+        renderGallery();
+      };
+      // Botón eliminar
+      var del = document.createElement('button');
+      del.textContent = '✕';
+      del.style.cssText = [
+        'position:absolute;top:3px;right:3px;',
+        'width:18px;height:18px;border-radius:50%;border:none;',
+        'background:rgba(0,0,0,.55);color:#fff;font-size:.6rem;',
+        'cursor:pointer;display:flex;align-items:center;justify-content:center;',
+        'line-height:1;padding:0'
+      ].join('');
+      del.onclick = function(e) {
+        e.stopPropagation();
+        var arr = loadGallery().filter(function(g) { return g.id !== item.id; });
+        saveGallery(arr);
+        // Si era el activo, quitarlo
+        if (isActive) { mobileBgRemove(); }
+        renderGallery();
+      };
+      // Badge activo
+      if (isActive) {
+        var badge = document.createElement('div');
+        badge.textContent = '✓';
+        badge.style.cssText = [
+          'position:absolute;bottom:3px;left:3px;',
+          'background:var(--rosa);color:#fff;font-size:.55rem;font-weight:800;',
+          'padding:.1rem .35rem;border-radius:20px'
+        ].join('');
+        cell.appendChild(badge);
+      }
+      cell.appendChild(img);
+      cell.appendChild(del);
+      grid.appendChild(cell);
+    });
+  }
 
   function applyBg(dataUrl, opacity) {
     var layer = getBgLayer();
@@ -29778,6 +30086,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var opacity = parseInt(localStorage.getItem(BG_OPACITY_KEY) || '18', 10);
     applyBg(dataUrl, opacity);
     syncUI(dataUrl, opacity);
+    renderGallery();
   }
 
   window.mobileBgHandleUpload = function(input) {
@@ -29787,9 +30096,17 @@ document.addEventListener('DOMContentLoaded', function() {
     reader.onload = function(e) {
       var dataUrl = e.target.result;
       var opacity = parseInt(localStorage.getItem(BG_OPACITY_KEY) || '18', 10);
+      // Guardar en galería si no existe ya
+      var gallery = loadGallery();
+      var exists  = gallery.some(function(g) { return g.src === dataUrl; });
+      if (!exists) {
+        gallery.unshift({ id: Date.now().toString(36), src: dataUrl });
+        saveGallery(gallery);
+      }
       localStorage.setItem(BG_IMG_KEY, dataUrl);
       applyBg(dataUrl, opacity);
       syncUI(dataUrl, opacity);
+      renderGallery();
     };
     reader.readAsDataURL(file);
     input.value = '';
@@ -29808,6 +30125,7 @@ document.addEventListener('DOMContentLoaded', function() {
     localStorage.removeItem(BG_IMG_KEY);
     applyBg(null, 18);
     syncUI(null, 18);
+    renderGallery();
   };
 
   // Sincronizar UI cuando se abre config
@@ -29819,6 +30137,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var dataUrl = localStorage.getItem(BG_IMG_KEY);
         var opacity = parseInt(localStorage.getItem(BG_OPACITY_KEY) || '18', 10);
         syncUI(dataUrl, opacity);
+        renderGallery();
       }, 60);
     }
   };
@@ -31563,13 +31882,62 @@ document.createElement = function(tag) {
     'page-finanzas','page-horario','page-historial'
   ];
 
-  var STK_LIB_KEY  = 'stk_library';   // imágenes guardadas (globales)
-  var STK_PAGE_KEY = 'stk_page_';     // stickers en cada página
+  var STK_LIB_KEY   = 'stk_library';   // imágenes guardadas (globales)
+  var STK_PAGE_KEY  = 'stk_page_';     // stickers en cada página
+  var STK_EDIT_KEY  = 'stk_edit_mode'; // modo edición
 
   var _currentPage  = 'page-inicio';
   var _panelOpen    = false;
   var _library      = [];   // [{id, src}]
   var _pageStickers = {};   // {pageId: [{id, libId, x, y, w, rot}]}
+
+  // ── Modo edición ────────────────────────────────────────
+  var _editMode = (localStorage.getItem(STK_EDIT_KEY) === 'true');
+
+  window.toggleStickerEditMode = function() {
+    _editMode = !_editMode;
+    localStorage.setItem(STK_EDIT_KEY, _editMode ? 'true' : 'false');
+    applyEditMode();
+  };
+
+  window.applyEditMode = applyEditMode; // exponer globalmente
+
+  function applyEditMode() {
+    // FAB: visible solo en modo edición (y en página válida)
+    var inList = STICKER_PAGES.indexOf(_currentPage) !== -1;
+    fab.classList.toggle('visible', _editMode && inList);
+
+    // Toggle button estado
+    var btn = document.getElementById('stickerEditToggle');
+    if (btn) btn.classList.toggle('active', _editMode);
+
+    // Texto de estado
+    var status = document.getElementById('stickerEditStatus');
+    if (status) {
+      status.textContent = _editMode
+        ? 'Los stickers se pueden editar ✏️'
+        : 'Los stickers están fijos 🔒';
+      status.style.color = _editMode ? 'var(--rosa)' : 'var(--muted2)';
+    }
+
+    // Activar/desactivar interacción de stickers ya montados
+    document.querySelectorAll('.stk-on-page').forEach(function(el) {
+      setElEditable(el, _editMode);
+    });
+  }
+
+  function setElEditable(el, editable) {
+    el.style.pointerEvents = editable ? 'auto' : 'none';
+    // Mostrar u ocultar handles
+    var del    = el.querySelector('.stk-del-handle');
+    var resize = el.querySelector('.stk-resize-handle');
+    var rotate = el.querySelector('.stk-rotate-handle');
+    if (del)    del.style.display    = editable ? '' : 'none';
+    if (resize) resize.style.display = editable ? '' : 'none';
+    if (rotate) rotate.style.display = editable ? '' : 'none';
+    // Quitar selección al bloquear
+    if (!editable) el.classList.remove('stk-selected');
+  }
 
   // ── Persistencia ────────────────────────────────────────
   function loadLib() {
@@ -31765,6 +32133,8 @@ document.createElement = function(tag) {
     makeRotatable(el, pageId, stkData);
 
     pageEl.appendChild(el);
+    // Aplicar estado de edición actual
+    setElEditable(el, _editMode);
   }
 
   function deselectAll() {
@@ -31871,7 +32241,7 @@ document.createElement = function(tag) {
     _origShowPageStk(pageId);
     _currentPage = pageId;
     var inList = STICKER_PAGES.indexOf(pageId) !== -1;
-    fab.classList.toggle('visible', inList);
+    fab.classList.toggle('visible', _editMode && inList);
     // Label
     var lbl = document.getElementById('stkPageLabel');
     if (lbl) lbl.textContent = 'Página: ' + pageId.replace('page-','');
@@ -31883,12 +32253,14 @@ document.createElement = function(tag) {
   (function init() {
     var startPage = 'page-inicio';
     _currentPage = startPage;
-    if (STICKER_PAGES.indexOf(startPage) !== -1) {
+    if (STICKER_PAGES.indexOf(startPage) !== -1 && _editMode) {
       fab.classList.add('visible');
-      setTimeout(function() { renderPageStickers(startPage); }, 400);
     }
+    setTimeout(function() { renderPageStickers(startPage); }, 400);
     var lbl = document.getElementById('stkPageLabel');
     if (lbl) lbl.textContent = 'Página: ' + startPage.replace('page-','');
+    // Sync toggle button state on load
+    setTimeout(function() { applyEditMode(); }, 300);
   })();
 
 })();
@@ -32171,6 +32543,865 @@ document.createElement = function(tag) {
 
     container.appendChild(el);
   }
+
+})();
+</script>
+
+<!-- ============================================================
+     📔 CUADERNOS DIGITALES — SCRAPBOOK ENGINE
+============================================================ -->
+<style>
+/* ── Shelf ── */
+.sb-shelf { padding: .5rem 0 2rem; }
+.sb-shelf-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; }
+.sb-shelf-title { font-size:.7rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; }
+.sb-new-btn { background:var(--rosa); color:#fff; border:none; border-radius:20px; padding:.45rem 1.1rem; font-size:.8rem; font-weight:800; cursor:pointer; font-family:var(--font-body); display:flex; align-items:center; gap:.4rem; transition:opacity .2s; }
+.sb-new-btn:hover { opacity:.85; }
+.sb-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:1rem; }
+.sb-cover-card { border-radius:14px; overflow:hidden; cursor:pointer; border:2px solid var(--border); transition:transform .2s, box-shadow .2s; aspect-ratio:3/4; position:relative; background:var(--card); }
+.sb-cover-card:hover { transform:translateY(-4px); box-shadow:0 8px 24px rgba(212,116,138,.18); border-color:var(--rosa); }
+.sb-cover-img { width:100%; height:100%; object-fit:cover; display:block; }
+.sb-cover-label { position:absolute; bottom:0; left:0; right:0; background:linear-gradient(transparent,rgba(0,0,0,.55)); color:#fff; font-size:.72rem; font-weight:800; padding:.6rem .7rem .5rem; line-height:1.2; }
+.sb-cover-empty { width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.4rem; background:var(--surface); }
+.sb-cover-emoji { font-size:2rem; }
+.sb-cover-name { font-size:.72rem; font-weight:800; color:var(--text); text-align:center; padding:0 .5rem; }
+.sb-empty-state { text-align:center; padding:3rem 1rem; color:var(--muted); font-size:.82rem; font-weight:700; }
+
+/* ── Book viewer ── */
+.sb-book-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:3000; display:flex; flex-direction:column; align-items:center; justify-content:center; backdrop-filter:blur(6px); animation:fadeIn .2s ease; }
+.sb-book-topbar { position:absolute; top:0; left:0; right:0; display:flex; align-items:center; justify-content:space-between; padding:.7rem 1rem; background:rgba(0,0,0,.3); backdrop-filter:blur(8px); z-index:10; }
+.sb-book-title { color:#fff; font-size:.85rem; font-weight:800; }
+.sb-book-close { background:none; border:none; color:#fff; font-size:1.3rem; cursor:pointer; padding:.2rem .5rem; border-radius:8px; }
+.sb-book-close:hover { background:rgba(255,255,255,.15); }
+.sb-book-wrap { position:relative; width:min(96vw,680px); height:min(88vh,860px); margin-top:3rem; }
+/* Pages container with perspective */
+.sb-pages-track { width:100%; height:100%; position:relative; perspective:1200px; }
+.sb-page { position:absolute; inset:0; border-radius:4px 16px 16px 4px; overflow:hidden; background:#fdf8f6; box-shadow:4px 0 20px rgba(0,0,0,.25); transform-origin:left center; transition:transform .55s cubic-bezier(.645,.045,.355,1), opacity .35s; }
+.sb-page.page-prev { transform:rotateY(-180deg); opacity:0; pointer-events:none; }
+.sb-page.page-next { transform:rotateY(0deg); opacity:1; }
+.sb-page.flipping-out { transform:rotateY(-180deg); opacity:0; }
+.sb-page.flipping-in  { transform:rotateY(0deg);   opacity:1; }
+/* Page patterns */
+.sb-page.pattern-dots   { background-image:radial-gradient(circle, #d4a0b0 1px, transparent 1px); background-size:20px 20px; background-color:#fdf8f6; }
+.sb-page.pattern-grid   { background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px); background-size:20px 20px; background-color:#fdf8f6; }
+.sb-page.pattern-lines  { background-image:repeating-linear-gradient(transparent,transparent 27px,#e8c8d0 28px); background-color:#fdf8f6; }
+.sb-page.pattern-blank  { background:#fdf8f6; }
+/* Page number */
+.sb-page-num { position:absolute; bottom:.6rem; right:1rem; font-size:.6rem; font-weight:700; color:#c0a0a8; font-style:italic; pointer-events:none; }
+/* Page nav */
+.sb-book-nav { position:absolute; bottom:0; left:0; right:0; display:flex; align-items:center; justify-content:space-between; padding:.6rem 1rem; background:rgba(0,0,0,.25); backdrop-filter:blur(6px); border-radius:0 0 16px 16px; }
+.sb-nav-btn { background:rgba(255,255,255,.15); border:1.5px solid rgba(255,255,255,.3); color:#fff; font-size:1.1rem; width:38px; height:38px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .2s; }
+.sb-nav-btn:hover { background:rgba(255,255,255,.3); }
+.sb-nav-btn:disabled { opacity:.3; cursor:default; }
+.sb-page-counter { color:rgba(255,255,255,.8); font-size:.75rem; font-weight:700; }
+/* Toolbar */
+.sb-toolbar { position:absolute; top:.5rem; right:.5rem; display:flex; flex-direction:column; gap:.4rem; z-index:20; }
+.sb-tool-btn { width:36px; height:36px; border-radius:50%; border:none; cursor:pointer; font-size:.9rem; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.85); box-shadow:0 2px 8px rgba(0,0,0,.15); transition:transform .15s; }
+.sb-tool-btn:hover { transform:scale(1.12); }
+.sb-tool-btn.active { background:var(--rosa); }
+/* Elements on page */
+.sb-el { position:absolute; cursor:grab; user-select:none; touch-action:none; }
+.sb-el:active { cursor:grabbing; }
+.sb-el img { max-width:100%; max-height:100%; display:block; border-radius:4px; }
+.sb-el.sb-selected { outline:2px dashed var(--rosa); outline-offset:3px; }
+.sb-el-del { position:absolute; top:-8px; right:-8px; width:20px; height:20px; background:#e07; color:#fff; border-radius:50%; font-size:.6rem; display:none; align-items:center; justify-content:center; cursor:pointer; z-index:5; border:none; }
+.sb-el.sb-selected .sb-el-del { display:flex; }
+.sb-el-resize { position:absolute; bottom:-6px; right:-6px; width:14px; height:14px; background:var(--rosa); border-radius:50%; cursor:se-resize; display:none; }
+.sb-el.sb-selected .sb-el-resize { display:block; }
+.sb-el-rotate { position:absolute; top:-22px; left:50%; transform:translateX(-50%); width:18px; height:18px; background:#a78bfa; border-radius:50%; cursor:grab; display:none; align-items:center; justify-content:center; font-size:.55rem; color:#fff; }
+.sb-el.sb-selected .sb-el-rotate { display:flex; }
+/* Text element */
+.sb-text-el { min-width:80px; min-height:30px; font-family:var(--font-body); font-size:.82rem; color:#333; padding:.3rem .45rem; border-radius:6px; white-space:pre-wrap; word-break:break-word; }
+.sb-text-el[contenteditable=true] { outline:1.5px dashed var(--rosa); background:rgba(255,255,255,.7); cursor:text; }
+/* Washi tape */
+.sb-washi { height:28px; border-radius:2px; opacity:.75; min-width:80px; }
+/* Library panel */
+.sb-lib-panel { position:fixed; bottom:0; left:0; right:0; background:var(--card); border-top:1.5px solid var(--border); border-radius:20px 20px 0 0; padding:1rem 1rem .5rem; z-index:3100; max-height:55vh; overflow-y:auto; animation:slideUp .25s ease; }
+@keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+.sb-lib-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:.8rem; }
+.sb-lib-title { font-size:.78rem; font-weight:800; color:var(--text); }
+.sb-lib-close { background:none; border:none; font-size:1.1rem; cursor:pointer; color:var(--muted); }
+.sb-lib-cats { display:flex; gap:.4rem; flex-wrap:wrap; margin-bottom:.8rem; }
+.sb-lib-cat { font-size:.68rem; font-weight:800; padding:.25rem .65rem; border-radius:20px; border:1.5px solid var(--border); color:var(--muted); cursor:pointer; background:none; font-family:var(--font-body); transition:all .15s; }
+.sb-lib-cat.active { background:var(--rosa); border-color:var(--rosa); color:#fff; }
+.sb-lib-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(72px,1fr)); gap:.5rem; }
+.sb-lib-item { border-radius:10px; overflow:hidden; aspect-ratio:1; cursor:pointer; border:2px solid transparent; position:relative; background:var(--surface); transition:border-color .15s; display:flex; align-items:center; justify-content:center; }
+.sb-lib-item:hover { border-color:var(--rosa); }
+.sb-lib-item img { width:100%; height:100%; object-fit:contain; }
+.sb-lib-item-del { position:absolute; top:2px; right:2px; width:16px; height:16px; background:rgba(0,0,0,.5); color:#fff; border-radius:50%; font-size:.5rem; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+.sb-lib-empty { font-size:.75rem; color:var(--muted); text-align:center; padding:1.5rem; grid-column:1/-1; }
+.sb-lib-upload { display:flex; align-items:center; gap:.5rem; font-size:.75rem; font-weight:700; color:var(--rosa); cursor:pointer; border:1.5px dashed var(--rosa); border-radius:10px; padding:.5rem .8rem; background:none; font-family:var(--font-body); }
+/* New book modal */
+.sb-modal-back { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:3200; display:flex; align-items:center; justify-content:center; }
+.sb-modal-box { background:var(--card); border-radius:20px; padding:1.5rem; width:min(92vw,420px); max-height:90vh; overflow-y:auto; }
+.sb-modal-title { font-size:.95rem; font-weight:800; color:var(--text); margin-bottom:1.2rem; }
+.sb-modal-field { margin-bottom:.9rem; }
+.sb-modal-label { font-size:.68rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; display:block; margin-bottom:.35rem; }
+.sb-modal-input { width:100%; border:1.5px solid var(--border); border-radius:10px; padding:.5rem .75rem; font-size:.85rem; font-family:var(--font-body); color:var(--text); background:var(--surface); box-sizing:border-box; }
+.sb-modal-input:focus { outline:none; border-color:var(--rosa); }
+.sb-pattern-row { display:flex; gap:.5rem; flex-wrap:wrap; }
+.sb-pattern-opt { padding:.35rem .8rem; border-radius:20px; border:1.5px solid var(--border); font-size:.72rem; font-weight:700; cursor:pointer; background:none; font-family:var(--font-body); color:var(--text); }
+.sb-pattern-opt.active { background:var(--rosa); border-color:var(--rosa); color:#fff; }
+.sb-modal-btns { display:flex; gap:.6rem; margin-top:1.2rem; }
+.sb-modal-ok { flex:1; background:var(--rosa); color:#fff; border:none; border-radius:20px; padding:.6rem; font-size:.85rem; font-weight:800; cursor:pointer; font-family:var(--font-body); }
+.sb-modal-cancel { flex:1; background:none; border:1.5px solid var(--border); border-radius:20px; padding:.6rem; font-size:.85rem; font-weight:700; cursor:pointer; font-family:var(--font-body); color:var(--muted); }
+.sb-cover-pick { width:100%; height:100px; border-radius:12px; border:1.5px dashed var(--rosa); display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden; background:var(--surface); position:relative; }
+.sb-cover-pick img { width:100%; height:100%; object-fit:cover; }
+.sb-cover-pick-lbl { font-size:.75rem; color:var(--rosa); font-weight:700; }
+/* Washi palette */
+.sb-washi-row { display:flex; gap:.4rem; flex-wrap:wrap; }
+.sb-washi-swatch { width:48px; height:24px; border-radius:4px; cursor:pointer; border:2px solid transparent; transition:border-color .15s; }
+.sb-washi-swatch:hover,.sb-washi-swatch.active { border-color:var(--text); }
+</style>
+
+<script>
+// ============================================================
+//  📔 CUADERNOS DIGITALES — SCRAPBOOK ENGINE
+// ============================================================
+(function(){
+'use strict';
+
+var SB_KEY = 'yuki_scrapbooks';
+var SB_LIB_KEY = 'yuki_sb_library'; // [{id, src, cat}]
+
+// ── Data ────────────────────────────────────────────────────
+function loadBooks() {
+  try { return JSON.parse(localStorage.getItem(SB_KEY) || '[]'); } catch(e){ return []; }
+}
+function saveBooks(arr) {
+  try { localStorage.setItem(SB_KEY, JSON.stringify(arr)); } catch(e){}
+}
+function loadLib() {
+  try { return JSON.parse(localStorage.getItem(SB_LIB_KEY) || '[]'); } catch(e){ return []; }
+}
+function saveLib(arr) {
+  try { localStorage.setItem(SB_LIB_KEY, JSON.stringify(arr)); } catch(e){}
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
+
+// ── Book state ───────────────────────────────────────────────
+var _book = null;       // current open book object
+var _pageIdx = 0;       // current page index
+var _flipping = false;
+var _libOpen = false;
+var _selectedElId = null;
+
+// ── WASHI COLORS ─────────────────────────────────────────────
+var WASHI_COLORS = [
+  'repeating-linear-gradient(45deg,#f9c6d0 0,#f9c6d0 8px,#fce4ec 8px,#fce4ec 16px)',
+  'repeating-linear-gradient(45deg,#c8e6c9 0,#c8e6c9 8px,#e8f5e9 8px,#e8f5e9 16px)',
+  'repeating-linear-gradient(45deg,#b3d9ff 0,#b3d9ff 8px,#e3f2fd 8px,#e3f2fd 16px)',
+  'repeating-linear-gradient(45deg,#ffe0b2 0,#ffe0b2 8px,#fff8e1 8px,#fff8e1 16px)',
+  'repeating-linear-gradient(45deg,#e1bee7 0,#e1bee7 8px,#f3e5f5 8px,#f3e5f5 16px)',
+  'linear-gradient(90deg,#f9c6d0 50%,#fce4ec 50%)',
+  'linear-gradient(90deg,#b3d9ff 50%,#e3f2fd 50%)',
+  'repeating-linear-gradient(0deg,#f9c6d0 0,#f9c6d0 4px,transparent 4px,transparent 12px)',
+  'radial-gradient(circle,#f9c6d0 2px,transparent 2px) 0 0/10px 10px',
+  '#f8bbd9','#b2dfdb','#bbdefb','#ffe0b2','#f3e5f5','#dcedc8'
+];
+
+// ── RENDER SHELF ─────────────────────────────────────────────
+window.scrapbookRenderShelf = function(context) {
+  // context: 'diario' (default) or 'journal'
+  var containerId = context === 'journal' ? 'scrapbookShelfJournal' : 'scrapbookShelf';
+  var el = document.getElementById(containerId);
+  if (!el) return;
+  var books = loadBooks().filter(function(b){ return (b.context||'diario') === (context||'diario'); });
+
+  el.innerHTML = '';
+  var shelf = document.createElement('div');
+  shelf.className = 'sb-shelf';
+
+  // Header
+  var hdr = document.createElement('div');
+  hdr.className = 'sb-shelf-header';
+  var ttl = document.createElement('span');
+  ttl.className = 'sb-shelf-title';
+  ttl.textContent = '📔 Mis cuadernos';
+  var newBtn = document.createElement('button');
+  newBtn.className = 'sb-new-btn';
+  newBtn.innerHTML = '＋ Nuevo cuaderno';
+  newBtn.onclick = function(){ openNewBookModal(context||'diario'); };
+  hdr.appendChild(ttl);
+  hdr.appendChild(newBtn);
+  shelf.appendChild(hdr);
+
+  if (books.length === 0) {
+    var emp = document.createElement('div');
+    emp.className = 'sb-empty-state';
+    emp.innerHTML = '📔<br><br>Aún no tienes cuadernos.<br>¡Crea tu primer scrapbook! 🌸';
+    shelf.appendChild(emp);
+  } else {
+    var grid = document.createElement('div');
+    grid.className = 'sb-grid';
+    books.forEach(function(book) {
+      var card = document.createElement('div');
+      card.className = 'sb-cover-card';
+      if (book.coverSrc) {
+        var img = document.createElement('img');
+        img.src = book.coverSrc;
+        img.className = 'sb-cover-img';
+        card.appendChild(img);
+        var lbl = document.createElement('div');
+        lbl.className = 'sb-cover-label';
+        lbl.textContent = book.name;
+        card.appendChild(lbl);
+      } else {
+        var emp2 = document.createElement('div');
+        emp2.className = 'sb-cover-empty';
+        emp2.style.background = book.coverColor || 'var(--surface)';
+        emp2.innerHTML = '<div class="sb-cover-emoji">' + (book.emoji||'📔') + '</div>' +
+          '<div class="sb-cover-name">' + book.name + '</div>';
+        card.appendChild(emp2);
+      }
+      card.onclick = function(){ openBook(book.id); };
+      // Long press to delete
+      var holdT;
+      card.addEventListener('pointerdown', function(){ holdT = setTimeout(function(){
+        if(confirm('¿Eliminar "'+book.name+'"?')) {
+          var all = loadBooks().filter(function(b){ return b.id !== book.id; });
+          saveBooks(all);
+          window.scrapbookRenderShelf(context||'diario');
+        }
+      }, 700); });
+      card.addEventListener('pointerup', function(){ clearTimeout(holdT); });
+      card.addEventListener('pointerleave', function(){ clearTimeout(holdT); });
+      grid.appendChild(card);
+    });
+    shelf.appendChild(grid);
+  }
+  el.appendChild(shelf);
+};
+
+// ── NEW BOOK MODAL ───────────────────────────────────────────
+function openNewBookModal(context) {
+  var old = document.getElementById('sbNewModal');
+  if (old) old.remove();
+  var back = document.createElement('div');
+  back.className = 'sb-modal-back';
+  back.id = 'sbNewModal';
+
+  var coverData = null;
+  var selectedPattern = 'lines';
+  var selectedEmoji = '📔';
+
+  back.innerHTML = [
+    '<div class="sb-modal-box">',
+      '<div class="sb-modal-title">✨ Nuevo cuaderno</div>',
+      '<div class="sb-modal-field">',
+        '<label class="sb-modal-label">Nombre</label>',
+        '<input class="sb-modal-input" id="sbNewName" placeholder="Ej: Día con mis amigas 🌸">',
+      '</div>',
+      '<div class="sb-modal-field">',
+        '<label class="sb-modal-label">Emoji</label>',
+        '<div style="display:flex;gap:.4rem;flex-wrap:wrap" id="sbEmojiRow">',
+          ['📔','📓','📒','📖','🌸','💗','🌿','⭐','🦋','🎀','🌷','💌'].map(function(e){
+            return '<button class="sb-pattern-opt'+(e==='📔'?' active':'')+'" data-emoji="'+e+'" onclick="sbPickEmoji(this)">'+e+'</button>';
+          }).join(''),
+        '</div>',
+      '</div>',
+      '<div class="sb-modal-field">',
+        '<label class="sb-modal-label">Portada (opcional)</label>',
+        '<label class="sb-cover-pick" id="sbCoverPick">',
+          '<span class="sb-cover-pick-lbl" id="sbCoverPickLbl">📁 Subir imagen de portada</span>',
+          '<input type="file" accept="image/*" style="display:none" id="sbCoverFile">',
+        '</label>',
+      '</div>',
+      '<div class="sb-modal-field">',
+        '<label class="sb-modal-label">Diseño de hoja</label>',
+        '<div class="sb-pattern-row" id="sbPatternRow">',
+          [['lines','Rayas'],['dots','Punteado'],['grid','Cuadriculado'],['blank','En blanco']].map(function(p){
+            return '<button class="sb-pattern-opt'+(p[0]==='lines'?' active':'')+'" data-pattern="'+p[0]+'" onclick="sbPickPattern(this)">'+p[1]+'</button>';
+          }).join(''),
+        '</div>',
+      '</div>',
+      '<div class="sb-modal-btns">',
+        '<button class="sb-modal-cancel" onclick="document.getElementById(\'sbNewModal\').remove()">Cancelar</button>',
+        '<button class="sb-modal-ok" id="sbCreateBtn">Crear 🌸</button>',
+      '</div>',
+    '</div>'
+  ].join('');
+  document.body.appendChild(back);
+
+  // Cover file
+  document.getElementById('sbCoverFile').onchange = function(e) {
+    var f = e.target.files[0]; if (!f) return;
+    var r = new FileReader();
+    r.onload = function(ev) {
+      coverData = ev.target.result;
+      var pick = document.getElementById('sbCoverPick');
+      pick.innerHTML = '<img src="'+coverData+'" style="width:100%;height:100%;object-fit:cover"><input type="file" accept="image/*" style="display:none" id="sbCoverFile">';
+      document.getElementById('sbCoverFile').onchange = arguments.callee;
+    };
+    r.readAsDataURL(f);
+  };
+
+  window.sbPickPattern = function(btn) {
+    document.querySelectorAll('#sbPatternRow .sb-pattern-opt').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+    selectedPattern = btn.dataset.pattern;
+  };
+  window.sbPickEmoji = function(btn) {
+    document.querySelectorAll('#sbEmojiRow .sb-pattern-opt').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+    selectedEmoji = btn.dataset.emoji;
+  };
+
+  document.getElementById('sbCreateBtn').onclick = function() {
+    var name = (document.getElementById('sbNewName').value || '').trim();
+    if (!name) { document.getElementById('sbNewName').focus(); return; }
+    var book = {
+      id: uid(), name: name, emoji: selectedEmoji,
+      pattern: selectedPattern, coverSrc: coverData || null,
+      coverColor: ['#fce4ec','#e8f5e9','#e3f2fd','#f3e5f5','#fff8e1'][Math.floor(Math.random()*5)],
+      context: context,
+      pages: [{ id: uid(), elements: [] }, { id: uid(), elements: [] }] // start with 2 pages
+    };
+    var all = loadBooks();
+    all.push(book);
+    saveBooks(all);
+    back.remove();
+    openBook(book.id);
+  };
+  back.addEventListener('click', function(e){ if(e.target===back) back.remove(); });
+}
+
+// ── OPEN BOOK ────────────────────────────────────────────────
+function openBook(bookId) {
+  var books = loadBooks();
+  _book = books.find(function(b){ return b.id === bookId; });
+  if (!_book) return;
+  _pageIdx = 0;
+  _selectedElId = null;
+  renderBookViewer();
+}
+
+function saveCurrentBook() {
+  if (!_book) return;
+  var all = loadBooks();
+  var idx = all.findIndex ? all.findIndex(function(b){ return b.id===_book.id; }) : -1;
+  if (idx !== -1) { all[idx] = _book; saveBooks(all); }
+}
+
+// ── BOOK VIEWER ──────────────────────────────────────────────
+function renderBookViewer() {
+  var old = document.getElementById('sbBookOverlay');
+  if (old) old.remove();
+
+  var ov = document.createElement('div');
+  ov.className = 'sb-book-overlay';
+  ov.id = 'sbBookOverlay';
+
+  // Top bar
+  var topbar = document.createElement('div');
+  topbar.className = 'sb-book-topbar';
+  topbar.innerHTML = '<span class="sb-book-title">' + (_book.emoji||'📔') + ' ' + _book.name + '</span>';
+  var closeBtn = document.createElement('button');
+  closeBtn.className = 'sb-book-close';
+  closeBtn.textContent = '✕';
+  closeBtn.onclick = function() { saveCurrentBook(); ov.remove(); };
+  topbar.appendChild(closeBtn);
+  ov.appendChild(topbar);
+
+  // Book wrap
+  var wrap = document.createElement('div');
+  wrap.className = 'sb-book-wrap';
+  ov.appendChild(wrap);
+
+  // Toolbar
+  var toolbar = document.createElement('div');
+  toolbar.className = 'sb-toolbar';
+  [
+    { icon:'🖼️', title:'Añadir imagen/sticker', action: function(){ openLibPanel(); } },
+    { icon:'✏️', title:'Añadir texto',           action: addTextElement },
+    { icon:'🎀', title:'Añadir washi tape',      action: addWashiElement },
+    { icon:'➕', title:'Nueva página',           action: addPage },
+    { icon:'🗑️', title:'Borrar elemento',        action: deleteSelected },
+  ].forEach(function(t) {
+    var btn = document.createElement('button');
+    btn.className = 'sb-tool-btn';
+    btn.title = t.title;
+    btn.textContent = t.icon;
+    btn.onclick = t.action;
+    toolbar.appendChild(btn);
+  });
+  wrap.appendChild(toolbar);
+
+  // Pages track
+  var track = document.createElement('div');
+  track.className = 'sb-pages-track';
+  track.id = 'sbPagesTrack';
+  wrap.appendChild(track);
+
+  // Nav
+  var nav = document.createElement('div');
+  nav.className = 'sb-book-nav';
+  var prevBtn = document.createElement('button');
+  prevBtn.className = 'sb-nav-btn';
+  prevBtn.id = 'sbPrevBtn';
+  prevBtn.innerHTML = '‹';
+  prevBtn.onclick = function(){ flipPage(-1); };
+  var counter = document.createElement('span');
+  counter.className = 'sb-page-counter';
+  counter.id = 'sbPageCounter';
+  var nextBtn = document.createElement('button');
+  nextBtn.className = 'sb-nav-btn';
+  nextBtn.id = 'sbNextBtn';
+  nextBtn.innerHTML = '›';
+  nextBtn.onclick = function(){ flipPage(1); };
+  nav.appendChild(prevBtn);
+  nav.appendChild(counter);
+  nav.appendChild(nextBtn);
+  wrap.appendChild(nav);
+
+  document.body.appendChild(ov);
+  renderCurrentPage();
+  updateNavBtns();
+
+  // Deselect on track click
+  track.addEventListener('pointerdown', function(e) {
+    if (e.target === track || e.target.classList.contains('sb-page')) {
+      deselectAll();
+    }
+  });
+}
+
+function renderCurrentPage() {
+  var track = document.getElementById('sbPagesTrack');
+  if (!track || !_book) return;
+  track.innerHTML = '';
+  var page = _book.pages[_pageIdx];
+  if (!page) return;
+
+  var pageEl = document.createElement('div');
+  pageEl.className = 'sb-page page-next pattern-' + (_book.pattern||'lines');
+  pageEl.id = 'sbCurrentPage';
+
+  // Page number
+  var num = document.createElement('div');
+  num.className = 'sb-page-num';
+  num.textContent = (_pageIdx + 1) + ' / ' + _book.pages.length;
+  pageEl.appendChild(num);
+
+  // Render elements
+  (page.elements || []).forEach(function(el) {
+    mountElement(pageEl, el);
+  });
+
+  track.appendChild(pageEl);
+  updateNavBtns();
+}
+
+function updateNavBtns() {
+  var prev = document.getElementById('sbPrevBtn');
+  var next = document.getElementById('sbNextBtn');
+  var counter = document.getElementById('sbPageCounter');
+  if (!_book) return;
+  if (prev) prev.disabled = _pageIdx === 0;
+  if (next) next.disabled = _pageIdx === _book.pages.length - 1;
+  if (counter) counter.textContent = (_pageIdx+1) + ' de ' + _book.pages.length;
+}
+
+// ── PAGE FLIP ANIMATION ───────────────────────────────────────
+function flipPage(dir) {
+  if (_flipping || !_book) return;
+  var newIdx = _pageIdx + dir;
+  if (newIdx < 0 || newIdx >= _book.pages.length) return;
+  _flipping = true;
+  saveCurrentBook();
+
+  var track = document.getElementById('sbPagesTrack');
+  var oldPage = document.getElementById('sbCurrentPage');
+  if (!track || !oldPage) { _pageIdx = newIdx; renderCurrentPage(); _flipping=false; return; }
+
+  // Animate out
+  oldPage.classList.add('flipping-out');
+
+  setTimeout(function() {
+    _pageIdx = newIdx;
+    renderCurrentPage();
+    var newPage = document.getElementById('sbCurrentPage');
+    if (newPage) {
+      newPage.style.transform = dir > 0 ? 'rotateY(30deg)' : 'rotateY(-30deg)';
+      newPage.style.opacity = '0.3';
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          newPage.style.transition = 'transform .4s cubic-bezier(.645,.045,.355,1), opacity .3s';
+          newPage.style.transform = 'rotateY(0deg)';
+          newPage.style.opacity = '1';
+          setTimeout(function() {
+            newPage.style.transition = '';
+            _flipping = false;
+          }, 420);
+        });
+      });
+    } else { _flipping = false; }
+  }, 280);
+}
+
+// ── ADD PAGE ─────────────────────────────────────────────────
+function addPage() {
+  if (!_book) return;
+  _book.pages.push({ id: uid(), elements: [] });
+  _pageIdx = _book.pages.length - 1;
+  saveCurrentBook();
+  renderCurrentPage();
+  updateNavBtns();
+}
+
+// ── DESELECT ─────────────────────────────────────────────────
+function deselectAll() {
+  _selectedElId = null;
+  document.querySelectorAll('.sb-el').forEach(function(e){ e.classList.remove('sb-selected'); });
+}
+
+function deleteSelected() {
+  if (!_selectedElId || !_book) return;
+  var page = _book.pages[_pageIdx];
+  if (!page) return;
+  page.elements = page.elements.filter(function(e){ return e.id !== _selectedElId; });
+  _selectedElId = null;
+  saveCurrentBook();
+  renderCurrentPage();
+}
+
+// ── MOUNT ELEMENT ─────────────────────────────────────────────
+function mountElement(pageEl, elData) {
+  var el = document.createElement('div');
+  el.className = 'sb-el';
+  el.dataset.elId = elData.id;
+  el.style.cssText = [
+    'left:' + (elData.x||20) + 'px;',
+    'top:'  + (elData.y||20) + 'px;',
+    'width:'+ (elData.w||100) + 'px;',
+    'transform:rotate(' + (elData.rot||0) + 'deg);',
+    'z-index:' + (elData.z||1) + ';'
+  ].join('');
+
+  if (elData.type === 'image' || elData.type === 'sticker') {
+    el.style.height = (elData.h || elData.w || 100) + 'px';
+    var img = document.createElement('img');
+    img.src = elData.src;
+    img.style.cssText = 'width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;border-radius:4px';
+    el.appendChild(img);
+  } else if (elData.type === 'text') {
+    el.className += ' sb-text-el';
+    el.style.width = (elData.w||120) + 'px';
+    el.style.height = 'auto';
+    el.style.fontFamily = elData.font || 'var(--font-body)';
+    el.style.fontSize = (elData.size||14) + 'px';
+    el.style.color = elData.color || '#333';
+    el.style.background = elData.bg || 'rgba(255,255,255,0.75)';
+    el.textContent = elData.text || '';
+    el.setAttribute('contenteditable', 'false');
+    el.ondblclick = function(e) {
+      e.stopPropagation();
+      el.setAttribute('contenteditable','true');
+      el.focus();
+    };
+    el.onblur = function() {
+      el.setAttribute('contenteditable','false');
+      elData.text = el.textContent;
+      saveCurrentBook();
+    };
+  } else if (elData.type === 'washi') {
+    el.className += ' sb-washi';
+    el.style.width = (elData.w||160) + 'px';
+    el.style.height = '28px';
+    el.style.background = elData.pattern || WASHI_COLORS[0];
+    el.style.borderRadius = '2px';
+    el.style.opacity = '.75';
+  }
+
+  // Handles
+  var delBtn = document.createElement('button');
+  delBtn.className = 'sb-el-del';
+  delBtn.textContent = '✕';
+  delBtn.onclick = function(e) {
+    e.stopPropagation();
+    var page = _book.pages[_pageIdx];
+    page.elements = page.elements.filter(function(x){ return x.id !== elData.id; });
+    saveCurrentBook();
+    el.remove();
+  };
+  el.appendChild(delBtn);
+
+  var resizeHandle = document.createElement('div');
+  resizeHandle.className = 'sb-el-resize';
+  el.appendChild(resizeHandle);
+
+  var rotateHandle = document.createElement('div');
+  rotateHandle.className = 'sb-el-rotate';
+  rotateHandle.textContent = '↻';
+  el.appendChild(rotateHandle);
+
+  // Select
+  el.addEventListener('pointerdown', function(e) {
+    if (e.target === delBtn || e.target === resizeHandle || e.target === rotateHandle) return;
+    deselectAll();
+    el.classList.add('sb-selected');
+    _selectedElId = elData.id;
+    e.stopPropagation();
+  });
+
+  // Drag
+  makeSbDraggable(el, pageEl, elData);
+  makeSbResizable(resizeHandle, el, elData);
+  makeSbRotatable(rotateHandle, el, elData);
+
+  pageEl.appendChild(el);
+}
+
+function makeSbDraggable(el, pageEl, elData) {
+  var sx, sy, sl, st, dragging=false;
+  el.addEventListener('pointerdown', function(e) {
+    if (e.target.classList.contains('sb-el-del') ||
+        e.target.classList.contains('sb-el-resize') ||
+        e.target.classList.contains('sb-el-rotate')) return;
+    if (el.getAttribute('contenteditable')==='true') return;
+    dragging=true; sx=e.clientX; sy=e.clientY;
+    sl=parseInt(el.style.left)||0; st=parseInt(el.style.top)||0;
+    el.setPointerCapture(e.pointerId); e.preventDefault();
+  });
+  el.addEventListener('pointermove', function(e) {
+    if (!dragging) return;
+    var nx=sl+(e.clientX-sx), ny=st+(e.clientY-sy);
+    el.style.left=nx+'px'; el.style.top=ny+'px';
+    elData.x=nx; elData.y=ny;
+  });
+  el.addEventListener('pointerup', function() {
+    if (!dragging) return; dragging=false; saveCurrentBook();
+  });
+}
+
+function makeSbResizable(handle, el, elData) {
+  var sx, sw, resizing=false;
+  handle.addEventListener('pointerdown', function(e) {
+    resizing=true; sx=e.clientX; sw=elData.w||100;
+    handle.setPointerCapture(e.pointerId); e.stopPropagation(); e.preventDefault();
+  });
+  handle.addEventListener('pointermove', function(e) {
+    if (!resizing) return;
+    var w=Math.max(30, sw+(e.clientX-sx));
+    el.style.width=w+'px';
+    if (elData.type==='image'||elData.type==='sticker') { el.style.height=w+'px'; elData.h=w; }
+    elData.w=w;
+  });
+  handle.addEventListener('pointerup', function() {
+    if (!resizing) return; resizing=false; saveCurrentBook();
+  });
+}
+
+function makeSbRotatable(handle, el, elData) {
+  var sa, sr, rotating=false;
+  handle.addEventListener('pointerdown', function(e) {
+    rotating=true;
+    var r=el.getBoundingClientRect();
+    var cx=r.left+r.width/2, cy=r.top+r.height/2;
+    sa=Math.atan2(e.clientY-cy, e.clientX-cx)*180/Math.PI;
+    sr=elData.rot||0;
+    handle.setPointerCapture(e.pointerId); e.stopPropagation(); e.preventDefault();
+  });
+  handle.addEventListener('pointermove', function(e) {
+    if (!rotating) return;
+    var r=el.getBoundingClientRect();
+    var cx=r.left+r.width/2, cy=r.top+r.height/2;
+    var a=Math.atan2(e.clientY-cy, e.clientX-cx)*180/Math.PI;
+    elData.rot=sr+(a-sa);
+    el.style.transform='rotate('+elData.rot+'deg)';
+  });
+  handle.addEventListener('pointerup', function() {
+    if (!rotating) return; rotating=false; saveCurrentBook();
+  });
+}
+
+// ── ADD TEXT ─────────────────────────────────────────────────
+function addTextElement() {
+  if (!_book) return;
+  var elData = { id:uid(), type:'text', x:40, y:40, w:150, rot:0, z:10, text:'Escribe aquí…', size:14, color:'#333', bg:'rgba(255,255,255,0.8)' };
+  _book.pages[_pageIdx].elements.push(elData);
+  saveCurrentBook();
+  var pageEl = document.getElementById('sbCurrentPage');
+  if (pageEl) mountElement(pageEl, elData);
+}
+
+// ── ADD WASHI ─────────────────────────────────────────────────
+function addWashiElement() {
+  // Show washi picker
+  var old = document.getElementById('sbWashiPicker');
+  if (old) { old.remove(); return; }
+  var picker = document.createElement('div');
+  picker.id = 'sbWashiPicker';
+  picker.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:.8rem;z-index:3200;box-shadow:0 4px 20px rgba(0,0,0,.2);';
+  var row = document.createElement('div');
+  row.className = 'sb-washi-row';
+  WASHI_COLORS.forEach(function(pattern, i) {
+    var sw = document.createElement('div');
+    sw.className = 'sb-washi-swatch';
+    sw.style.background = pattern;
+    sw.onclick = function() {
+      picker.remove();
+      var elData = { id:uid(), type:'washi', x:20, y:60+(_pageIdx*10%80), w:180, rot: (Math.random()*10-5), z:5, pattern:pattern };
+      _book.pages[_pageIdx].elements.push(elData);
+      saveCurrentBook();
+      var pageEl = document.getElementById('sbCurrentPage');
+      if (pageEl) mountElement(pageEl, elData);
+    };
+    row.appendChild(sw);
+  });
+  picker.appendChild(row);
+  document.body.appendChild(picker);
+  setTimeout(function(){ document.addEventListener('click', function h(e){ if(!picker.contains(e.target)){ picker.remove(); document.removeEventListener('click',h); } }); }, 50);
+}
+
+// ── LIBRARY PANEL ─────────────────────────────────────────────
+function openLibPanel() {
+  var old = document.getElementById('sbLibPanel');
+  if (old) { old.remove(); _libOpen=false; return; }
+  _libOpen = true;
+  var panel = document.createElement('div');
+  panel.className = 'sb-lib-panel';
+  panel.id = 'sbLibPanel';
+
+  var hdr = document.createElement('div');
+  hdr.className = 'sb-lib-header';
+  hdr.innerHTML = '<span class="sb-lib-title">🌸 Biblioteca de elementos</span>';
+  var closeLibBtn = document.createElement('button');
+  closeLibBtn.className = 'sb-lib-close';
+  closeLibBtn.textContent = '✕';
+  closeLibBtn.onclick = function(){ panel.remove(); _libOpen=false; };
+  hdr.appendChild(closeLibBtn);
+  panel.appendChild(hdr);
+
+  // Category bar
+  var lib = loadLib();
+  var cats = ['Todos'];
+  lib.forEach(function(item){ if(item.cat && cats.indexOf(item.cat)===-1) cats.push(item.cat); });
+
+  var catBar = document.createElement('div');
+  catBar.className = 'sb-lib-cats';
+  catBar.id = 'sbLibCats';
+
+  var _activeCat = 'Todos';
+
+  function renderCats() {
+    catBar.innerHTML = '';
+    cats.forEach(function(cat) {
+      var btn = document.createElement('button');
+      btn.className = 'sb-lib-cat' + (cat===_activeCat?' active':'');
+      btn.textContent = cat;
+      btn.onclick = function(){ _activeCat=cat; renderGrid(); renderCats(); };
+      catBar.appendChild(btn);
+    });
+    // Add cat button
+    var addCatBtn = document.createElement('button');
+    addCatBtn.className = 'sb-lib-cat';
+    addCatBtn.textContent = '＋ Categoría';
+    addCatBtn.onclick = function(){
+      var name = prompt('Nombre de la nueva categoría:');
+      if (name && name.trim()) { cats.push(name.trim()); renderCats(); }
+    };
+    catBar.appendChild(addCatBtn);
+  }
+
+  panel.appendChild(catBar);
+
+  // Grid
+  var grid = document.createElement('div');
+  grid.className = 'sb-lib-grid';
+  grid.id = 'sbLibGrid';
+  panel.appendChild(grid);
+
+  // Upload row
+  var uploadRow = document.createElement('div');
+  uploadRow.style.cssText = 'margin-top:.8rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;';
+  var uploadLabel = document.createElement('label');
+  uploadLabel.className = 'sb-lib-upload';
+  uploadLabel.innerHTML = '📁 Subir elemento <input type="file" accept="image/*" multiple style="display:none" id="sbLibUploadInput">';
+  uploadRow.appendChild(uploadLabel);
+  panel.appendChild(uploadRow);
+
+  document.getElementById('sbLibPanel') && document.getElementById('sbLibPanel').remove();
+  document.body.appendChild(panel);
+
+  // File upload handler
+  setTimeout(function(){
+    var inp = document.getElementById('sbLibUploadInput');
+    if (!inp) return;
+    inp.onchange = function(e) {
+      var files = Array.from(e.target.files);
+      if (!files.length) return;
+      // Ask category
+      var catName = prompt('¿A qué categoría pertenece? (ej: stickers, cintas, memos…)\nCategorías actuales: ' + cats.filter(function(c){return c!=='Todos';}).join(', '));
+      catName = (catName||'Sin categoría').trim();
+      if (catName && cats.indexOf(catName)===-1) cats.push(catName);
+      var pending = files.length;
+      var curLib = loadLib();
+      files.forEach(function(file){
+        var r = new FileReader();
+        r.onload = function(ev) {
+          curLib.unshift({ id:uid(), src:ev.target.result, cat:catName });
+          pending--;
+          if (pending===0) { saveLib(curLib); _activeCat=catName; renderGrid(); renderCats(); }
+        };
+        r.readAsDataURL(file);
+      });
+      e.target.value='';
+    };
+  }, 50);
+
+  function renderGrid() {
+    var lib2 = loadLib();
+    grid.innerHTML='';
+    var filtered = _activeCat==='Todos' ? lib2 : lib2.filter(function(i){ return i.cat===_activeCat; });
+    if (!filtered.length) {
+      grid.innerHTML='<div class="sb-lib-empty">Sube elementos con el botón de abajo 🌸</div>';
+      return;
+    }
+    filtered.forEach(function(item) {
+      var cell = document.createElement('div');
+      cell.className = 'sb-lib-item';
+      var img = document.createElement('img');
+      img.src = item.src;
+      img.loading = 'lazy';
+      img.onclick = function(){
+        placeLibItem(item);
+        panel.remove(); _libOpen=false;
+      };
+      var del = document.createElement('div');
+      del.className = 'sb-lib-item-del';
+      del.textContent = '✕';
+      del.onclick = function(e){
+        e.stopPropagation();
+        var all = loadLib().filter(function(x){ return x.id!==item.id; });
+        saveLib(all);
+        renderGrid();
+      };
+      cell.appendChild(img);
+      cell.appendChild(del);
+      grid.appendChild(cell);
+    });
+  }
+
+  renderCats();
+  renderGrid();
+}
+
+function placeLibItem(item) {
+  if (!_book) return;
+  var elData = {
+    id:uid(), type:'image', src:item.src,
+    x: 40 + Math.random()*60, y: 40 + Math.random()*60,
+    w:100, h:100, rot:(Math.random()*16-8), z:10
+  };
+  _book.pages[_pageIdx].elements.push(elData);
+  saveCurrentBook();
+  var pageEl = document.getElementById('sbCurrentPage');
+  if (pageEl) mountElement(pageEl, elData);
+}
+
+// ── Init: expose shelf render for both contexts ───────────────
+window.scrapbookRenderShelf = window.scrapbookRenderShelf; // already defined above
 
 })();
 </script>
