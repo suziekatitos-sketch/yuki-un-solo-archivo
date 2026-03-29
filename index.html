@@ -6157,9 +6157,23 @@ function todayKey() { return dateKey(new Date()); }
       var templates    = JSON.parse(localStorage.getItem('rutina_templates')    || '[]');
       var asignaciones = JSON.parse(localStorage.getItem('rutina_asignaciones') || '{}');
       var completions  = JSON.parse(localStorage.getItem('rutina_completions')  || '{}');
-      var assignedId   = asignaciones[todayKey];
-      var tpl = assignedId ? templates.find(function(t){ return t.id === assignedId; }) : null;
-      if (tpl) {
+      var assignedRaw  = asignaciones[todayKey];
+      var assignedIds2 = Array.isArray(assignedRaw) ? assignedRaw : (assignedRaw ? [assignedRaw] : []);
+      assignedIds2.forEach(function(assignedId) {
+        var tpl = templates.find(function(t){ return t.id === assignedId; });
+        if (!tpl) return;
+        if (tpl.tipo === 'video') {
+          var vidDone = !!completions[assignedId+'|'+todayKey+'|video'];
+          totalPasos += 1; donePasos += vidDone ? 1 : 0;
+          rutinasHoy.push({ emoji: tpl.emoji||'▶️', nombre: tpl.name, done: vidDone ? 1 : 0, total: 1 });
+          return;
+        }
+        if (tpl.tipo === 'foto') {
+          var fotoDone = !!completions[assignedId+'|'+todayKey+'|foto'];
+          totalPasos += 1; donePasos += fotoDone ? 1 : 0;
+          rutinasHoy.push({ emoji: tpl.emoji||'📸', nombre: tpl.name, done: fotoDone ? 1 : 0, total: 1 });
+          return;
+        }
         var franjas = ['mad','m','med','t','at','n'];
         var rt = 0, rd = 0;
         franjas.forEach(function(f) {
@@ -6171,7 +6185,7 @@ function todayKey() { return dateKey(new Date()); }
         });
         totalPasos += rt; donePasos += rd;
         rutinasHoy.push({ emoji: tpl.emoji||'🌿', nombre: tpl.name, done: rd, total: rt });
-      }
+      });
     } catch(e){}
 
     // ── 2. Ejercicio ──
@@ -7862,42 +7876,83 @@ function renderRutinas() {
   const _rdl = document.getElementById('rutDateLabel'); if (_rdl) _rdl.textContent = label;
 
   // Assigned template for this day
-  const assignedId = rutinaAsignaciones[dk];
-  const assigned   = assignedId ? rutinaTemplates.find(t => t.id === assignedId) : null;
+  // Assigned templates for this day (support both old single-id and new array)
+  const assignedRaw = rutinaAsignaciones[dk];
+  const assignedIds = Array.isArray(assignedRaw) ? assignedRaw : (assignedRaw ? [assignedRaw] : []);
+  const assignedId  = assignedIds[0] || null; // keep for legacy compat (pasos view uses first)
+  const assigned    = assignedId ? rutinaTemplates.find(t => t.id === assignedId) : null;
 
   const assignedEl = document.getElementById('rutAssigned');
   if (!assignedEl) return;
   assignedEl.innerHTML = '';
 
-  if (assigned) {
-    const chip = document.createElement('div');
-    chip.className = 'rutina-assign-chip has-rutina';
-    chip.innerHTML = `${assigned.emoji} ${assigned.name} <span style="opacity:.6;font-size:.65rem">· ver pasos</span>`;
-    chip.onclick = () => openRutinaSessionModal(assigned.id, dk);
-    assignedEl.appendChild(chip);
+  if (assignedIds.length > 0) {
+    // Show one chip per assigned routine
+    const chipsWrap = document.createElement('div');
+    chipsWrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;flex:1;';
 
-    const clearBtn = document.createElement('button');
-    clearBtn.className = 'rut-action-btn';
-    clearBtn.title = 'Quitar rutina de este día';
-    clearBtn.textContent = '✕';
-    clearBtn.onclick = () => {
-      delete rutinaAsignaciones[dk];
-      saveRutinas(); renderRutinas();
-    };
-    assignedEl.appendChild(clearBtn);
+    assignedIds.forEach(aid => {
+      const t = rutinaTemplates.find(x => x.id === aid);
+      if (!t) return;
+      const chip = document.createElement('div');
+      chip.className = 'rutina-assign-chip has-rutina';
+      chip.style.cssText = 'display:flex;align-items:center;gap:.35rem;cursor:pointer;';
 
-    // Shuffle button
-    const shuffleBtn = document.createElement('button');
-    shuffleBtn.className = 'rut-action-btn';
-    shuffleBtn.title = 'Modo Shuffle — mezcla mediodía, tarde y atardecer 🔀 (madrugada, mañana y noche se mantienen fijas)';
-    shuffleBtn.innerHTML = '🔀';
-    shuffleBtn.style.cssText = 'font-size:.9rem;transition:transform .3s';
-    shuffleBtn.onclick = () => {
-      shuffleBtn.style.transform = 'rotate(360deg)';
-      setTimeout(() => shuffleBtn.style.transform = '', 350);
-      shuffleRutina(assigned.id);
-    };
-    assignedEl.appendChild(shuffleBtn);
+      // YouTube thumb for video type
+      if (t.tipo === 'video') {
+        const ytM = t.videoUrl && t.videoUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/))([a-zA-Z0-9_-]{11})/);
+        const ytId = ytM ? ytM[1] : null;
+        if (ytId) {
+          chip.innerHTML = `<img src="https://img.youtube.com/vi/${ytId}/default.jpg" style="width:28px;height:20px;object-fit:cover;border-radius:4px;"> ${t.name} <span style="opacity:.6;font-size:.65rem">· ver</span>`;
+        } else {
+          chip.innerHTML = `▶️ ${t.name} <span style="opacity:.6;font-size:.65rem">· ver</span>`;
+        }
+      } else {
+        chip.innerHTML = `${t.emoji || '🌸'} ${t.name} <span style="opacity:.6;font-size:.65rem">· ver</span>`;
+      }
+
+      chip.onclick = () => openRutinaSessionModal(t.id, dk);
+
+      // Remove button per chip
+      const xBtn = document.createElement('span');
+      xBtn.textContent = '✕';
+      xBtn.title = 'Quitar esta rutina';
+      xBtn.style.cssText = 'font-size:.65rem;opacity:.5;cursor:pointer;padding:0 .15rem;';
+      xBtn.onclick = (e) => {
+        e.stopPropagation();
+        const newIds = assignedIds.filter(x => x !== aid);
+        rutinaAsignaciones[dk] = newIds.length ? newIds : undefined;
+        if (!newIds.length) delete rutinaAsignaciones[dk];
+        saveRutinas(); renderRutinas();
+      };
+      chip.appendChild(xBtn);
+      chipsWrap.appendChild(chip);
+    });
+
+    assignedEl.appendChild(chipsWrap);
+
+    // ＋ Add another routine button
+    const addMoreBtn = document.createElement('button');
+    addMoreBtn.className = 'rut-action-btn';
+    addMoreBtn.title = 'Añadir otra rutina a este día';
+    addMoreBtn.textContent = '＋';
+    addMoreBtn.onclick = () => openAssignModal(dk);
+    assignedEl.appendChild(addMoreBtn);
+
+    // Shuffle button (only if first is texto type)
+    if (assigned && assigned.tipo === 'texto') {
+      const shuffleBtn = document.createElement('button');
+      shuffleBtn.className = 'rut-action-btn';
+      shuffleBtn.title = 'Modo Shuffle — mezcla mediodía, tarde y atardecer 🔀 (madrugada, mañana y noche se mantienen fijas)';
+      shuffleBtn.innerHTML = '🔀';
+      shuffleBtn.style.cssText = 'font-size:.9rem;transition:transform .3s';
+      shuffleBtn.onclick = () => {
+        shuffleBtn.style.transform = 'rotate(360deg)';
+        setTimeout(() => shuffleBtn.style.transform = '', 350);
+        shuffleRutina(assigned.id);
+      };
+      assignedEl.appendChild(shuffleBtn);
+    }
 
     // Colchón toggle
     var colchonActive = localStorage.getItem('rutina_colchon') === '1';
@@ -8029,15 +8084,28 @@ function renderRutinas() {
   } else {
     rutinaTemplates.forEach(tpl => {
       const card = document.createElement('div');
-      card.className = 'rutina-template-card' + (tpl.id === assignedId ? ' active-template' : '');
+      card.className = 'rutina-template-card' + (assignedIds.includes(tpl.id) ? ' active-template' : '');
 
-      const totalPasos = tpl.tipo === 'foto' ? 1 : Object.values(tpl.pasos || {}).reduce((s, arr) => s + arr.length, 0);
+      const totalPasos = tpl.tipo === 'foto' ? 1 : tpl.tipo === 'video' ? 1 : Object.values(tpl.pasos || {}).reduce((s, arr) => s + arr.length, 0);
 
       if (tpl.tipo === 'foto' && tpl.foto) {
         card.innerHTML = `
           <img src="${tpl.foto}" style="width:38px;height:38px;object-fit:cover;border-radius:8px;flex-shrink:0;border:1.5px solid var(--border);" onerror="this.style.display='none'">
           <div class="rutina-template-info">
             <div class="rutina-template-name">📸 ${tpl.name}</div>
+          </div>`;
+      } else if (tpl.tipo === 'video') {
+        // Try to show YouTube thumbnail
+        const ytMatch = tpl.videoUrl && tpl.videoUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/))([a-zA-Z0-9_-]{11})/);
+        const ytId = ytMatch ? ytMatch[1] : null;
+        const thumbHtml = ytId
+          ? `<img src="https://img.youtube.com/vi/${ytId}/default.jpg" style="width:48px;height:36px;object-fit:cover;border-radius:6px;flex-shrink:0;border:1.5px solid var(--border);">`
+          : `<span style="font-size:1.5rem;width:38px;text-align:center;flex-shrink:0">▶️</span>`;
+        card.innerHTML = `
+          ${thumbHtml}
+          <div class="rutina-template-info">
+            <div class="rutina-template-name">${tpl.emoji || '▶️'} ${tpl.name}</div>
+            ${tpl.videoDur ? `<div class="rutina-template-meta">⏱ ${tpl.videoDur}</div>` : ''}
           </div>`;
       } else {
         card.innerHTML = `
@@ -8089,6 +8157,74 @@ function openRutinaSessionModal(templateId, dk) {
 
   function buildBody() {
     bodyEl.innerHTML = '';
+
+    // ── Rutina de VIDEO ──
+    if (tpl.tipo === 'video' && tpl.videoUrl) {
+      const vidCKey = templateId + '|' + dk + '|video';
+      const vidDone = !!rutinaCompletions[vidCKey];
+
+      // YouTube embed or link card
+      const ytM = tpl.videoUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/))([a-zA-Z0-9_-]{11})/);
+      const ytId = ytM ? ytM[1] : null;
+
+      const mediaWrap = document.createElement('div');
+      mediaWrap.style.cssText = 'margin-bottom:.8rem;border-radius:12px;overflow:hidden;border:1.5px solid var(--border);';
+
+      if (ytId) {
+        // Clickable thumbnail that opens YouTube
+        const thumb = document.createElement('a');
+        thumb.href = tpl.videoUrl;
+        thumb.target = '_blank';
+        thumb.rel = 'noopener noreferrer';
+        thumb.style.cssText = 'display:block;position:relative;';
+        thumb.innerHTML = `
+          <img src="https://img.youtube.com/vi/${ytId}/hqdefault.jpg" style="width:100%;max-height:200px;object-fit:cover;display:block;">
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.65);border-radius:50%;width:52px;height:52px;display:flex;align-items:center;justify-content:center;font-size:1.6rem;">▶️</div>
+          <div style="padding:.45rem .7rem;background:var(--surface);font-size:.72rem;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:.4rem;">
+            <span>🔗 Abrir en YouTube</span>
+            ${tpl.videoDur ? '<span style="margin-left:auto;opacity:.7">⏱ ' + tpl.videoDur + '</span>' : ''}
+          </div>`;
+        mediaWrap.appendChild(thumb);
+      } else {
+        // Generic link card
+        const linkCard = document.createElement('a');
+        linkCard.href = tpl.videoUrl;
+        linkCard.target = '_blank';
+        linkCard.rel = 'noopener noreferrer';
+        linkCard.style.cssText = 'display:flex;align-items:center;gap:.7rem;padding:.7rem 1rem;text-decoration:none;color:var(--text);';
+        linkCard.innerHTML = `<span style="font-size:1.8rem">▶️</span>
+          <div>
+            <div style="font-size:.85rem;font-weight:700;">${tpl.name}</div>
+            <div style="font-size:.7rem;color:var(--muted);word-break:break-all;">${tpl.videoUrl}</div>
+            ${tpl.videoDur ? '<div style="font-size:.7rem;color:var(--muted)">⏱ ' + tpl.videoDur + '</div>' : ''}
+          </div>`;
+        mediaWrap.appendChild(linkCard);
+      }
+      bodyEl.appendChild(mediaWrap);
+
+      // Checkbox "Hice esta rutina hoy"
+      const checkRow = document.createElement('div');
+      checkRow.style.cssText = 'display:flex;align-items:center;gap:.7rem;padding:.6rem .8rem;border-radius:10px;background:var(--bg);border:2px solid ' + (vidDone ? 'var(--verde)' : 'var(--border)') + ';cursor:pointer;transition:all .2s;';
+
+      const chk = document.createElement('span');
+      chk.style.cssText = 'width:22px;height:22px;min-width:22px;border-radius:50%;border:2px solid ' + (vidDone ? 'var(--verde)' : 'var(--muted2)') + ';display:flex;align-items:center;justify-content:center;font-size:.7rem;background:' + (vidDone ? 'var(--verde)' : 'transparent') + ';color:white;flex-shrink:0;transition:all .2s;';
+      chk.textContent = vidDone ? '✓' : '';
+
+      const lbl = document.createElement('span');
+      lbl.style.cssText = 'font-size:.85rem;font-weight:600;color:var(--text);' + (vidDone ? 'text-decoration:line-through;opacity:.6;' : '');
+      lbl.textContent = vidDone ? '¡Video completado hoy! 🎉' : '✅ Marcar como visto hoy';
+
+      checkRow.appendChild(chk);
+      checkRow.appendChild(lbl);
+      checkRow.onclick = () => {
+        rutinaCompletions[vidCKey] = !vidDone;
+        saveRutinas();
+        renderRutinas();
+        buildBody();
+      };
+      bodyEl.appendChild(checkRow);
+      return;
+    }
 
     // ── Rutina de FOTO ──
     if (tpl.tipo === 'foto' && tpl.foto) {
@@ -8205,7 +8341,7 @@ function openRutinaSessionModal(templateId, dk) {
   document.body.appendChild(backdrop);
 }
 
-// ── Assign modal (pick template for a day)
+// ── Assign modal (pick one or more templates for a day)
 function openAssignModal(dk) {
   const old = document.getElementById('rutinaAssignModal');
   if (old) old.remove();
@@ -8215,42 +8351,117 @@ function openAssignModal(dk) {
     return;
   }
 
+  // Current assigned ids for this day
+  const curRaw = rutinaAsignaciones[dk];
+  const curIds = new Set(Array.isArray(curRaw) ? curRaw : (curRaw ? [curRaw] : []));
+
   const backdrop = document.createElement('div');
   backdrop.className = 'rutina-modal-backdrop';
   backdrop.id = 'rutinaAssignModal';
-
-  let html = `<div class="rutina-modal-box">
-    <div class="rutina-modal-title">📅 <em>Asignar rutina</em></div>
-    <div style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:1.2rem">`;
-
-  rutinaTemplates.forEach(tpl => {
-    const totalPasos = Object.values(tpl.pasos).reduce((s, arr) => s + arr.length, 0);
-    html += `<div class="rutina-template-card" data-id="${tpl.id}" style="cursor:pointer">
-      <span class="rutina-template-emoji">${tpl.emoji}</span>
-      <div class="rutina-template-info">
-        <div class="rutina-template-name">${tpl.name}</div>
-        <div class="rutina-template-meta">${totalPasos} pasos</div>
-      </div>
-    </div>`;
-  });
-
-  html += `</div>
-    <div class="modal-btns">
-      <button class="modal-btn-cancel" onclick="document.getElementById('rutinaAssignModal').remove()">Cancelar</button>
-    </div>
-  </div>`;
-
-  backdrop.innerHTML = html;
   backdrop.onclick = (e) => { if (e.target === backdrop) backdrop.remove(); };
 
-  backdrop.querySelectorAll('.rutina-template-card').forEach(card => {
+  const box = document.createElement('div');
+  box.className = 'rutina-modal-box';
+
+  const title = document.createElement('div');
+  title.className = 'rutina-modal-title';
+  title.innerHTML = '📅 <em>Asignar rutinas</em>';
+  box.appendChild(title);
+
+  const hint = document.createElement('div');
+  hint.style.cssText = 'font-size:.75rem;color:var(--muted);margin-bottom:.8rem;';
+  hint.textContent = 'Puedes marcar varias a la vez 🐾';
+  box.appendChild(hint);
+
+  const listWrap = document.createElement('div');
+  listWrap.style.cssText = 'display:flex;flex-direction:column;gap:.4rem;margin-bottom:1rem;max-height:60vh;overflow-y:auto;';
+
+  // Track selected in this session
+  const selected = new Set(curIds);
+
+  rutinaTemplates.forEach(tpl => {
+    const isSelected = selected.has(tpl.id);
+
+    const card = document.createElement('div');
+    card.className = 'rutina-template-card';
+    card.dataset.id = tpl.id;
+    card.style.cssText = 'cursor:pointer;transition:all .15s;border:2px solid ' + (isSelected ? 'var(--rosa)' : 'var(--border)') + ';background:' + (isSelected ? 'var(--rosa-soft,#fce4ec)' : 'var(--surface)') + ';';
+
+    // Build thumbnail area
+    let thumbHtml = '';
+    if (tpl.tipo === 'foto' && tpl.foto) {
+      thumbHtml = `<img src="${tpl.foto}" style="width:38px;height:38px;object-fit:cover;border-radius:7px;flex-shrink:0;border:1px solid var(--border);" onerror="this.style.display='none'">`;
+    } else if (tpl.tipo === 'video') {
+      const ytM = tpl.videoUrl && tpl.videoUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/))([a-zA-Z0-9_-]{11})/);
+      const ytId = ytM ? ytM[1] : null;
+      thumbHtml = ytId
+        ? `<img src="https://img.youtube.com/vi/${ytId}/default.jpg" style="width:48px;height:34px;object-fit:cover;border-radius:6px;flex-shrink:0;border:1px solid var(--border);">`
+        : `<span style="font-size:1.4rem;width:38px;text-align:center;flex-shrink:0">▶️</span>`;
+    } else {
+      thumbHtml = `<span style="font-size:1.4rem;width:38px;text-align:center;flex-shrink:0">${tpl.emoji || '🌸'}</span>`;
+    }
+
+    const totalPasos = tpl.tipo === 'foto' || tpl.tipo === 'video' ? null : Object.values(tpl.pasos || {}).reduce((s, arr) => s + arr.length, 0);
+    const metaText = tpl.tipo === 'video' ? (tpl.videoDur ? '⏱ ' + tpl.videoDur : '▶️ video') : (tpl.tipo === 'foto' ? '📸 imagen' : (totalPasos + ' paso' + (totalPasos !== 1 ? 's' : '')));
+
+    // Checkmark badge
+    const checkBadge = `<span class="assign-check-badge" style="width:20px;height:20px;min-width:20px;border-radius:50%;border:2px solid ${isSelected ? 'var(--rosa)' : 'var(--border)'};display:flex;align-items:center;justify-content:center;font-size:.65rem;background:${isSelected ? 'var(--rosa)' : 'transparent'};color:white;flex-shrink:0;margin-left:auto;transition:all .15s;">${isSelected ? '✓' : ''}</span>`;
+
+    card.innerHTML = `
+      ${thumbHtml}
+      <div class="rutina-template-info" style="flex:1;min-width:0;">
+        <div class="rutina-template-name">${tpl.name}</div>
+        <div class="rutina-template-meta">${metaText}</div>
+      </div>
+      ${checkBadge}`;
+
     card.onclick = () => {
-      rutinaAsignaciones[dk] = card.dataset.id;
-      saveRutinas(); renderRutinas();
-      backdrop.remove();
+      if (selected.has(tpl.id)) {
+        selected.delete(tpl.id);
+        card.style.border = '2px solid var(--border)';
+        card.style.background = 'var(--surface)';
+        const badge = card.querySelector('.assign-check-badge');
+        if (badge) { badge.style.background = 'transparent'; badge.style.borderColor = 'var(--border)'; badge.textContent = ''; }
+      } else {
+        selected.add(tpl.id);
+        card.style.border = '2px solid var(--rosa)';
+        card.style.background = 'var(--rosa-soft,#fce4ec)';
+        const badge = card.querySelector('.assign-check-badge');
+        if (badge) { badge.style.background = 'var(--rosa)'; badge.style.borderColor = 'var(--rosa)'; badge.textContent = '✓'; }
+      }
     };
+
+    listWrap.appendChild(card);
   });
 
+  box.appendChild(listWrap);
+
+  const btns = document.createElement('div');
+  btns.className = 'modal-btns';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'modal-btn-cancel';
+  cancelBtn.textContent = 'Cancelar';
+  cancelBtn.onclick = () => backdrop.remove();
+
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'modal-btn-save';
+  saveBtn.textContent = 'Guardar 🐱';
+  saveBtn.onclick = () => {
+    const ids = [...selected];
+    if (ids.length === 0) {
+      delete rutinaAsignaciones[dk];
+    } else {
+      rutinaAsignaciones[dk] = ids;
+    }
+    saveRutinas(); renderRutinas();
+    backdrop.remove();
+  };
+
+  btns.appendChild(cancelBtn);
+  btns.appendChild(saveBtn);
+  box.appendChild(btns);
+  backdrop.appendChild(box);
   document.body.appendChild(backdrop);
 }
 
@@ -8358,10 +8569,11 @@ function openRutinaTipoModal() {
   
   box.innerHTML = `
     <div class="rutina-modal-title">🐾 <em>¿Qué tipo de rutina?</em></div>
-    <div style="display:flex; gap:1rem; margin-top:2rem;">
-      <button class="modal-btn-save" style="flex:1;" onclick="openRutinaModal(null, 'texto')">📝 Texto con pasos</button>
-      <button class="modal-btn-save" style="flex:1;" onclick="openRutinaModal(null, 'foto')">📸 Foto</button>
-    </button>
+    <div style="display:flex; gap:.7rem; margin-top:2rem; flex-wrap:wrap;">
+      <button class="modal-btn-save" style="flex:1;min-width:120px;" onclick="openRutinaModal(null, 'texto')">📝 Texto con pasos</button>
+      <button class="modal-btn-save" style="flex:1;min-width:120px;" onclick="openRutinaModal(null, 'foto')">📸 Foto</button>
+      <button class="modal-btn-save" style="flex:1;min-width:120px;" onclick="openRutinaModal(null, 'video')">▶️ Video / URL</button>
+    </div>
     <div style="margin-top:1rem;">
       <button class="modal-btn-cancel" style="width:100%;" onclick="this.closest('.rutina-modal-backdrop').remove()">Cancelar</button>
     </div>
@@ -8402,8 +8614,38 @@ function openRutinaModal(templateId, tipo) {
     `<span class="emoji-opt${e === emoji ? ' selected' : ''}" data-emoji="${e}">${e}</span>`
   ).join('');
 
+  // Helper: extract YouTube video ID
+  function getYouTubeId(url) {
+    if (!url) return null;
+    const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/))([a-zA-Z0-9_-]{11})/);
+    return m ? m[1] : null;
+  }
+
+  const videoUrl  = existing ? (existing.videoUrl || '') : '';
+  const videoDur  = existing ? (existing.videoDur || '') : '';
+
   // HTML diferente según tipo
-  const htmlContenido = rutinaTipo === 'foto' ? `
+  const htmlContenido = rutinaTipo === 'video' ? `
+    <div class="modal-field">
+      <label class="modal-label">Nombre de la rutina</label>
+      <input class="modal-input" id="rutNombre" placeholder="ej: Yoga mañanero, HIIT 20min..." value="${nombre.replace(/"/g,'&quot;')}">
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Emoji</label>
+      <div class="emoji-picker-row" id="emojiPicker">${RUTINA_EMOJIS.map(e => `<span class="emoji-opt${e === emoji ? ' selected' : ''}" data-emoji="${e}">${e}</span>`).join('')}</div>
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">URL del video (YouTube u otro enlace)</label>
+      <input type="url" class="modal-input" id="rutVideoUrl" placeholder="https://www.youtube.com/watch?v=..." value="${videoUrl.replace(/"/g,'&quot;')}">
+      <div id="rutVideoPreview" style="margin-top:.6rem;text-align:center;border-radius:10px;overflow:hidden;">
+        ${getYouTubeId(videoUrl) ? `<img src="https://img.youtube.com/vi/${getYouTubeId(videoUrl)}/hqdefault.jpg" style="width:100%;max-height:180px;object-fit:cover;border-radius:10px;border:1.5px solid var(--border);">` : ''}
+      </div>
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Duración (opcional, ej: 20 min)</label>
+      <input class="modal-input" id="rutVideoDur" placeholder="ej: 20 min" value="${videoDur.replace(/"/g,'&quot;')}">
+    </div>
+  ` : rutinaTipo === 'foto' ? `
     <div class="modal-field">
       <label class="modal-label">Nombre de la rutina</label>
       <input class="modal-input" id="rutNombre" placeholder="ej: Rutina full body..." value="${nombre.replace(/"/g,'&quot;')}">
@@ -8439,7 +8681,7 @@ function openRutinaModal(templateId, tipo) {
   `;
 
   box.innerHTML = `
-    <div class="rutina-modal-title">🐾 <em>${existing ? 'Editar' : 'Nueva'} rutina ${rutinaTipo === 'foto' ? '📸' : '📝'}</em></div>
+    <div class="rutina-modal-title">🐾 <em>${existing ? 'Editar' : 'Nueva'} rutina ${rutinaTipo === 'foto' ? '📸' : rutinaTipo === 'video' ? '▶️' : '📝'}</em></div>
     ${htmlContenido}
     ${existing ? '<div style="margin-top:.8rem;padding-top:.8rem;border-top:1.5px solid var(--border)"><button class="modal-btn-delete" id="rutDelBtn" style="width:100%">🗑️ Eliminar rutina</button></div>' : ''}
     <div class="modal-btns" style="margin-top:.6rem">
@@ -8452,6 +8694,17 @@ function openRutinaModal(templateId, tipo) {
 
   // selectedEmoji declared here so save handler can access it regardless of tipo
   let selectedEmoji = emoji;
+
+  // Emoji picker (para texto Y video)
+  if (rutinaTipo === 'texto' || rutinaTipo === 'video') {
+  backdrop.querySelectorAll('.emoji-opt').forEach(opt => {
+    opt.onclick = () => {
+      backdrop.querySelectorAll('.emoji-opt').forEach(o => o.classList.remove('selected'));
+      opt.classList.add('selected');
+      selectedEmoji = opt.dataset.emoji;
+    };
+  });
+  }
 
   // Emoji picker (solo para texto)
   if (rutinaTipo === 'texto') {
@@ -8499,6 +8752,25 @@ function openRutinaModal(templateId, tipo) {
 
   } // end if rutinaTipo === 'texto'
 
+  // Preview de URL de video en tiempo real
+  if (rutinaTipo === 'video') {
+    const videoInput = backdrop.querySelector('#rutVideoUrl');
+    const videoPreview = backdrop.querySelector('#rutVideoPreview');
+    if (videoInput) {
+      videoInput.oninput = () => {
+        const url = videoInput.value.trim();
+        const ytId = getYouTubeId(url);
+        if (ytId) {
+          videoPreview.innerHTML = `<img src="https://img.youtube.com/vi/${ytId}/hqdefault.jpg" style="width:100%;max-height:180px;object-fit:cover;border-radius:10px;border:1.5px solid var(--border);">`;
+        } else if (url) {
+          videoPreview.innerHTML = `<div style="padding:.5rem;font-size:.75rem;color:var(--muted);border:1.5px dashed var(--border);border-radius:10px;">🔗 ${url}</div>`;
+        } else {
+          videoPreview.innerHTML = '';
+        }
+      };
+    }
+  }
+
   // Preview de URL en tiempo real
   if (rutinaTipo === 'foto') {
     const urlInput = backdrop.querySelector('#rutFotoUrl');
@@ -8519,6 +8791,41 @@ function openRutinaModal(templateId, tipo) {
   box.querySelector('#rutSaveBtn').onclick = () => {
     const nombre = backdrop.querySelector('#rutNombre').value.trim();
     if (!nombre) { backdrop.querySelector('#rutNombre').focus(); return; }
+
+    if (rutinaTipo === 'video') {
+      const videoInputEl = backdrop.querySelector('#rutVideoUrl');
+      const videoDurEl   = backdrop.querySelector('#rutVideoDur');
+      const vUrl = videoInputEl ? videoInputEl.value.trim() : videoUrl;
+      const vDur = videoDurEl  ? videoDurEl.value.trim()  : videoDur;
+
+      if (!vUrl) {
+        alert('Por favor ingresa la URL del video 🐱');
+        videoInputEl && videoInputEl.focus();
+        return;
+      }
+
+      if (existing) {
+        existing.name     = nombre;
+        existing.videoUrl = vUrl;
+        existing.videoDur = vDur;
+        existing.tipo     = 'video';
+        existing.emoji    = selectedEmoji || '▶️';
+      } else {
+        rutinaTemplates.push({
+          id:       'rut_' + Date.now(),
+          name:     nombre,
+          emoji:    selectedEmoji || '▶️',
+          videoUrl: vUrl,
+          videoDur: vDur,
+          tipo:     'video',
+          pasos:    { mad:[], m:[], med:[], t:[], at:[], n:[] }
+        });
+      }
+      saveRutinas();
+      renderRutinas();
+      backdrop.remove();
+      return;
+    }
 
     if (rutinaTipo === 'foto') {
       const urlInput = backdrop.querySelector('#rutFotoUrl');
@@ -14222,19 +14529,25 @@ window.journalShowTab = function(tab) {
 </div>
 <div class="salud-tabs">
   <button class="salud-tab active" id="saludTabRegistros"  onclick="saludShowTab('registros')">📋 Registros</button>
+  <button class="salud-tab"        id="saludTabEjercicio"  onclick="saludShowTab('ejercicio')">💪 Ejercicio</button>
   <button class="salud-tab"        id="saludTabRutina"     onclick="saludShowTab('rutina')">⏰ Mis Horas</button>
   <button class="salud-tab"        id="saludTabEstadisticas" onclick="saludShowTab('estadisticas')">📈 Progreso</button>
   <button class="salud-tab"        id="saludTabSuenos"     onclick="saludShowTab('suenos')">🌙 Sueños</button>
 </div>
 <script>
 window.saludShowTab = function(tab) {
-  ['registros','rutina','estadisticas','suenos'].forEach(function(t) {
-    var el  = document.getElementById('saludTab' + t.charAt(0).toUpperCase() + t.slice(1) + '-content');
-    var btn = document.getElementById('saludTab' + t.charAt(0).toUpperCase() + t.slice(1));
+  ['registros','ejercicio','rutina','estadisticas','suenos'].forEach(function(t) {
+    var key = t.charAt(0).toUpperCase() + t.slice(1);
+    var el  = document.getElementById('saludTab' + key + '-content');
+    var btn = document.getElementById('saludTab' + key);
     if (el)  el.style.display = (t === tab) ? '' : 'none';
     if (btn) btn.classList.toggle('active', t === tab);
   });
   if (tab === 'estadisticas' && window.renderResumenSalud) window.renderResumenSalud();
+  if (tab === 'ejercicio') {
+    if (window.renderPasos) window.renderPasos();
+    if (typeof renderEjercicio === 'function') renderEjercicio();
+  }
 };
 </script>
 
@@ -16852,33 +17165,6 @@ renderTracker();
   <div class="mens-card" id="mensCard"></div>
 </section>
 
-<!-- SECCIÓN · RUTINAS DE EJERCICIO -->
-<section class="ejercicio-section" id="sec-ejercicio">
-  <span class="section-sub">💪 movimiento</span>
-  <h2 class="section-title"><em>Rutinas</em> de Ejercicio</h2>
-  <p style="font-size:.75rem;color:var(--muted);margin-bottom:1.2rem;font-weight:600">
-    Crea tus rutinas y registra cuál hiciste cada día 🏃‍♀️
-  </p>
-
-  <!-- Selector de día -->
-  <div class="ejercicio-date-row">
-    <button class="nav-btn" id="ejPrevDay">‹</button>
-    <span class="ejercicio-date-lbl" id="ejDateLbl"></span>
-    <button class="nav-btn" id="ejNextDay">›</button>
-  </div>
-
-  <!-- Rutinas del día seleccionado -->
-  <div class="ejercicio-day-wrap" id="ejDayWrap"></div>
-
-  <!-- Mis plantillas de rutina -->
-  <div class="ejercicio-plantillas-wrap">
-    <div class="ejercicio-plantillas-hdr">
-      <span class="ejercicio-plantillas-title">🏋️ Mis rutinas</span>
-      <button class="rutina-new-btn" id="ejNewBtn">＋ Nueva rutina</button>
-    </div>
-    <div id="ejPlantillasList"></div>
-  </div>
-</section>
 
 <!-- ══════════════════════════════════════════
      SECCIÓN · TOMAR UNA DECISIÓN
@@ -17420,6 +17706,40 @@ renderTracker();
 </script>
 
 </div><!-- end saludTabRegistros-content -->
+
+<!-- TAB: Ejercicio -->
+<div id="saludTabEjercicio-content" style="display:none">
+
+  <!-- Contador de pasos -->
+  <section style="max-width:780px;margin:0 auto;padding:1.2rem 1rem 0">
+    <span class="section-sub">👟 movimiento diario</span>
+    <h2 class="section-title"><em>Mis</em> Pasos</h2>
+    <div id="pasosRoot"></div>
+  </section>
+
+  <!-- Rutinas de ejercicio -->
+  <section class="ejercicio-section" id="sec-ejercicio">
+    <span class="section-sub">💪 movimiento</span>
+    <h2 class="section-title"><em>Rutinas</em> de Ejercicio</h2>
+    <p style="font-size:.75rem;color:var(--muted);margin-bottom:1.2rem;font-weight:600">
+      Crea tus rutinas y registra cuál hiciste cada día 🏃‍♀️
+    </p>
+    <div class="ejercicio-date-row">
+      <button class="nav-btn" id="ejPrevDay">‹</button>
+      <span class="ejercicio-date-lbl" id="ejDateLbl"></span>
+      <button class="nav-btn" id="ejNextDay">›</button>
+    </div>
+    <div class="ejercicio-day-wrap" id="ejDayWrap"></div>
+    <div class="ejercicio-plantillas-wrap">
+      <div class="ejercicio-plantillas-hdr">
+        <span class="ejercicio-plantillas-title">🏋️ Mis rutinas</span>
+        <button class="rutina-new-btn" id="ejNewBtn">＋ Nueva rutina</button>
+      </div>
+      <div id="ejPlantillasList"></div>
+    </div>
+  </section>
+
+</div><!-- end saludTabEjercicio-content -->
 
 <!-- TAB: Mis Horas -->
 <div id="saludTabRutina-content" style="display:none">
@@ -18235,6 +18555,16 @@ renderTracker();
   <span class="section-sub">🍽️ mis opciones</span>
   <h2 class="section-title"><em>Mi</em> Recetario</h2>
 
+  <!-- Tabs -->
+  <div class="diario-tabs" style="margin-bottom:1.2rem">
+    <button class="diario-tab active" id="recTabBtnRecetas" onclick="recShowTab('recetas')">🍽️ Recetas</button>
+    <button class="diario-tab" id="recTabBtnPlanner" onclick="recShowTab('planner')">📅 Meal Planner</button>
+    <button class="diario-tab" id="recTabBtnCalorias" onclick="recShowTab('calorias')">🔥 Calorías</button>
+  </div>
+
+  <!-- TAB: Recetas (existing content) -->
+  <div id="recTabRecetas">
+
   <!-- Sugerencia del día -->
   <div class="rec-sugerencia-card" id="recSugerenciaCard">
     <div class="rec-sug-img-empty" id="recSugImgWrap">🍽️</div>
@@ -18262,6 +18592,18 @@ renderTracker();
 
   <!-- Grid de recetas -->
   <div class="rec-grid" id="recGrid"></div>
+
+  </div><!-- end recTabRecetas -->
+
+  <!-- TAB: Meal Planner -->
+  <div id="recTabPlanner" style="display:none">
+    <div id="mealPlannerRoot"></div>
+  </div>
+
+  <!-- TAB: Calorías -->
+  <div id="recTabCalorias" style="display:none">
+    <div id="calTracker"></div>
+  </div>
 
 </section>
 </div><!-- end page-recetario -->
@@ -21939,6 +22281,336 @@ document.addEventListener('DOMContentLoaded', function() {
   renderRecetario();
 });
 
+</script>
+
+<script>
+// ============================================================
+//  📅 MEAL PLANNER
+// ============================================================
+(function(){
+'use strict';
+
+var MP_KEY = 'yuki_meal_planner'; // { 'YYYY-MM-DD': { desayuno, almuerzo, cena, snack } }
+var SLOTS  = ['desayuno','almuerzo','cena','snack'];
+var SLOT_LABEL = { desayuno:'☀️ Desayuno', almuerzo:'🌿 Almuerzo', cena:'🌙 Cena', snack:'🍎 Snack' };
+var SLOT_COLOR = { desayuno:'#fff8e1', almuerzo:'#e8f5e9', cena:'#e3f2fd', snack:'#fce4ec' };
+var SLOT_BORDER = { desayuno:'#ffe082', almuerzo:'#a5d6a7', cena:'#90caf9', snack:'#f48fb1' };
+
+var mpWeekOffset = 0; // weeks from current
+
+function mpLoad() {
+  try { return JSON.parse(localStorage.getItem(MP_KEY)||'{}'); } catch(e){ return {}; }
+}
+function mpSave(data) {
+  try { localStorage.setItem(MP_KEY, JSON.stringify(data)); } catch(e){}
+  if (window.cloudSave) window.cloudSave(MP_KEY, data);
+}
+function mpDk(d) {
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function mpGetWeekDates() {
+  var now = new Date();
+  now.setDate(now.getDate() + mpWeekOffset * 7);
+  var day = now.getDay(); // 0=Sun
+  var sun = new Date(now); sun.setDate(now.getDate() - day); // back to Sunday
+  var dates = [];
+  for (var i=0; i<7; i++) { var d=new Date(sun); d.setDate(sun.getDate()+i); dates.push(d); }
+  return dates;
+}
+
+// ── Tab switch ───────────────────────────────────────────────
+window.recShowTab = function(tab) {
+  var tabs = ['recTabRecetas','recTabPlanner','recTabCalorias'];
+  var btns = ['recTabBtnRecetas','recTabBtnPlanner','recTabBtnCalorias'];
+  tabs.forEach(function(id){ var el=document.getElementById(id); if(el) el.style.display='none'; });
+  btns.forEach(function(id){ var el=document.getElementById(id); if(el) el.classList.remove('active'); });
+  var tabMap = { recetas:0, planner:1, calorias:2 };
+  var idx = tabMap[tab];
+  if (idx === undefined) return;
+  var tEl = document.getElementById(tabs[idx]);
+  var bEl = document.getElementById(btns[idx]);
+  if(tEl) tEl.style.display = '';
+  if(bEl) bEl.classList.add('active');
+  if (tab === 'planner')  renderMealPlanner();
+  if (tab === 'calorias') renderCalTracker();
+};
+
+// ── Render planner ───────────────────────────────────────────
+function renderMealPlanner() {
+  var root = document.getElementById('mealPlannerRoot');
+  if (!root) return;
+  root.innerHTML = '';
+
+  var data  = mpLoad();
+  var dates = mpGetWeekDates();
+  var DIAS  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  var MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  var today = mpDk(new Date());
+  var todayBlock = null;
+
+  // ── Week nav ──
+  var nav = document.createElement('div');
+  nav.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;';
+  var prevBtn = document.createElement('button');
+  prevBtn.className = 'diario-cal-nav-btn';
+  prevBtn.textContent = '‹';
+  prevBtn.onclick = function(){ mpWeekOffset--; renderMealPlanner(); };
+  var weekLbl = document.createElement('span');
+  weekLbl.style.cssText = 'font-size:.78rem;font-weight:800;color:var(--text)';
+  var d0=dates[0], d6=dates[6];
+  weekLbl.textContent = d0.getDate()+' '+MESES[d0.getMonth()]+' – '+d6.getDate()+' '+MESES[d6.getMonth()];
+  var nextBtn = document.createElement('button');
+  nextBtn.className = 'diario-cal-nav-btn';
+  nextBtn.textContent = '›';
+  nextBtn.onclick = function(){ mpWeekOffset++; renderMealPlanner(); };
+  var todayBtn = document.createElement('button');
+  todayBtn.style.cssText = 'font-size:.68rem;font-weight:800;padding:.25rem .7rem;border-radius:20px;border:1.5px solid var(--rosa);color:var(--rosa);background:none;cursor:pointer;font-family:var(--font-body)';
+  todayBtn.textContent = 'Hoy';
+  todayBtn.onclick = function(){ mpWeekOffset=0; renderMealPlanner(); };
+  nav.appendChild(prevBtn);
+  nav.appendChild(weekLbl);
+  nav.appendChild(todayBtn);
+  nav.appendChild(nextBtn);
+  root.appendChild(nav);
+
+  // ── Days ──
+  dates.forEach(function(date, di) {
+    var dk = mpDk(date);
+    var isToday = dk === today;
+    var isPast  = date < new Date(new Date().setHours(0,0,0,0));
+    var dayData = data[dk] || {};
+
+    var dayBlock = document.createElement('div');
+    dayBlock.style.cssText = [
+      'background:var(--card);border-radius:16px;',
+      'border:1.5px solid '+(isToday?'var(--rosa)':'var(--border)')+';',
+      'margin-bottom:.85rem;overflow:hidden;',
+      isToday ? 'box-shadow:0 2px 12px rgba(212,116,138,.15)' : '',
+      isPast && !isToday ? 'opacity:.75' : ''
+    ].join('');
+
+    if (isToday) todayBlock = dayBlock;
+
+    // Day header — clickable to toggle if past
+    var dayHdr = document.createElement('div');
+    dayHdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:.6rem .9rem;'+(isPast&&!isToday?'cursor:pointer;':'')+'background:'+(isToday?'var(--rosa-soft)':isPast?'var(--surface)':'var(--surface)')+';';
+    var dayName = document.createElement('span');
+    dayName.style.cssText = 'font-size:.82rem;font-weight:800;color:'+(isToday?'var(--rosa)':isPast?'var(--muted)':'var(--text)')+';display:flex;align-items:center;gap:.4rem;';
+    dayName.textContent = DIAS[date.getDay()] + ' ' + date.getDate();
+    if (isToday) {
+      var todayPill = document.createElement('span');
+      todayPill.style.cssText = 'font-size:.6rem;font-weight:800;background:var(--rosa);color:#fff;padding:.15rem .5rem;border-radius:20px;';
+      todayPill.textContent = 'hoy';
+      dayName.appendChild(todayPill);
+    }
+    if (isPast && !isToday) {
+      var chevron = document.createElement('span');
+      chevron.style.cssText = 'font-size:.7rem;color:var(--muted);margin-left:auto;transition:transform .2s;';
+      chevron.textContent = '›';
+      chevron.id = 'mpChev_' + dk;
+      dayHdr.appendChild(dayName);
+      dayHdr.appendChild(chevron);
+    } else {
+      dayHdr.appendChild(dayName);
+    }
+    dayBlock.appendChild(dayHdr);
+
+    // Slots body — collapsed by default for past days
+    var slotsBody = document.createElement('div');
+    slotsBody.id = 'mpBody_' + dk;
+    if (isPast && !isToday) {
+      slotsBody.style.display = 'none';
+      dayHdr.onclick = function() {
+        var open = slotsBody.style.display !== 'none';
+        slotsBody.style.display = open ? 'none' : '';
+        var ch = document.getElementById('mpChev_' + dk);
+        if (ch) ch.style.transform = open ? '' : 'rotate(90deg)';
+      };
+    }
+
+    // Slots
+    SLOTS.forEach(function(slot) {
+      var slotEl = document.createElement('div');
+      slotEl.style.cssText = 'display:flex;align-items:center;gap:.6rem;padding:.5rem .9rem;border-bottom:1px solid var(--border);min-height:44px;';
+
+      var slotLbl = document.createElement('span');
+      slotLbl.style.cssText = 'font-size:.68rem;font-weight:800;color:var(--muted);min-width:72px;';
+      slotLbl.textContent = SLOT_LABEL[slot];
+
+      var val = dayData[slot]; // {type:'receta'|'texto', nombre, recetaId?, imgBase64?}
+
+      var content = document.createElement('div');
+      content.style.cssText = 'flex:1;display:flex;align-items:center;gap:.5rem;';
+
+      if (val) {
+        // Filled
+        var pill = document.createElement('div');
+        pill.style.cssText = [
+          'flex:1;display:flex;align-items:center;gap:.5rem;',
+          'background:'+SLOT_COLOR[slot]+';',
+          'border:1px solid '+SLOT_BORDER[slot]+';',
+          'border-radius:10px;padding:.3rem .6rem;cursor:pointer;'
+        ].join('');
+        if (val.imgBase64) {
+          var thumb = document.createElement('img');
+          thumb.src = val.imgBase64;
+          thumb.style.cssText = 'width:28px;height:28px;border-radius:6px;object-fit:cover;flex-shrink:0';
+          pill.appendChild(thumb);
+        }
+        var pillTxt = document.createElement('span');
+        pillTxt.style.cssText = 'font-size:.78rem;font-weight:700;color:#333;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+        pillTxt.textContent = val.nombre;
+        pill.appendChild(pillTxt);
+        var clearBtn = document.createElement('button');
+        clearBtn.textContent = '✕';
+        clearBtn.style.cssText = 'background:none;border:none;color:#999;font-size:.7rem;cursor:pointer;padding:0 .2rem;flex-shrink:0';
+        clearBtn.onclick = (function(_dk, _slot){ return function(e) {
+          e.stopPropagation();
+          var d = mpLoad();
+          if (!d[_dk]) d[_dk] = {};
+          delete d[_dk][_slot];
+          if (Object.keys(d[_dk]).length===0) delete d[_dk];
+          mpSave(d);
+          renderMealPlanner();
+        }; })(dk, slot);
+        pill.appendChild(clearBtn);
+        pill.onclick = (function(_dk,_slot){ return function(){ openMpPicker(_dk,_slot); }; })(dk,slot);
+        content.appendChild(pill);
+      } else {
+        // Empty — add button
+        var addBtn = document.createElement('button');
+        addBtn.style.cssText = 'flex:1;background:none;border:1.5px dashed var(--border);border-radius:10px;padding:.3rem .6rem;font-size:.72rem;font-weight:700;color:var(--muted);cursor:pointer;font-family:var(--font-body);text-align:left;transition:border-color .15s;';
+        addBtn.textContent = '＋ Añadir';
+        addBtn.onmouseenter = function(){ addBtn.style.borderColor='var(--rosa)'; addBtn.style.color='var(--rosa)'; };
+        addBtn.onmouseleave = function(){ addBtn.style.borderColor='var(--border)'; addBtn.style.color='var(--muted)'; };
+        addBtn.onclick = (function(_dk,_slot){ return function(){ openMpPicker(_dk,_slot); }; })(dk,slot);
+        content.appendChild(addBtn);
+      }
+
+      slotEl.appendChild(slotLbl);
+      slotEl.appendChild(content);
+      slotsBody.appendChild(slotEl);
+    });
+
+    dayBlock.appendChild(slotsBody);
+    root.appendChild(dayBlock);
+  });
+
+  // Autoscroll to today
+  if (todayBlock) {
+    setTimeout(function() {
+      todayBlock.scrollIntoView({ behavior:'smooth', block:'start' });
+    }, 120);
+  }
+}
+
+// ── Picker modal ─────────────────────────────────────────────
+function openMpPicker(dk, slot) {
+  var old = document.getElementById('mpPickerModal');
+  if (old) old.remove();
+
+  var back = document.createElement('div');
+  back.id = 'mpPickerModal';
+  back.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:4000;display:flex;align-items:flex-end;justify-content:center;';
+
+  var box = document.createElement('div');
+  box.style.cssText = 'background:var(--card);border-radius:20px 20px 0 0;padding:1.2rem 1rem 2rem;width:100%;max-width:520px;max-height:80vh;overflow-y:auto;animation:slideUp .25s ease;';
+
+  var title = document.createElement('div');
+  title.style.cssText = 'font-size:.85rem;font-weight:800;color:var(--text);margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;';
+  title.innerHTML = SLOT_LABEL[slot] + ' <button onclick="document.getElementById(\'mpPickerModal\').remove()" style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--muted)">✕</button>';
+  box.appendChild(title);
+
+  // ── Texto libre ──
+  var textoSec = document.createElement('div');
+  textoSec.style.cssText = 'margin-bottom:1rem;';
+  textoSec.innerHTML = '<div style="font-size:.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem">Texto libre</div>';
+  var textRow = document.createElement('div');
+  textRow.style.cssText = 'display:flex;gap:.5rem;';
+  var inp = document.createElement('input');
+  inp.placeholder = 'Ej: Ensalada César, Pizza casera…';
+  inp.style.cssText = 'flex:1;border:1.5px solid var(--border);border-radius:10px;padding:.45rem .75rem;font-size:.82rem;font-family:var(--font-body);color:var(--text);background:var(--surface);outline:none;';
+  inp.onfocus = function(){ inp.style.borderColor='var(--rosa)'; };
+  inp.onblur  = function(){ inp.style.borderColor='var(--border)'; };
+  var addTxtBtn = document.createElement('button');
+  addTxtBtn.textContent = 'Añadir';
+  addTxtBtn.style.cssText = 'background:var(--rosa);color:#fff;border:none;border-radius:10px;padding:.45rem .9rem;font-size:.78rem;font-weight:800;cursor:pointer;font-family:var(--font-body);white-space:nowrap;';
+  addTxtBtn.onclick = function() {
+    var txt = inp.value.trim();
+    if (!txt) return;
+    mpSetSlot(dk, slot, { type:'texto', nombre:txt });
+    back.remove();
+  };
+  inp.onkeydown = function(e){ if(e.key==='Enter') addTxtBtn.click(); };
+  textRow.appendChild(inp);
+  textRow.appendChild(addTxtBtn);
+  textoSec.appendChild(textRow);
+  box.appendChild(textoSec);
+
+  // ── Desde recetario ──
+  var recSec = document.createElement('div');
+  recSec.innerHTML = '<div style="font-size:.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.6rem">Desde mi recetario</div>';
+
+  var recList = typeof recetas !== 'undefined' ? recetas : [];
+  if (recList.length === 0) {
+    recSec.innerHTML += '<div style="font-size:.75rem;color:var(--muted);padding:.5rem 0">Aún no tienes recetas guardadas 🌸</div>';
+  } else {
+    var recGrid = document.createElement('div');
+    recGrid.style.cssText = 'display:flex;flex-direction:column;gap:.4rem;';
+    recList.forEach(function(rec) {
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:.7rem;padding:.5rem .7rem;border-radius:12px;border:1.5px solid var(--border);cursor:pointer;transition:border-color .15s;background:var(--surface);';
+      row.onmouseenter = function(){ row.style.borderColor='var(--rosa)'; };
+      row.onmouseleave = function(){ row.style.borderColor='var(--border)'; };
+      if (rec.imgBase64) {
+        var img = document.createElement('img');
+        img.src = rec.imgBase64;
+        img.style.cssText = 'width:38px;height:38px;border-radius:8px;object-fit:cover;flex-shrink:0';
+        row.appendChild(img);
+      } else {
+        var emo = document.createElement('span');
+        emo.style.cssText = 'width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;background:var(--rosa-soft);border-radius:8px;';
+        emo.textContent = '🍽️';
+        row.appendChild(emo);
+      }
+      var info = document.createElement('div');
+      info.style.cssText = 'flex:1;min-width:0;';
+      info.innerHTML = '<div style="font-size:.82rem;font-weight:800;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + rec.nombre + '</div>' +
+        '<div style="font-size:.65rem;color:var(--muted);font-weight:600">' + (rec.categoria||'') + '</div>';
+      row.appendChild(info);
+      row.onclick = function() {
+        mpSetSlot(dk, slot, { type:'receta', nombre:rec.nombre, recetaId:rec.id, imgBase64:rec.imgBase64||'' });
+        back.remove();
+      };
+      recGrid.appendChild(row);
+    });
+    recSec.appendChild(recGrid);
+  }
+  box.appendChild(recSec);
+  back.appendChild(box);
+  document.body.appendChild(back);
+  back.addEventListener('click', function(e){ if(e.target===back) back.remove(); });
+  setTimeout(function(){ inp.focus(); }, 100);
+}
+
+function mpSetSlot(dk, slot, val) {
+  var data = mpLoad();
+  if (!data[dk]) data[dk] = {};
+  data[dk][slot] = val;
+  mpSave(data);
+  renderMealPlanner();
+}
+
+// ── Hook showPage to re-render planner when entering recetario ──
+var _origShowRec = window.showPage;
+window.showPage = function(pageId) {
+  if (_origShowRec) _origShowRec(pageId);
+  if (pageId === 'page-recetario') {
+    setTimeout(function(){ window.recShowTab('recetas'); }, 50);
+  }
+};
+
+})();
 </script>
 <div id="page-univ" class="page-section">
 
@@ -32721,8 +33393,18 @@ window.scrapbookRenderShelf = function(context) {
   var newBtn = document.createElement('button');
   newBtn.className = 'sb-new-btn';
   newBtn.innerHTML = '＋ Nuevo cuaderno';
-  newBtn.onclick = function(){ openNewBookModal(context||'diario'); };
+  if (books.length >= 10) {
+    newBtn.disabled = true;
+    newBtn.style.opacity = '.45';
+    newBtn.title = 'Máximo 10 cuadernos';
+  } else {
+    newBtn.onclick = function(){ openNewBookModal(context||'diario'); };
+  }
+  var countLbl = document.createElement('span');
+  countLbl.style.cssText = 'font-size:.65rem;font-weight:700;color:var(--muted2)';
+  countLbl.textContent = books.length + '/10';
   hdr.appendChild(ttl);
+  hdr.appendChild(countLbl);
   hdr.appendChild(newBtn);
   shelf.appendChild(hdr);
 
@@ -32850,14 +33532,19 @@ function openNewBookModal(context) {
   document.getElementById('sbCreateBtn').onclick = function() {
     var name = (document.getElementById('sbNewName').value || '').trim();
     if (!name) { document.getElementById('sbNewName').focus(); return; }
+    var all = loadBooks();
+    var contextBooks = all.filter(function(b){ return (b.context||'diario') === context; });
+    if (contextBooks.length >= 10) {
+      alert('Ya tienes 10 cuadernos en esta sección 🌸\nElimina uno para crear otro.');
+      return;
+    }
     var book = {
       id: uid(), name: name, emoji: selectedEmoji,
       pattern: selectedPattern, coverSrc: coverData || null,
       coverColor: ['#fce4ec','#e8f5e9','#e3f2fd','#f3e5f5','#fff8e1'][Math.floor(Math.random()*5)],
       context: context,
-      pages: [{ id: uid(), elements: [] }, { id: uid(), elements: [] }] // start with 2 pages
+      pages: [{ id: uid(), elements: [] }, { id: uid(), elements: [] }]
     };
-    var all = loadBooks();
     all.push(book);
     saveBooks(all);
     back.remove();
@@ -33094,15 +33781,45 @@ function mountElement(pageEl, elData) {
     el.style.background = elData.bg || 'rgba(255,255,255,0.75)';
     el.textContent = elData.text || '';
     el.setAttribute('contenteditable', 'false');
-    el.ondblclick = function(e) {
-      e.stopPropagation();
-      el.setAttribute('contenteditable','true');
+
+    var _isPlaceholder = !elData.text || elData.text === 'Escribe aquí…';
+
+    function activateEdit() {
+      el.setAttribute('contenteditable', 'true');
+      el.style.cursor = 'text';
+      if (_isPlaceholder) { el.textContent = ''; _isPlaceholder = false; }
       el.focus();
-    };
+      // place cursor at end
+      var range = document.createRange();
+      var sel = window.getSelection();
+      range.selectNodeContents(el);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+
+    el.ondblclick = function(e) { e.stopPropagation(); activateEdit(); };
+
+    // Mobile: tap on already-selected element = activate edit
+    el.addEventListener('pointerup', function(e) {
+      if (el.getAttribute('contenteditable') === 'true') return;
+      if (el.classList.contains('sb-selected')) {
+        setTimeout(activateEdit, 80);
+      }
+    });
+
     el.onblur = function() {
       el.setAttribute('contenteditable','false');
+      el.style.cursor = 'grab';
+      var txt = el.textContent.trim();
+      if (!txt) { _isPlaceholder = true; el.textContent = 'Escribe aquí…'; }
       elData.text = el.textContent;
       saveCurrentBook();
+    };
+
+    el.onkeydown = function(e) {
+      if (e.key === 'Escape') { el.blur(); }
+      e.stopPropagation();
     };
   } else if (elData.type === 'washi') {
     el.className += ' sb-washi';
@@ -33159,6 +33876,7 @@ function makeSbDraggable(el, pageEl, elData) {
         e.target.classList.contains('sb-el-resize') ||
         e.target.classList.contains('sb-el-rotate')) return;
     if (el.getAttribute('contenteditable')==='true') return;
+    if (el.classList.contains('sb-text-el') && el.getAttribute('contenteditable')==='true') return;
     dragging=true; sx=e.clientX; sy=e.clientY;
     sl=parseInt(el.style.left)||0; st=parseInt(el.style.top)||0;
     el.setPointerCapture(e.pointerId); e.preventDefault();
@@ -33218,11 +33936,24 @@ function makeSbRotatable(handle, el, elData) {
 // ── ADD TEXT ─────────────────────────────────────────────────
 function addTextElement() {
   if (!_book) return;
-  var elData = { id:uid(), type:'text', x:40, y:40, w:150, rot:0, z:10, text:'Escribe aquí…', size:14, color:'#333', bg:'rgba(255,255,255,0.8)' };
+  var elData = { id:uid(), type:'text', x:40, y:60, w:150, rot:0, z:10, text:'', size:14, color:'#333', bg:'rgba(255,255,255,0.8)' };
   _book.pages[_pageIdx].elements.push(elData);
   saveCurrentBook();
   var pageEl = document.getElementById('sbCurrentPage');
-  if (pageEl) mountElement(pageEl, elData);
+  if (pageEl) {
+    mountElement(pageEl, elData);
+    // Auto-activate edit on the new element
+    setTimeout(function() {
+      var newEl = pageEl.querySelector('[data-el-id="' + elData.id + '"]');
+      if (newEl) {
+        newEl.classList.add('sb-selected');
+        _selectedElId = elData.id;
+        newEl.setAttribute('contenteditable', 'true');
+        newEl.style.cursor = 'text';
+        newEl.focus();
+      }
+    }, 60);
+  }
 }
 
 // ── ADD WASHI ─────────────────────────────────────────────────
@@ -33274,9 +34005,14 @@ function openLibPanel() {
   panel.appendChild(hdr);
 
   // Category bar
+  // Fixed base categories + user-created ones merged
+  var FIXED_CATS = ['Stickers','Cintas','Memos','Fotos','Recortes','Decoración'];
   var lib = loadLib();
-  var cats = ['Todos'];
-  lib.forEach(function(item){ if(item.cat && cats.indexOf(item.cat)===-1) cats.push(item.cat); });
+  var userCats = [];
+  lib.forEach(function(item){
+    if (item.cat && FIXED_CATS.indexOf(item.cat)===-1 && userCats.indexOf(item.cat)===-1) userCats.push(item.cat);
+  });
+  var cats = ['Todos'].concat(FIXED_CATS).concat(userCats);
 
   var catBar = document.createElement('div');
   catBar.className = 'sb-lib-cats';
@@ -33331,8 +34067,8 @@ function openLibPanel() {
     inp.onchange = function(e) {
       var files = Array.from(e.target.files);
       if (!files.length) return;
-      // Ask category
-      var catName = prompt('¿A qué categoría pertenece? (ej: stickers, cintas, memos…)\nCategorías actuales: ' + cats.filter(function(c){return c!=='Todos';}).join(', '));
+      var allCats = cats.filter(function(c){return c!=='Todos';});
+      var catName = prompt('¿A qué categoría pertenece?\n\nCategorías disponibles:\n' + allCats.join(', ') + '\n\n(Escribe una nueva para crearla)');
       catName = (catName||'Sin categoría').trim();
       if (catName && cats.indexOf(catName)===-1) cats.push(catName);
       var pending = files.length;
@@ -33402,6 +34138,598 @@ function placeLibItem(item) {
 
 // ── Init: expose shelf render for both contexts ───────────────
 window.scrapbookRenderShelf = window.scrapbookRenderShelf; // already defined above
+
+})();
+</script>
+
+<!-- ============================================================
+     🔥 CALORIE & MACRO TRACKER — Open Food Facts
+============================================================ -->
+<style>
+.cal-summary-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:.6rem; margin-bottom:1.1rem; }
+@media(min-width:480px){ .cal-summary-grid { grid-template-columns:repeat(4,1fr); } }
+.cal-summary-card { background:var(--card); border:1.5px solid var(--border); border-radius:14px; padding:.7rem .75rem; text-align:center; }
+.cal-summary-card .cs-val { font-size:1.3rem; font-weight:800; color:var(--text); line-height:1; }
+.cal-summary-card .cs-lbl { font-size:.6rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; margin-top:.2rem; }
+.cal-summary-card .cs-bar { height:4px; border-radius:4px; background:var(--surface); margin-top:.4rem; overflow:hidden; }
+.cal-summary-card .cs-fill { height:100%; border-radius:4px; transition:width .5s ease; }
+.cal-goal-row { display:flex; align-items:center; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap; }
+.cal-goal-input { width:72px; border:1.5px solid var(--border); border-radius:8px; padding:.3rem .5rem; font-size:.82rem; font-family:var(--font-body); color:var(--text); background:var(--surface); text-align:center; }
+.cal-goal-input:focus { outline:none; border-color:var(--rosa); }
+.cal-search-wrap { position:relative; margin-bottom:.8rem; }
+.cal-search-input { width:100%; border:1.5px solid var(--border); border-radius:12px; padding:.55rem 2.5rem .55rem .85rem; font-size:.85rem; font-family:var(--font-body); color:var(--text); background:var(--surface); box-sizing:border-box; }
+.cal-search-input:focus { outline:none; border-color:var(--rosa); }
+.cal-search-spinner { position:absolute; right:.75rem; top:50%; transform:translateY(-50%); font-size:.9rem; display:none; }
+.cal-search-results { background:var(--card); border:1.5px solid var(--border); border-radius:12px; overflow:hidden; margin-top:.3rem; max-height:260px; overflow-y:auto; }
+.cal-result-item { display:flex; align-items:center; gap:.6rem; padding:.55rem .8rem; cursor:pointer; border-bottom:1px solid var(--border); transition:background .15s; }
+.cal-result-item:last-child { border-bottom:none; }
+.cal-result-item:hover { background:var(--surface); }
+.cal-result-name { font-size:.8rem; font-weight:700; color:var(--text); line-height:1.2; }
+.cal-result-brand { font-size:.65rem; color:var(--muted); font-weight:600; }
+.cal-result-kcal { font-size:.75rem; font-weight:800; color:var(--rosa); white-space:nowrap; }
+.cal-log-section { margin-top:1rem; }
+.cal-log-title { font-size:.68rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; margin-bottom:.5rem; }
+.cal-log-item { display:flex; align-items:center; gap:.6rem; padding:.5rem .7rem; background:var(--card); border:1px solid var(--border); border-radius:10px; margin-bottom:.35rem; }
+.cal-log-name { font-size:.8rem; font-weight:700; color:var(--text); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cal-log-macros { font-size:.65rem; font-weight:600; color:var(--muted); white-space:nowrap; }
+.cal-log-kcal { font-size:.78rem; font-weight:800; color:var(--rosa); white-space:nowrap; }
+.cal-log-del { background:none; border:none; color:var(--muted2); font-size:.8rem; cursor:pointer; padding:0 .2rem; }
+.cal-log-del:hover { color:#e07; }
+.cal-qty-modal-back { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:4500; display:flex; align-items:center; justify-content:center; }
+.cal-qty-modal { background:var(--card); border-radius:20px; padding:1.4rem; width:min(92vw,340px); }
+.cal-qty-title { font-size:.88rem; font-weight:800; color:var(--text); margin-bottom:.4rem; }
+.cal-qty-sub { font-size:.72rem; color:var(--muted); font-weight:600; margin-bottom:1rem; line-height:1.5; }
+.cal-qty-row { display:flex; align-items:center; gap:.6rem; margin-bottom:1rem; }
+.cal-qty-inp { flex:1; border:1.5px solid var(--border); border-radius:10px; padding:.5rem .7rem; font-size:.9rem; font-family:var(--font-body); color:var(--text); background:var(--surface); text-align:center; }
+.cal-qty-inp:focus { outline:none; border-color:var(--rosa); }
+.cal-qty-unit { font-size:.75rem; font-weight:700; color:var(--muted); }
+.cal-qty-preview { background:var(--surface); border-radius:10px; padding:.6rem .8rem; margin-bottom:1rem; display:grid; grid-template-columns:repeat(4,1fr); gap:.3rem; text-align:center; }
+.cal-qty-preview .qp-val { font-size:.9rem; font-weight:800; color:var(--text); }
+.cal-qty-preview .qp-lbl { font-size:.58rem; font-weight:700; color:var(--muted); text-transform:uppercase; }
+.cal-qty-btns { display:flex; gap:.5rem; }
+.cal-qty-ok { flex:1; background:var(--rosa); color:#fff; border:none; border-radius:12px; padding:.55rem; font-size:.85rem; font-weight:800; cursor:pointer; font-family:var(--font-body); }
+.cal-qty-cancel { flex:1; background:none; border:1.5px solid var(--border); border-radius:12px; padding:.55rem; font-size:.85rem; font-weight:700; cursor:pointer; font-family:var(--font-body); color:var(--muted); }
+.cal-date-nav { display:flex; align-items:center; gap:.5rem; margin-bottom:1rem; }
+.cal-date-lbl { flex:1; text-align:center; font-size:.82rem; font-weight:800; color:var(--text); }
+.cal-empty { text-align:center; padding:1.5rem; font-size:.78rem; color:var(--muted); font-weight:600; }
+.cal-no-results { text-align:center; padding:1rem; font-size:.75rem; color:var(--muted); }
+</style>
+
+<script>
+// ============================================================
+//  🔥 CALORIE & MACRO TRACKER
+// ============================================================
+(function(){
+'use strict';
+
+var CAL_LOG_KEY  = 'yuki_cal_log';   // { 'YYYY-MM-DD': [{id,name,brand,kcal,prot,carb,fat,fiber,sugar,sodium,qty,unit}] }
+var CAL_GOAL_KEY = 'yuki_cal_goals'; // { kcal, prot, carb, fat }
+
+var calDateOffset = 0;
+var _searchTimer = null;
+var _searchResults = [];
+
+function calDk(offset) {
+  var d = new Date();
+  d.setDate(d.getDate() + (offset||0));
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function calLoadLog() { try { return JSON.parse(localStorage.getItem(CAL_LOG_KEY)||'{}'); } catch(e){ return {}; } }
+function calSaveLog(data) {
+  try { localStorage.setItem(CAL_LOG_KEY, JSON.stringify(data)); } catch(e){}
+  if (window.cloudSave) window.cloudSave(CAL_LOG_KEY, data);
+}
+function calLoadGoals() { try { return JSON.parse(localStorage.getItem(CAL_GOAL_KEY)||'{"kcal":2000,"prot":50,"carb":250,"fat":70}'); } catch(e){ return {kcal:2000,prot:50,carb:250,fat:70}; } }
+function calSaveGoals(g) { try { localStorage.setItem(CAL_GOAL_KEY, JSON.stringify(g)); } catch(e){} }
+function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
+
+// ── Main render ──────────────────────────────────────────────
+window.renderCalTracker = function() {
+  var root = document.getElementById('calTracker');
+  if (!root) return;
+  root.innerHTML = '';
+
+  var goals = calLoadGoals();
+  var dk    = calDk(calDateOffset);
+  var log   = calLoadLog();
+  var items = log[dk] || [];
+
+  // Totals
+  var totals = { kcal:0, prot:0, carb:0, fat:0, fiber:0, sugar:0, sodium:0 };
+  items.forEach(function(it) {
+    var f = it.qty / 100;
+    totals.kcal  += (it.kcal  ||0)*f;
+    totals.prot  += (it.prot  ||0)*f;
+    totals.carb  += (it.carb  ||0)*f;
+    totals.fat   += (it.fat   ||0)*f;
+    totals.fiber += (it.fiber ||0)*f;
+    totals.sugar += (it.sugar ||0)*f;
+    totals.sodium+= (it.sodium||0)*f;
+  });
+  function r1(n){ return Math.round(n*10)/10; }
+
+  // ── Date nav ──
+  var nav = document.createElement('div');
+  nav.className = 'cal-date-nav';
+  var DIAS_ES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  var MESES_ES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  var dObj = new Date(); dObj.setDate(dObj.getDate()+calDateOffset);
+  var prevBtn = document.createElement('button'); prevBtn.className='diario-cal-nav-btn'; prevBtn.textContent='‹';
+  prevBtn.onclick=function(){ calDateOffset--; window.renderCalTracker(); };
+  var lbl = document.createElement('span'); lbl.className='cal-date-lbl';
+  lbl.textContent = calDateOffset===0 ? '📅 Hoy' : calDateOffset===-1 ? 'Ayer' : DIAS_ES[dObj.getDay()]+' '+dObj.getDate()+' '+MESES_ES[dObj.getMonth()];
+  var nextBtn = document.createElement('button'); nextBtn.className='diario-cal-nav-btn'; nextBtn.textContent='›';
+  nextBtn.onclick=function(){ calDateOffset++; window.renderCalTracker(); };
+  nav.appendChild(prevBtn); nav.appendChild(lbl); nav.appendChild(nextBtn);
+  root.appendChild(nav);
+
+  // ── Goals row ──
+  var goalRow = document.createElement('div');
+  goalRow.className = 'cal-goal-row';
+  goalRow.innerHTML = '<span style="font-size:.72rem;font-weight:800;color:var(--muted)">Meta diaria:</span>';
+  [['kcal','kcal','#f48fb1'],['prot','Prot g','#81c784'],['carb','Carb g','#64b5f6'],['fat','Grasa g','#ffb74d']].forEach(function(g){
+    var wrap = document.createElement('div');
+    wrap.style.cssText='display:flex;align-items:center;gap:.3rem;';
+    var inp = document.createElement('input');
+    inp.type='number'; inp.className='cal-goal-input'; inp.value=goals[g[0]]; inp.title='Meta '+g[1];
+    inp.style.borderColor=g[2];
+    inp.onchange=function(){ goals[g[0]]=parseInt(inp.value)||0; calSaveGoals(goals); window.renderCalTracker(); };
+    var lbl2=document.createElement('span'); lbl2.style.cssText='font-size:.65rem;font-weight:700;color:var(--muted)'; lbl2.textContent=g[1];
+    wrap.appendChild(inp); wrap.appendChild(lbl2);
+    goalRow.appendChild(wrap);
+  });
+  root.appendChild(goalRow);
+
+  // ── Summary cards ──
+  var grid = document.createElement('div');
+  grid.className = 'cal-summary-grid';
+  [
+    { key:'kcal',  label:'Calorías',  unit:'kcal', color:'#f48fb1', val:r1(totals.kcal),  goal:goals.kcal  },
+    { key:'prot',  label:'Proteína',  unit:'g',    color:'#81c784', val:r1(totals.prot),  goal:goals.prot  },
+    { key:'carb',  label:'Carbohidratos', unit:'g',color:'#64b5f6', val:r1(totals.carb),  goal:goals.carb  },
+    { key:'fat',   label:'Grasas',    unit:'g',    color:'#ffb74d', val:r1(totals.fat),   goal:goals.fat   },
+  ].forEach(function(m) {
+    var card = document.createElement('div');
+    card.className = 'cal-summary-card';
+    var pct = m.goal > 0 ? Math.min(100, Math.round(m.val/m.goal*100)) : 0;
+    var over = m.val > m.goal && m.goal > 0;
+    card.innerHTML =
+      '<div class="cs-val" style="color:'+( over ? '#e57373' : m.color )+'">'+m.val+'<span style="font-size:.55rem;font-weight:700;color:var(--muted);margin-left:1px">'+m.unit+'</span></div>'+
+      '<div class="cs-lbl">'+m.label+'</div>'+
+      '<div class="cs-bar"><div class="cs-fill" style="width:'+pct+'%;background:'+(over?'#e57373':m.color)+'"></div></div>'+
+      '<div style="font-size:.58rem;color:var(--muted2);font-weight:600;margin-top:.2rem">'+pct+'% de '+m.goal+m.unit+'</div>';
+    grid.appendChild(card);
+  });
+  root.appendChild(grid);
+
+  // ── Extra macros row ──
+  if (totals.fiber>0||totals.sugar>0||totals.sodium>0) {
+    var extraRow = document.createElement('div');
+    extraRow.style.cssText='display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:.8rem;';
+    [{label:'Fibra',val:r1(totals.fiber),unit:'g'},{label:'Azúcar',val:r1(totals.sugar),unit:'g'},{label:'Sodio',val:r1(totals.sodium),unit:'mg'}].forEach(function(e){
+      var chip=document.createElement('div');
+      chip.style.cssText='background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:.2rem .65rem;font-size:.68rem;font-weight:700;color:var(--muted)';
+      chip.textContent=e.label+': '+e.val+e.unit;
+      extraRow.appendChild(chip);
+    });
+    root.appendChild(extraRow);
+  }
+
+  // ── Search ──
+  var searchSection = document.createElement('div');
+  searchSection.innerHTML = '<div style="font-size:.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem">🔍 Buscar alimento</div>';
+  var searchWrap = document.createElement('div');
+  searchWrap.className = 'cal-search-wrap';
+  var searchInp = document.createElement('input');
+  searchInp.className = 'cal-search-input';
+  searchInp.placeholder = 'Ej: manzana, pollo, arroz, yogur…';
+  searchInp.setAttribute('autocomplete','off');
+  var spinner = document.createElement('span');
+  spinner.className = 'cal-search-spinner';
+  spinner.textContent = '⏳';
+  searchWrap.appendChild(searchInp);
+  searchWrap.appendChild(spinner);
+
+  var resultsWrap = document.createElement('div');
+  resultsWrap.id = 'calSearchResults';
+  resultsWrap.style.display = 'none';
+
+  searchInp.oninput = function() {
+    var q = searchInp.value.trim();
+    clearTimeout(_searchTimer);
+    resultsWrap.style.display = 'none';
+    resultsWrap.innerHTML = '';
+    if (q.length < 2) return;
+    spinner.style.display = 'block';
+    _searchTimer = setTimeout(function(){ searchOFF(q, searchInp, resultsWrap, spinner, dk); }, 500);
+  };
+
+  searchSection.appendChild(searchWrap);
+  searchSection.appendChild(resultsWrap);
+  root.appendChild(searchSection);
+
+  // ── Log list ──
+  var logSection = document.createElement('div');
+  logSection.className = 'cal-log-section';
+  var logTitle = document.createElement('div');
+  logTitle.className = 'cal-log-title';
+  logTitle.textContent = 'Alimentos registrados hoy';
+  logSection.appendChild(logTitle);
+
+  if (items.length === 0) {
+    var empty = document.createElement('div');
+    empty.className = 'cal-empty';
+    empty.textContent = 'Busca un alimento arriba para registrarlo 🌸';
+    logSection.appendChild(empty);
+  } else {
+    items.slice().reverse().forEach(function(item) {
+      var f = item.qty/100;
+      var row = document.createElement('div');
+      row.className = 'cal-log-item';
+      row.innerHTML =
+        '<div class="cal-log-name">'+item.name+(item.brand?' <span style="font-weight:600;color:var(--muted2)">· '+item.brand+'</span>':'')+'</div>'+
+        '<div class="cal-log-macros">'+item.qty+'g · P:'+r1((item.prot||0)*f)+'g C:'+r1((item.carb||0)*f)+'g G:'+r1((item.fat||0)*f)+'g</div>'+
+        '<div class="cal-log-kcal">'+r1((item.kcal||0)*f)+' kcal</div>';
+      var del=document.createElement('button'); del.className='cal-log-del'; del.textContent='✕';
+      del.onclick=function(){
+        var l=calLoadLog(); l[dk]=(l[dk]||[]).filter(function(x){return x.id!==item.id;});
+        calSaveLog(l); window.renderCalTracker();
+      };
+      row.appendChild(del);
+      logSection.appendChild(row);
+    });
+  }
+  root.appendChild(logSection);
+};
+
+// ── Open Food Facts search ───────────────────────────────────
+function searchOFF(q, inp, wrap, spinner, dk) {
+  var url = 'https://world.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(q)+'&search_simple=1&action=process&json=1&page_size=15&fields=product_name,brands,nutriments,serving_size';
+  fetch(url)
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      spinner.style.display = 'none';
+      var products = (data.products||[]).filter(function(p){
+        return p.product_name && p.nutriments && p.nutriments['energy-kcal_100g'] != null;
+      });
+      if (products.length === 0) {
+        wrap.innerHTML = '<div class="cal-no-results">Sin resultados para "'+q+'" 🌸<br><span style="font-size:.68rem">Intenta en inglés o con otro nombre</span></div>';
+        wrap.style.display = '';
+        return;
+      }
+      wrap.innerHTML = '';
+      wrap.style.display = '';
+      var ul = document.createElement('div');
+      ul.className = 'cal-search-results';
+      products.slice(0,12).forEach(function(p) {
+        var n = p.nutriments;
+        var food = {
+          name:   p.product_name || 'Sin nombre',
+          brand:  p.brands ? p.brands.split(',')[0].trim() : '',
+          kcal:   Math.round(n['energy-kcal_100g'] || n['energy_100g']/4.184 || 0),
+          prot:   Math.round((n['proteins_100g']||0)*10)/10,
+          carb:   Math.round((n['carbohydrates_100g']||0)*10)/10,
+          fat:    Math.round((n['fat_100g']||0)*10)/10,
+          fiber:  Math.round((n['fiber_100g']||0)*10)/10,
+          sugar:  Math.round((n['sugars_100g']||0)*10)/10,
+          sodium: Math.round((n['sodium_100g']||0)*1000), // mg
+        };
+        var item = document.createElement('div');
+        item.className = 'cal-result-item';
+        item.innerHTML =
+          '<div style="flex:1;min-width:0">'+
+            '<div class="cal-result-name">'+food.name+'</div>'+
+            (food.brand ? '<div class="cal-result-brand">'+food.brand+'</div>' : '')+
+          '</div>'+
+          '<div style="text-align:right">'+
+            '<div class="cal-result-kcal">'+food.kcal+' kcal</div>'+
+            '<div style="font-size:.6rem;color:var(--muted);font-weight:600">por 100g</div>'+
+          '</div>';
+        item.onclick = function() {
+          inp.value = '';
+          wrap.style.display = 'none';
+          openQtyModal(food, dk);
+        };
+        ul.appendChild(item);
+      });
+      wrap.appendChild(ul);
+    })
+    .catch(function() {
+      spinner.style.display = 'none';
+      wrap.innerHTML = '<div class="cal-no-results">Error de conexión 😕<br><span style="font-size:.68rem">Verifica tu internet e intenta de nuevo</span></div>';
+      wrap.style.display = '';
+    });
+}
+
+// ── Quantity modal ───────────────────────────────────────────
+function openQtyModal(food, dk) {
+  var old = document.getElementById('calQtyModal');
+  if (old) old.remove();
+
+  var back = document.createElement('div');
+  back.className = 'cal-qty-modal-back';
+  back.id = 'calQtyModal';
+
+  var box = document.createElement('div');
+  box.className = 'cal-qty-modal';
+
+  var qty = 100; // default grams
+
+  function calcVals(q) {
+    var f = q/100;
+    return {
+      kcal:  Math.round((food.kcal||0)*f),
+      prot:  Math.round((food.prot||0)*f*10)/10,
+      carb:  Math.round((food.carb||0)*f*10)/10,
+      fat:   Math.round((food.fat||0)*f*10)/10,
+    };
+  }
+
+  function updatePreview() {
+    var v = calcVals(qty);
+    var pv = box.querySelector('.cal-qty-preview');
+    if (pv) pv.innerHTML =
+      '<div><div class="qp-val" style="color:#f48fb1">'+v.kcal+'</div><div class="qp-lbl">kcal</div></div>'+
+      '<div><div class="qp-val" style="color:#81c784">'+v.prot+'g</div><div class="qp-lbl">Proteína</div></div>'+
+      '<div><div class="qp-val" style="color:#64b5f6">'+v.carb+'g</div><div class="qp-lbl">Carbs</div></div>'+
+      '<div><div class="qp-val" style="color:#ffb74d">'+v.fat+'g</div><div class="qp-lbl">Grasa</div></div>';
+  }
+
+  box.innerHTML =
+    '<div class="cal-qty-title">'+food.name+'</div>'+
+    (food.brand?'<div class="cal-qty-sub">'+food.brand+' · '+food.kcal+' kcal / 100g<br>Prot: '+food.prot+'g · Carb: '+food.carb+'g · Grasa: '+food.fat+'g</div>':
+    '<div class="cal-qty-sub">'+food.kcal+' kcal / 100g · Prot: '+food.prot+'g · Carb: '+food.carb+'g · Grasa: '+food.fat+'g</div>')+
+    '<div class="cal-qty-row">'+
+      '<input class="cal-qty-inp" id="calQtyInput" type="number" min="1" max="9999" value="100">'+
+      '<span class="cal-qty-unit">gramos</span>'+
+    '</div>'+
+    '<div class="cal-qty-preview"></div>'+
+    '<div class="cal-qty-btns">'+
+      '<button class="cal-qty-cancel" onclick="document.getElementById(\'calQtyModal\').remove()">Cancelar</button>'+
+      '<button class="cal-qty-ok" id="calQtyOk">Añadir 🌸</button>'+
+    '</div>';
+
+  back.appendChild(box);
+  document.body.appendChild(back);
+  updatePreview();
+
+  var qInp = document.getElementById('calQtyInput');
+  qInp.oninput = function() { qty = parseInt(qInp.value)||0; updatePreview(); };
+  qInp.onkeydown = function(e){ if(e.key==='Enter') document.getElementById('calQtyOk').click(); };
+  setTimeout(function(){ qInp.select(); }, 80);
+
+  document.getElementById('calQtyOk').onclick = function() {
+    var q = parseInt(qInp.value)||0;
+    if (q <= 0) return;
+    var entry = Object.assign({}, food, { id:uid(), qty:q });
+    var l = calLoadLog();
+    if (!l[dk]) l[dk] = [];
+    l[dk].push(entry);
+    calSaveLog(l);
+    back.remove();
+    window.renderCalTracker();
+  };
+
+  back.addEventListener('click', function(e){ if(e.target===back) back.remove(); });
+}
+
+})();
+</script>
+
+<!-- ============================================================
+     👟 CONTADOR DE PASOS
+============================================================ -->
+<style>
+.pasos-card { background:var(--card); border:1.5px solid var(--border); border-radius:18px; padding:1.2rem; margin-bottom:1rem; }
+.pasos-ring-wrap { display:flex; align-items:center; justify-content:center; margin:.6rem 0 1rem; }
+.pasos-ring { position:relative; width:140px; height:140px; }
+.pasos-ring svg { transform:rotate(-90deg); }
+.pasos-ring-bg   { fill:none; stroke:var(--surface); stroke-width:10; }
+.pasos-ring-fill { fill:none; stroke:var(--rosa); stroke-width:10; stroke-linecap:round; transition:stroke-dashoffset .6s ease; }
+.pasos-ring-done { stroke:#6dbf7a; }
+.pasos-ring-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.pasos-ring-val { font-size:1.6rem; font-weight:800; color:var(--text); line-height:1; }
+.pasos-ring-unit { font-size:.6rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-top:.15rem; }
+.pasos-controls { display:flex; align-items:center; justify-content:center; gap:.3rem; margin-bottom:1rem; flex-wrap:nowrap; }
+.pasos-btn { min-width:36px; height:36px; border-radius:50%; border:1.5px solid var(--border); background:var(--surface); font-size:.64rem; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .15s; font-family:var(--font-body); padding:0 .35rem; white-space:nowrap; }
+.pasos-btn:hover { border-color:var(--rosa); background:var(--rosa-soft); }
+.pasos-inp-wrap { display:flex; align-items:center; gap:.4rem; background:var(--surface); border:1.5px solid var(--border); border-radius:12px; padding:.3rem .6rem; }
+.pasos-inp { width:72px; border:none; background:transparent; font-size:1rem; font-weight:800; color:var(--text); font-family:var(--font-body); text-align:center; outline:none; }
+.pasos-inp-lbl { font-size:.7rem; font-weight:700; color:var(--muted); }
+.pasos-goal-row { display:flex; align-items:center; justify-content:center; gap:.5rem; margin-bottom:.8rem; font-size:.75rem; font-weight:700; color:var(--muted); }
+.pasos-goal-inp { width:60px; border:1.5px solid var(--border); border-radius:8px; padding:.2rem .4rem; font-size:.78rem; font-family:var(--font-body); color:var(--text); background:var(--surface); text-align:center; }
+.pasos-goal-inp:focus { outline:none; border-color:var(--rosa); }
+.pasos-week-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:.3rem; }
+.pasos-week-day { display:flex; flex-direction:column; align-items:center; gap:.25rem; }
+.pasos-week-lbl { font-size:.58rem; font-weight:700; color:var(--muted); }
+.pasos-week-bar-wrap { width:100%; background:var(--surface); border-radius:4px; overflow:hidden; height:48px; display:flex; flex-direction:column; justify-content:flex-end; }
+.pasos-week-bar { width:100%; background:var(--rosa); border-radius:4px; transition:height .4s ease; min-height:3px; }
+.pasos-week-bar.done { background:#6dbf7a; }
+.pasos-week-val { font-size:.55rem; font-weight:800; color:var(--muted2); }
+.pasos-week-today .pasos-week-lbl { color:var(--rosa); font-weight:800; }
+.pasos-pct { text-align:center; font-size:.72rem; font-weight:700; color:var(--muted); margin-top:.3rem; }
+</style>
+
+<script>
+// ============================================================
+//  👟 CONTADOR DE PASOS
+// ============================================================
+(function(){
+'use strict';
+
+var PASOS_KEY      = 'yuki_pasos_log';   // { 'YYYY-MM-DD': steps }
+var PASOS_GOAL_KEY = 'yuki_pasos_goal';  // number
+
+function dk(d) {
+  d = d || new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function loadLog()  { try { return JSON.parse(localStorage.getItem(PASOS_KEY)||'{}'); } catch(e){ return {}; } }
+function saveLog(l) {
+  try { localStorage.setItem(PASOS_KEY, JSON.stringify(l)); } catch(e){}
+  if (window.cloudSave) window.cloudSave(PASOS_KEY, l);
+}
+function loadGoal() { return parseInt(localStorage.getItem(PASOS_GOAL_KEY)||'8000'); }
+function saveGoal(g){ localStorage.setItem(PASOS_GOAL_KEY, g); }
+
+function getWeekDates() {
+  var now = new Date();
+  var day = now.getDay();
+  var sun = new Date(now); sun.setDate(now.getDate() - day);
+  var dates = [];
+  for (var i=0;i<7;i++) { var d=new Date(sun); d.setDate(sun.getDate()+i); dates.push(d); }
+  return dates;
+}
+
+window.renderPasos = function() {
+  var root = document.getElementById('pasosRoot');
+  if (!root) return;
+  root.innerHTML = '';
+
+  var log    = loadLog();
+  var goal   = loadGoal();
+  var today  = dk();
+  var steps  = log[today] || 0;
+  var pct    = goal > 0 ? Math.min(100, Math.round(steps/goal*100)) : 0;
+  var done   = steps >= goal && goal > 0;
+  var R = 60, C = 2*Math.PI*R;
+
+  // ── Main card ──
+  var card = document.createElement('div');
+  card.className = 'pasos-card';
+
+  // Heart ring
+  var ringWrap = document.createElement('div');
+  ringWrap.className = 'pasos-ring-wrap';
+  var ring = document.createElement('div');
+  ring.className = 'pasos-ring';
+  var heartPath = 'M70,105 C70,105 20,75 20,45 C20,25 35,15 50,20 C58,23 65,30 70,38 C75,30 82,23 90,20 C105,15 120,25 120,45 C120,75 70,105 70,105 Z';
+  var heartLen = 260;
+  var heartOffset = heartLen - (pct/100)*heartLen;
+  ring.innerHTML =
+    '<svg width="140" height="140" viewBox="0 0 140 140">'+
+      '<path class="pasos-ring-bg" d="'+heartPath+'" stroke-width="8" fill="none"/>'+
+      '<path class="pasos-ring-fill'+(done?' pasos-ring-done':'')+'" d="'+heartPath+'"'+
+        ' stroke-width="8" fill="none"'+
+        ' stroke-dasharray="'+heartLen+'" stroke-dashoffset="'+heartOffset+'"/>'+
+    '</svg>'+
+    '<div class="pasos-ring-center">'+
+      '<div class="pasos-ring-val" id="pasosRingVal">'+steps.toLocaleString('es-MX')+'</div>'+
+      '<div class="pasos-ring-unit">pasos</div>'+
+    '</div>';
+  ringWrap.appendChild(ring);
+  card.appendChild(ringWrap);
+
+  // Progress text
+  var pctDiv = document.createElement('div');
+  pctDiv.className = 'pasos-pct';
+  pctDiv.id = 'pasosPct';
+  if (done) {
+    pctDiv.innerHTML = '🎉 <span style="color:#6dbf7a;font-weight:800">¡Meta alcanzada!</span> '+steps.toLocaleString('es-MX')+' / '+goal.toLocaleString('es-MX');
+  } else {
+    var remaining = goal - steps;
+    pctDiv.textContent = pct+'% · faltan '+remaining.toLocaleString('es-MX')+' pasos para tu meta';
+  }
+  card.appendChild(pctDiv);
+
+  // Controls
+  var controls = document.createElement('div');
+  controls.className = 'pasos-controls';
+
+  function makeBtn(label, delta) {
+    var btn = document.createElement('button');
+    btn.className = 'pasos-btn';
+    btn.title = (delta>0?'+':'')+delta+' pasos';
+    btn.textContent = label;
+    btn.onclick = function() { addSteps(delta); };
+    return btn;
+  }
+
+  var inpWrap = document.createElement('div');
+  inpWrap.className = 'pasos-inp-wrap';
+  var inp = document.createElement('input');
+  inp.className = 'pasos-inp';
+  inp.type = 'number';
+  inp.min = '0';
+  inp.value = steps;
+  inp.id = 'pasosInp';
+  inp.onchange = function() {
+    var v = Math.max(0, parseInt(inp.value)||0);
+    var l = loadLog(); l[today] = v; saveLog(l);
+    window.renderPasos();
+  };
+  var inpLbl = document.createElement('span');
+  inpLbl.className = 'pasos-inp-lbl';
+  inpLbl.textContent = 'pasos';
+  inpWrap.appendChild(inp);
+  inpWrap.appendChild(inpLbl);
+
+  controls.appendChild(makeBtn('💗−1k', -1000));
+  controls.appendChild(makeBtn('💗−500', -500));
+  controls.appendChild(inpWrap);
+  controls.appendChild(makeBtn('💗+500', 500));
+  controls.appendChild(makeBtn('💗+1k', 1000));
+  card.appendChild(controls);
+
+  // Goal row
+  var goalRow = document.createElement('div');
+  goalRow.className = 'pasos-goal-row';
+  goalRow.innerHTML = 'Meta diaria: ';
+  var goalInp = document.createElement('input');
+  goalInp.className = 'pasos-goal-inp';
+  goalInp.type = 'number';
+  goalInp.value = goal;
+  goalInp.onchange = function() {
+    var g = Math.max(100, parseInt(goalInp.value)||8000);
+    saveGoal(g);
+    window.renderPasos();
+  };
+  var goalLbl = document.createElement('span');
+  goalLbl.textContent = 'pasos';
+  goalRow.appendChild(goalInp);
+  goalRow.appendChild(goalLbl);
+  card.appendChild(goalRow);
+
+  root.appendChild(card);
+
+  // ── Weekly bar chart ──
+  var weekCard = document.createElement('div');
+  weekCard.className = 'pasos-card';
+  weekCard.innerHTML = '<div style="font-size:.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.8rem">Esta semana</div>';
+  var DIAS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  var weekDates = getWeekDates();
+  var maxSteps = Math.max(goal, ...weekDates.map(function(d){ return log[dk(d)]||0; }));
+  var weekGrid = document.createElement('div');
+  weekGrid.className = 'pasos-week-grid';
+  weekDates.forEach(function(d) {
+    var dkStr = dk(d);
+    var s = log[dkStr] || 0;
+    var isToday = dkStr === today;
+    var isDone  = s >= goal && goal > 0;
+    var barH    = maxSteps > 0 ? Math.max(4, Math.round(s/maxSteps*48)) : 4;
+    var col = document.createElement('div');
+    col.className = 'pasos-week-day' + (isToday?' pasos-week-today':'');
+    col.innerHTML =
+      '<div class="pasos-week-lbl">'+DIAS[d.getDay()]+'</div>'+
+      '<div class="pasos-week-bar-wrap">'+
+        '<div class="pasos-week-bar'+(isDone?' done':'')+'" style="height:'+barH+'px"></div>'+
+      '</div>'+
+      '<div class="pasos-week-val">'+(s>0?s.toLocaleString('es-MX'):'-')+'</div>';
+    weekGrid.appendChild(col);
+  });
+  weekCard.appendChild(weekGrid);
+  root.appendChild(weekCard);
+
+  function addSteps(delta) {
+    var l = loadLog();
+    var cur = l[today] || 0;
+    l[today] = Math.max(0, cur + delta);
+    saveLog(l);
+    window.renderPasos();
+  }
+};
+
+// Re-render pasos when switching to ejercicio tab is handled via saludShowTab
 
 })();
 </script>
