@@ -10501,6 +10501,25 @@ function renderEjPasos(card, tpl, reg, regIdx, dk) {
     wrap.appendChild(row);
   });
 
+  // Link/URL display
+  if (tpl.linkUrl) {
+    var ytM = tpl.linkUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/))([a-zA-Z0-9_-]{11})/);
+    var linkEl = document.createElement('div');
+    linkEl.style.cssText = 'margin-top:.6rem;';
+    if (ytM) {
+      linkEl.innerHTML = '<a href="' + tpl.linkUrl + '" target="_blank" rel="noopener" style="display:block;text-decoration:none;">' +
+        '<img src="https://img.youtube.com/vi/' + ytM[1] + '/hqdefault.jpg" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px;border:1.5px solid var(--border);">' +
+        '<div style="font-size:.7rem;color:var(--rosa);font-weight:700;margin-top:.3rem;text-align:center;">▶️ Ver en YouTube</div>' +
+        '</a>';
+    } else {
+      linkEl.innerHTML = '<a href="' + tpl.linkUrl + '" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:.5rem;padding:.5rem .8rem;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;text-decoration:none;color:var(--text);">' +
+        '<span style="font-size:1rem;">🔗</span>' +
+        '<span style="font-size:.75rem;font-weight:700;word-break:break-all;">' + tpl.linkUrl + '</span>' +
+        '</a>';
+    }
+    wrap.appendChild(linkEl);
+  }
+
   body.appendChild(wrap);
 }
 
@@ -10615,9 +10634,26 @@ function openEjViewModal(templateId) {
   if (tpl.imgBase64) {
     imageHtml = '<img src="' + tpl.imgBase64 + '" style="width:100%;max-height:200px;border-radius:12px;object-fit:cover;border:1.5px solid var(--border);margin-bottom:.6rem">';
   }
+
+  var linkHtml = '';
+  if (tpl.linkUrl) {
+    var ytM2 = tpl.linkUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/))([a-zA-Z0-9_-]{11})/);
+    if (ytM2) {
+      linkHtml = '<a href="' + tpl.linkUrl + '" target="_blank" rel="noopener" style="display:block;text-decoration:none;margin-top:.6rem;">' +
+        '<img src="https://img.youtube.com/vi/' + ytM2[1] + '/hqdefault.jpg" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px;border:1.5px solid var(--border);">' +
+        '<div style="font-size:.7rem;color:var(--rosa);font-weight:700;margin-top:.3rem;text-align:center;">▶️ Ver en YouTube</div>' +
+        '</a>';
+    } else {
+      linkHtml = '<a href="' + tpl.linkUrl + '" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:.5rem;padding:.5rem .8rem;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;text-decoration:none;color:var(--text);margin-top:.6rem;">' +
+        '<span style="font-size:1rem;">🔗</span>' +
+        '<span style="font-size:.75rem;font-weight:700;word-break:break-all;">' + tpl.linkUrl + '</span>' +
+        '</a>';
+    }
+  }
   
   inner.innerHTML = '<div class="rutina-modal-title" style="padding-right:2.5rem">' + tpl.emoji + ' <em>' + tpl.name + '</em></div>' +
     imageHtml +
+    linkHtml +
     '<div style="margin-top:.6rem">' + (pasosHtml || '<div style="color:var(--muted2);font-size:.8rem">Sin ejercicios registrados.</div>') + '</div>' +
     '<div class="modal-btns" style="margin-top:1rem"><button class="modal-btn-cancel" id="ejViewClose">Cerrar</button></div>';
 
@@ -10662,7 +10698,10 @@ function openEjModal(templateId) {
     '<input type="file" id="ejImgInput" accept="image/*" style="display:none">' +
     '<div class="modal-field" style="margin-top:.6rem"><label class="modal-label">O URL de imagen</label>' +
     '<input class="modal-input" id="ejImgUrl" placeholder="https://ejemplo.com/imagen.jpg" value="" style="width:100%"></div>' +
-    '<div class="modal-field"><label class="modal-label">Ejercicios</label>' +
+    '<div class="modal-field"><label class="modal-label">🔗 Link / URL del video (opcional)</label>' +
+    '<input type="url" class="modal-input" id="ejLinkUrl" placeholder="https://www.youtube.com/watch?v=... o cualquier enlace" value="' + (existing && existing.linkUrl ? existing.linkUrl.replace(/"/g,'&quot;') : '') + '" style="width:100%">' +
+    '<div id="ejLinkPreview" style="margin-top:.5rem;"></div></div>' +
+    '<div class="modal-field"><label class="modal-label">Ejercicios (pasos)</label>' +
     '<div id="ejPasosList"></div>' +
     '<button class="rutina-add-paso-btn" id="ejAddPasoBtn">+ Agregar ejercicio</button></div>' +
     '<div class="modal-btns">' +
@@ -10734,7 +10773,25 @@ function openEjModal(templateId) {
   
   // Insert clear button after the URL input
   imgUrlInput.parentNode.insertBefore(clearBtn, imgUrlInput.nextSibling);
-  
+
+  // Link URL preview handler
+  var linkUrlInput = document.getElementById('ejLinkUrl');
+  var linkPreview  = document.getElementById('ejLinkPreview');
+  function updateLinkPreview() {
+    var url = linkUrlInput.value.trim();
+    if (!url) { linkPreview.innerHTML = ''; return; }
+    var ytM = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/))([a-zA-Z0-9_-]{11})/);
+    if (ytM) {
+      linkPreview.innerHTML = '<img src="https://img.youtube.com/vi/' + ytM[1] + '/hqdefault.jpg" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px;border:1.5px solid var(--border);">';
+    } else {
+      linkPreview.innerHTML = '<div style="padding:.5rem;font-size:.75rem;color:var(--muted);border:1.5px dashed var(--border);border-radius:10px;word-break:break-all;">🔗 ' + url + '</div>';
+    }
+  }
+  if (linkUrlInput) {
+    linkUrlInput.oninput = updateLinkPreview;
+    updateLinkPreview();
+  }
+
   // Emoji picker
   var selectedEmoji = emoji;
   back.querySelectorAll('.emoji-opt').forEach(function(opt) {
@@ -10778,13 +10835,16 @@ function openEjModal(templateId) {
     var cleanPasos = pasos.filter(function(p) { return p.texto.trim() !== ''; })
       .map(function(p) { return { texto: p.texto.trim(), duracion: p.duracion ? p.duracion.trim() : '' }; });
 
+    var lUrl = linkUrlInput ? linkUrlInput.value.trim() : (existing && existing.linkUrl ? existing.linkUrl : '');
+
     if (existing) {
       existing.name = n;
       existing.emoji = selectedEmoji;
       existing.imgBase64 = currentImgBase64;
       existing.pasos = cleanPasos;
+      existing.linkUrl = lUrl;
     } else {
-      ejTemplates.push({ id: 'ej_' + Date.now(), name: n, emoji: selectedEmoji, imgBase64: currentImgBase64, pasos: cleanPasos });
+      ejTemplates.push({ id: 'ej_' + Date.now(), name: n, emoji: selectedEmoji, imgBase64: currentImgBase64, pasos: cleanPasos, linkUrl: lUrl });
     }
     saveEjercicio(); renderEjercicio();
     back.remove();
@@ -17710,6 +17770,9 @@ renderTracker();
 <!-- TAB: Ejercicio -->
 <div id="saludTabEjercicio-content" style="display:none">
 
+  <!-- 🐱 YUKI PET WIDGET -->
+  <div id="yukiPetWidget" style="max-width:780px;margin:0 auto;padding:1.2rem 1rem 0"></div>
+
   <!-- Contador de pasos -->
   <section style="max-width:780px;margin:0 auto;padding:1.2rem 1rem 0">
     <span class="section-sub">👟 movimiento diario</span>
@@ -17738,6 +17801,508 @@ renderTracker();
       <div id="ejPlantillasList"></div>
     </div>
   </section>
+
+  <!-- ══ TRACKER DE ACTIVIDADES ══ -->
+  <section class="ejercicio-section" id="sec-actividades" style="margin-top:0">
+    <span class="section-sub">🔥 calorías quemadas</span>
+    <h2 class="section-title"><em>Mis</em> Actividades</h2>
+    <p style="font-size:.75rem;color:var(--muted);margin-bottom:1.2rem;font-weight:600">
+      Registra tus actividades del día y calcula las calorías quemadas 🚴‍♀️
+    </p>
+    <div id="actTrackerWrap"></div>
+  </section>
+
+<style>
+.act-card { background:var(--card); border:1.5px solid var(--border); border-radius:18px; padding:1.1rem 1.2rem; margin-bottom:1rem; }
+.act-summary-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:.9rem; }
+.act-cal-total { font-size:2rem; font-weight:900; color:var(--rosa); line-height:1; }
+.act-cal-lbl { font-size:.65rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+.act-log-list { display:flex; flex-direction:column; gap:.4rem; margin-bottom:.9rem; }
+.act-log-item { display:flex; align-items:center; gap:.6rem; background:var(--surface); border:1.5px solid var(--border); border-radius:12px; padding:.45rem .7rem; }
+.act-log-emoji { font-size:1.2rem; min-width:28px; text-align:center; }
+.act-log-info { flex:1; }
+.act-log-name { font-size:.82rem; font-weight:700; color:var(--text); }
+.act-log-meta { font-size:.68rem; color:var(--muted); font-weight:600; }
+.act-log-cal { font-size:.85rem; font-weight:900; color:var(--rosa); min-width:52px; text-align:right; }
+.act-log-del { background:none; border:none; cursor:pointer; font-size:.85rem; color:var(--muted2); padding:.2rem .3rem; border-radius:8px; transition:color .15s; }
+.act-log-del:hover { color:#e05; }
+.act-add-btn { width:100%; padding:.55rem; border:1.5px dashed var(--border); border-radius:12px; background:transparent; font-family:var(--font-body); font-size:.78rem; font-weight:700; color:var(--muted); cursor:pointer; transition:all .2s; }
+.act-add-btn:hover { border-color:var(--rosa); color:var(--rosa); background:var(--rosa-soft); }
+
+/* Modal actividad */
+.act-modal-back { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; display:flex; align-items:center; justify-content:center; padding:1rem; }
+.act-modal-box { background:var(--card); border-radius:22px; padding:1.4rem; width:100%; max-width:420px; max-height:90vh; overflow-y:auto; }
+.act-modal-title { font-size:1.05rem; font-weight:900; font-style:italic; color:var(--text); margin-bottom:1rem; }
+.act-cat-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:.5rem; margin-bottom:1rem; }
+.act-cat-btn { display:flex; flex-direction:column; align-items:center; gap:.25rem; padding:.6rem .4rem; border:1.5px solid var(--border); border-radius:14px; background:var(--surface); cursor:pointer; font-family:var(--font-body); transition:all .2s; }
+.act-cat-btn:hover, .act-cat-btn.selected { border-color:var(--rosa); background:var(--rosa-soft); }
+.act-cat-btn .act-cat-icon { font-size:1.5rem; }
+.act-cat-btn .act-cat-name { font-size:.62rem; font-weight:700; color:var(--text); text-align:center; }
+.act-cat-btn .act-cat-cal { font-size:.58rem; color:var(--muted); font-weight:600; }
+.act-dur-row { display:flex; align-items:center; gap:.6rem; margin-bottom:1rem; }
+.act-dur-lbl { font-size:.75rem; font-weight:700; color:var(--muted); min-width:60px; }
+.act-dur-inp { flex:1; border:1.5px solid var(--border); border-radius:10px; padding:.45rem .7rem; font-family:var(--font-body); font-size:.9rem; font-weight:700; color:var(--text); background:var(--surface); text-align:center; outline:none; }
+.act-dur-inp:focus { border-color:var(--rosa); }
+.act-cal-preview { text-align:center; padding:.6rem; background:var(--rosa-soft); border-radius:12px; margin-bottom:1rem; font-size:.82rem; font-weight:700; color:var(--rosa); }
+.act-custom-row { display:flex; flex-direction:column; gap:.5rem; margin-bottom:1rem; padding:.7rem; background:var(--surface); border-radius:14px; border:1.5px dashed var(--border); }
+.act-custom-lbl { font-size:.7rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+.act-custom-inp { border:1.5px solid var(--border); border-radius:10px; padding:.4rem .7rem; font-family:var(--font-body); font-size:.82rem; color:var(--text); background:var(--card); outline:none; }
+.act-custom-inp:focus { border-color:var(--rosa); }
+.act-modal-btns { display:flex; gap:.6rem; margin-top:.5rem; }
+.act-modal-save { flex:1; padding:.6rem; background:var(--rosa); color:white; border:none; border-radius:20px; font-family:var(--font-body); font-size:.85rem; font-weight:700; cursor:pointer; }
+.act-modal-cancel { padding:.6rem 1.1rem; background:var(--surface); color:var(--muted); border:1.5px solid var(--border); border-radius:20px; font-family:var(--font-body); font-size:.85rem; font-weight:700; cursor:pointer; }
+</style>
+
+<script>
+(function(){
+'use strict';
+
+// ── Catálogo de actividades con kcal/min por kg (MET × 3.5 / 200 aprox → usamos kcal/min para 60kg ref)
+var ACT_CATALOG = [
+  { id:'caminar',    emoji:'🚶‍♀️', name:'Caminar',        calPerMin:3.5,  color:'#f4a261' },
+  { id:'correr',     emoji:'🏃‍♀️', name:'Correr',          calPerMin:9.0,  color:'#e76f51' },
+  { id:'bicicleta',  emoji:'🚴‍♀️', name:'Bicicleta',       calPerMin:7.5,  color:'#2a9d8f' },
+  { id:'rebounder',  emoji:'🪂',   name:'Rebounder',       calPerMin:8.0,  color:'#e9c46a' },
+  { id:'saltar',     emoji:'⚡',   name:'Saltar la cuerda',calPerMin:12.0, color:'#e76f51' },
+  { id:'nadar',      emoji:'🏊‍♀️', name:'Nadar',           calPerMin:8.5,  color:'#48cae4' },
+  { id:'yoga',       emoji:'🧘‍♀️', name:'Yoga',            calPerMin:3.0,  color:'#80b918' },
+  { id:'pilates',    emoji:'🤸‍♀️', name:'Pilates',         calPerMin:4.5,  color:'#c77dff' },
+  { id:'baile',      emoji:'💃',   name:'Baile / Zumba',   calPerMin:7.0,  color:'#ff6b6b' },
+  { id:'pesas',      emoji:'🏋️‍♀️', name:'Pesas / Gym',    calPerMin:6.0,  color:'#6d6875' },
+  { id:'hiit',       emoji:'🔥',   name:'HIIT',            calPerMin:13.0, color:'#ef233c' },
+  { id:'stretching', emoji:'🌿',   name:'Stretching',      calPerMin:2.5,  color:'#52b788' },
+  { id:'caminata',   emoji:'🏔️',  name:'Senderismo',      calPerMin:6.0,  color:'#606c38' },
+  { id:'bodycrunch', emoji:'💪',   name:'Body Crunch',     calPerMin:7.0,  color:'#d62828' },
+  { id:'spinning',   emoji:'🌀',   name:'Spinning',        calPerMin:10.0, color:'#4361ee' },
+  { id:'custom',     emoji:'✨',   name:'Otra actividad',  calPerMin:5.0,  color:'#adb5bd' },
+];
+
+var ACT_KEY_LOG  = 'yuki_act_log';   // { 'YYYY-MM-DD': [ {actId, minutos, cal, nombre, emoji, ts} ] }
+var ACT_KEY_CUST = 'yuki_act_custom'; // [ {id, emoji, name, calPerMin} ]
+var actDateOffset = 0;
+
+function actDk(d) {
+  d = d || new Date();
+  var dd = new Date(d); dd.setDate(dd.getDate() + actDateOffset);
+  return dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0')+'-'+String(dd.getDate()).padStart(2,'0');
+}
+function actLoadLog()  { try { return JSON.parse(localStorage.getItem(ACT_KEY_LOG)||'{}'); } catch(e){ return {}; } }
+function actSaveLog(l) { try { localStorage.setItem(ACT_KEY_LOG, JSON.stringify(l)); } catch(e){} if(window.cloudSave) window.cloudSave(ACT_KEY_LOG, l); }
+function actLoadCustom()  { try { return JSON.parse(localStorage.getItem(ACT_KEY_CUST)||'[]'); } catch(e){ return []; } }
+function actSaveCustom(c) { try { localStorage.setItem(ACT_KEY_CUST, JSON.stringify(c)); } catch(e){} }
+
+function getCatalog() {
+  var custom = actLoadCustom();
+  return ACT_CATALOG.concat(custom);
+}
+
+function renderActTracker() {
+  var wrap = document.getElementById('actTrackerWrap');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+
+  var dk = actDk();
+  var log = actLoadLog();
+  var entries = log[dk] || [];
+  var totalCal = entries.reduce(function(s,e){ return s + (e.cal||0); }, 0);
+
+  var card = document.createElement('div');
+  card.className = 'act-card';
+
+  // Date nav
+  var today = new Date(); today.setDate(today.getDate() + actDateOffset);
+  var DIAS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  var MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  var dateStr = DIAS[today.getDay()] + ' ' + today.getDate() + ' ' + MESES[today.getMonth()];
+
+  var dateRow = document.createElement('div');
+  dateRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;';
+  dateRow.innerHTML = '<button class="nav-btn" id="actPrev">‹</button>' +
+    '<span style="font-size:.82rem;font-weight:800;color:var(--text)">' + dateStr + '</span>' +
+    '<button class="nav-btn" id="actNext">›</button>';
+  card.appendChild(dateRow);
+  dateRow.querySelector('#actPrev').onclick = function(){ actDateOffset--; renderActTracker(); };
+  dateRow.querySelector('#actNext').onclick = function(){ actDateOffset++; renderActTracker(); };
+
+  // Summary
+  var summary = document.createElement('div');
+  summary.className = 'act-summary-row';
+  summary.innerHTML = '<div><div class="act-cal-total">🔥 ' + Math.round(totalCal) + '</div><div class="act-cal-lbl">kcal quemadas hoy</div></div>' +
+    '<div style="text-align:right"><div style="font-size:1.1rem;font-weight:800;color:var(--text)">' + entries.length + '</div><div class="act-cal-lbl">actividad' + (entries.length!==1?'es':'') + '</div></div>';
+  card.appendChild(summary);
+
+  // Barra progreso (meta 300 kcal)
+  var meta = 300;
+  var pct = Math.min(100, Math.round(totalCal / meta * 100));
+  var barWrap = document.createElement('div');
+  barWrap.style.cssText = 'background:var(--surface);border-radius:99px;height:8px;margin-bottom:.9rem;overflow:hidden;';
+  barWrap.innerHTML = '<div style="height:100%;width:'+pct+'%;background:var(--rosa);border-radius:99px;transition:width .5s ease;"></div>';
+  card.appendChild(barWrap);
+  var metaLbl = document.createElement('div');
+  metaLbl.style.cssText = 'font-size:.62rem;color:var(--muted);font-weight:700;text-align:right;margin-top:-.6rem;margin-bottom:.7rem;';
+  metaLbl.textContent = pct + '% de meta diaria (300 kcal)';
+  card.appendChild(metaLbl);
+
+  // Lista de entradas
+  if (entries.length > 0) {
+    var logList = document.createElement('div');
+    logList.className = 'act-log-list';
+    entries.forEach(function(entry, ei) {
+      var item = document.createElement('div');
+      item.className = 'act-log-item';
+      item.innerHTML = '<div class="act-log-emoji">' + (entry.emoji||'✨') + '</div>' +
+        '<div class="act-log-info"><div class="act-log-name">' + entry.nombre + '</div>' +
+        '<div class="act-log-meta">' + entry.minutos + ' min</div></div>' +
+        '<div class="act-log-cal">🔥 ' + Math.round(entry.cal) + ' kcal</div>' +
+        '<button class="act-log-del" title="Eliminar">✕</button>';
+      item.querySelector('.act-log-del').onclick = function() {
+        var l = actLoadLog(); l[dk].splice(ei,1); actSaveLog(l); renderActTracker();
+      };
+      logList.appendChild(item);
+    });
+    card.appendChild(logList);
+  } else {
+    var empty = document.createElement('div');
+    empty.style.cssText = 'text-align:center;color:var(--muted2);font-size:.78rem;font-weight:700;padding:.8rem 0;';
+    empty.textContent = '¡Registra tu primera actividad! 💪';
+    card.appendChild(empty);
+  }
+
+  // Botón agregar
+  var addBtn = document.createElement('button');
+  addBtn.className = 'act-add-btn';
+  addBtn.textContent = '+ Registrar actividad';
+  addBtn.onclick = openActModal;
+  card.appendChild(addBtn);
+
+  wrap.appendChild(card);
+}
+
+function openActModal() {
+  var old = document.getElementById('actModalBack');
+  if (old) old.remove();
+
+  var catalog = getCatalog();
+  var selectedAct = null;
+  var minutos = 30;
+
+  var back = document.createElement('div');
+  back.className = 'act-modal-back';
+  back.id = 'actModalBack';
+  back.onclick = function(e){ if(e.target===back) back.remove(); };
+
+  var box = document.createElement('div');
+  box.className = 'act-modal-box';
+
+  // Título
+  var title = document.createElement('div');
+  title.className = 'act-modal-title';
+  title.innerHTML = '🏃‍♀️ <em>Registrar actividad</em>';
+  box.appendChild(title);
+
+  // Grid de actividades
+  var grid = document.createElement('div');
+  grid.className = 'act-cat-grid';
+  catalog.forEach(function(act) {
+    var btn = document.createElement('button');
+    btn.className = 'act-cat-btn';
+    btn.dataset.id = act.id;
+    btn.innerHTML = '<span class="act-cat-icon">' + act.emoji + '</span>' +
+      '<span class="act-cat-name">' + act.name + '</span>' +
+      '<span class="act-cat-cal">~' + act.calPerMin + ' kcal/min</span>';
+    btn.onclick = function() {
+      grid.querySelectorAll('.act-cat-btn').forEach(function(b){ b.classList.remove('selected'); });
+      btn.classList.add('selected');
+      selectedAct = act;
+      updatePreview();
+      // Ocultar custom si no es custom
+      customRow.style.display = act.id === 'custom' ? '' : 'none';
+    };
+    grid.appendChild(btn);
+  });
+  box.appendChild(grid);
+
+  // Fila personalizada (solo para "custom")
+  var customRow = document.createElement('div');
+  customRow.className = 'act-custom-row';
+  customRow.style.display = 'none';
+  customRow.innerHTML = '<div class="act-custom-lbl">✨ Crear actividad personalizada</div>' +
+    '<input class="act-custom-inp" id="actCustomNombre" placeholder="Nombre de la actividad" style="margin-bottom:.3rem">' +
+    '<div style="display:flex;gap:.5rem;align-items:center">' +
+    '<input class="act-custom-inp" id="actCustomCal" placeholder="kcal por minuto (ej: 6)" type="number" min="0.5" max="20" step="0.5" style="flex:1">' +
+    '<span style="font-size:.7rem;color:var(--muted);font-weight:700">kcal/min</span></div>' +
+    '<label style="display:flex;align-items:center;gap:.5rem;font-size:.7rem;color:var(--muted);font-weight:700;cursor:pointer;">' +
+    '<input type="checkbox" id="actCustomSave"> Guardar para futuras sesiones</label>';
+  box.appendChild(customRow);
+
+  // Duración
+  var durRow = document.createElement('div');
+  durRow.className = 'act-dur-row';
+  durRow.innerHTML = '<span class="act-dur-lbl">⏱ Duración</span>' +
+    '<button style="background:var(--surface);border:1.5px solid var(--border);border-radius:8px;padding:.3rem .7rem;cursor:pointer;font-family:var(--font-body);font-weight:700;font-size:.9rem;" id="actDurMinus">−</button>' +
+    '<input class="act-dur-inp" id="actDurInp" type="number" min="1" max="300" value="30" style="max-width:70px;">' +
+    '<button style="background:var(--surface);border:1.5px solid var(--border);border-radius:8px;padding:.3rem .7rem;cursor:pointer;font-family:var(--font-body);font-weight:700;font-size:.9rem;" id="actDurPlus">+</button>' +
+    '<span style="font-size:.78rem;font-weight:700;color:var(--muted);">min</span>';
+  box.appendChild(durRow);
+
+  var durInp = durRow.querySelector('#actDurInp');
+  durRow.querySelector('#actDurMinus').onclick = function(){ durInp.value = Math.max(1, parseInt(durInp.value||30)-5); updatePreview(); };
+  durRow.querySelector('#actDurPlus').onclick  = function(){ durInp.value = Math.min(300, parseInt(durInp.value||30)+5); updatePreview(); };
+  durInp.oninput = updatePreview;
+
+  // Preview calorías
+  var preview = document.createElement('div');
+  preview.className = 'act-cal-preview';
+  preview.id = 'actCalPreview';
+  preview.textContent = 'Selecciona una actividad';
+  box.appendChild(preview);
+
+  function updatePreview() {
+    if (!selectedAct) { preview.textContent = 'Selecciona una actividad ☝️'; return; }
+    var mins = parseInt(durInp.value) || 30;
+    var cpm = selectedAct.id === 'custom'
+      ? (parseFloat(document.getElementById('actCustomCal').value)||5)
+      : selectedAct.calPerMin;
+    var cal = Math.round(cpm * mins);
+    preview.textContent = '🔥 ~' + cal + ' kcal en ' + mins + ' min de ' + (selectedAct.id==='custom' ? (document.getElementById('actCustomNombre').value||'actividad') : selectedAct.name);
+  }
+
+  if (customRow.querySelector('#actCustomCal')) customRow.querySelector('#actCustomCal').oninput = updatePreview;
+  if (customRow.querySelector('#actCustomNombre')) customRow.querySelector('#actCustomNombre').oninput = updatePreview;
+
+  // Botones
+  var btns = document.createElement('div');
+  btns.className = 'act-modal-btns';
+  var cancelB = document.createElement('button');
+  cancelB.className = 'act-modal-cancel';
+  cancelB.textContent = 'Cancelar';
+  cancelB.onclick = function(){ back.remove(); };
+  var saveB = document.createElement('button');
+  saveB.className = 'act-modal-save';
+  saveB.textContent = 'Guardar 🔥';
+  saveB.onclick = function() {
+    if (!selectedAct) { preview.style.animation='none'; setTimeout(function(){preview.style.animation='';},10); preview.style.color='#e05'; preview.textContent='¡Elige una actividad!'; return; }
+    var mins = parseInt(durInp.value) || 30;
+    var nombre = selectedAct.name;
+    var emoji  = selectedAct.emoji;
+    var cpm    = selectedAct.calPerMin;
+
+    if (selectedAct.id === 'custom') {
+      var cName = (document.getElementById('actCustomNombre').value||'').trim();
+      var cCal  = parseFloat(document.getElementById('actCustomCal').value) || 5;
+      if (!cName) { document.getElementById('actCustomNombre').focus(); return; }
+      nombre = cName;
+      emoji  = '✨';
+      cpm    = cCal;
+      // Guardar como custom si el checkbox está marcado
+      if (document.getElementById('actCustomSave').checked) {
+        var customs = actLoadCustom();
+        customs.push({ id:'cust_'+Date.now(), emoji:'✨', name:cName, calPerMin:cCal });
+        actSaveCustom(customs);
+      }
+    }
+
+    var cal = cpm * mins;
+    var log = actLoadLog();
+    var dk = actDk();
+    if (!log[dk]) log[dk] = [];
+    log[dk].push({ actId:selectedAct.id, nombre:nombre, emoji:emoji, minutos:mins, cal:cal, ts:Date.now() });
+    actSaveLog(log);
+    back.remove();
+    renderActTracker();
+  };
+  btns.appendChild(cancelB);
+  btns.appendChild(saveB);
+  box.appendChild(btns);
+
+  back.appendChild(box);
+  document.body.appendChild(back);
+}
+
+document.addEventListener('DOMContentLoaded', function(){ renderActTracker(); });
+// Re-render cuando se abre el tab de ejercicio
+var _origSaludTab = window.saludShowTab;
+window.saludShowTab = function(tab) {
+  if (_origSaludTab) _origSaludTab(tab);
+  if (tab === 'ejercicio') { renderActTracker(); if(window.renderYukiPet) window.renderYukiPet(); }
+};
+
+})();
+</script>
+
+<!-- ══ YUKI PET WIDGET ══ -->
+<style>
+.yuki-pet-card {
+  background: linear-gradient(135deg, var(--card) 0%, var(--rosa-soft,#fde8f0) 100%);
+  border: 1.5px solid var(--border); border-radius: 22px;
+  padding: 1.2rem 1.4rem; margin-bottom: 1rem;
+  display: flex; align-items: center; gap: 1.2rem;
+  position: relative; overflow: hidden;
+}
+.yuki-pet-card::before {
+  content:''; position:absolute; top:-30px; right:-30px;
+  width:100px; height:100px; border-radius:50%;
+  background: radial-gradient(circle, rgba(255,182,193,.18) 0%, transparent 70%);
+  pointer-events:none;
+}
+.yuki-pet-scene { flex-shrink:0; width:90px; height:90px; position:relative; }
+.yw-cat { position:relative; width:90px; height:90px; }
+.yw-body { position:absolute; bottom:6px; left:50%; transform:translateX(-50%); width:54px; height:44px; background:var(--rosa,#f48fb1); border-radius:50% 50% 45% 45%; }
+.yw-head { position:absolute; top:0; left:50%; transform:translateX(-50%); width:46px; height:42px; background:var(--rosa,#f48fb1); border-radius:50%; }
+.yw-ear-l, .yw-ear-r { position:absolute; top:-10px; width:0; height:0; border-left:9px solid transparent; border-right:9px solid transparent; border-bottom:18px solid var(--rosa,#f48fb1); }
+.yw-ear-l { left:4px; transform:rotate(-15deg); }
+.yw-ear-r { right:4px; transform:rotate(15deg); }
+.yw-eye-l, .yw-eye-r { position:absolute; top:13px; width:8px; height:8px; background:#fff; border-radius:50%; }
+.yw-eye-l { left:8px; } .yw-eye-r { right:8px; }
+.yw-pupil-l, .yw-pupil-r { position:absolute; top:2px; left:2px; width:4px; height:4px; background:#2a1040; border-radius:50%; }
+.yw-nose { position:absolute; top:22px; left:50%; transform:translateX(-50%); width:5px; height:4px; background:#f48fb1; border-radius:50%; }
+.yw-mouth { position:absolute; top:26px; left:50%; transform:translateX(-50%); font-size:.55rem; line-height:1; color:#d4607a; font-weight:900; white-space:nowrap; }
+.yw-blush-l, .yw-blush-r { position:absolute; top:20px; width:10px; height:6px; background:rgba(255,150,150,.35); border-radius:50%; }
+.yw-blush-l { left:2px; } .yw-blush-r { right:2px; }
+.yw-wl, .yw-wr { position:absolute; top:25px; height:1.5px; width:13px; background:rgba(255,255,255,.65); border-radius:2px; }
+.yw-wl { left:-1px; transform:rotate(-10deg); } .yw-wr { right:-1px; transform:rotate(10deg); }
+.yw-tail { position:absolute; bottom:10px; right:-12px; width:14px; height:32px; border-right:6px solid var(--rosa,#f48fb1); border-radius:0 20px 20px 0; transform-origin:bottom right; }
+.yw-bow { position:absolute; top:-4px; right:4px; font-size:.9rem; }
+.yw-item { position:absolute; bottom:2px; left:50%; transform:translateX(-50%); font-size:.85rem; }
+.yw-wrap.happy .yw-tail    { animation: ywTailWag .5s ease-in-out infinite alternate; }
+.yw-wrap.happy .yw-body    { animation: ywBounce .8s ease-in-out infinite; }
+.yw-wrap.excited .yw-tail  { animation: ywTailWag .3s ease-in-out infinite alternate; }
+.yw-wrap.excited .yw-head  { animation: ywHeadBob .4s ease-in-out infinite alternate; }
+.yw-wrap.excited .yw-body  { animation: ywBounce .5s ease-in-out infinite; }
+.yw-wrap.neutral .yw-tail  { animation: ywTailSlow 2s ease-in-out infinite alternate; }
+.yw-wrap.sleepy .yw-head   { animation: ywSleepNod 2.5s ease-in-out infinite alternate; }
+.yw-wrap.sleepy .yw-eye-l,
+.yw-wrap.sleepy .yw-eye-r  { height:3px; top:16px; }
+.yw-wrap.sad .yw-head      { animation: ywSadShake 3s ease-in-out infinite; }
+.yw-wrap.proud .yw-body    { animation: ywCelebrate .5s ease-in-out infinite alternate; }
+.yw-wrap.proud .yw-tail    { animation: ywTailWag .35s ease-in-out infinite alternate; }
+@keyframes ywTailWag   { from{transform:rotate(-22deg)} to{transform:rotate(22deg)} }
+@keyframes ywTailSlow  { from{transform:rotate(-10deg)} to{transform:rotate(10deg)} }
+@keyframes ywBounce    { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(-6px)} }
+@keyframes ywHeadBob   { from{transform:translateX(-50%) translateY(0)} to{transform:translateX(-50%) translateY(-4px)} }
+@keyframes ywSleepNod  { from{transform:translateX(-50%) rotate(-6deg)} to{transform:translateX(-50%) rotate(6deg)} }
+@keyframes ywSadShake  { 0%,100%{transform:translateX(-50%) rotate(0)} 20%{transform:translateX(-50%) rotate(-4deg)} 40%{transform:translateX(-50%) rotate(4deg)} 60%{transform:translateX(-50%) rotate(-3deg)} 80%{transform:translateX(-50%) rotate(3deg)} }
+@keyframes ywCelebrate { from{transform:translateX(-50%) scale(1)} to{transform:translateX(-50%) scale(1.1) translateY(-5px)} }
+@keyframes ywMsgPop    { 0%{opacity:0;transform:translateY(6px) scale(.95)} 100%{opacity:1;transform:none} }
+.yuki-pet-text { flex:1; }
+.yuki-pet-name { font-size:.62rem; font-weight:900; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin-bottom:.2rem; }
+.yuki-pet-msg  { font-size:.88rem; font-weight:800; color:var(--text); line-height:1.4; margin-bottom:.55rem; animation: ywMsgPop .4s cubic-bezier(.34,1.56,.64,1) both; }
+.yuki-pet-stats { display:flex; flex-wrap:wrap; gap:.35rem; }
+.yuki-pet-stat { font-size:.68rem; font-weight:700; padding:.2rem .55rem; border-radius:20px; background:var(--surface); border:1.5px solid var(--border); color:var(--muted); }
+.yuki-pet-stat.good { background:#e8f9ee; border-color:#6dbf7a; color:#2d7a40; }
+.yuki-pet-stat.warn { background:#fff8e1; border-color:#f4c430; color:#8a6500; }
+</style>
+
+<script>
+(function(){
+'use strict';
+var YW_MSGS = {
+  superstar: [
+    '¡Eres una máquina! 🔥 Yuki está bailando de emoción por ti~',
+    '¡Wow wow wow! ¡Lo lograste todo hoy! 🌟 ¡Orgullo total!',
+    '¡Hoy fuiste IMPARABLE! 💪 Yuki quiere ser tú cuando sea grande ✨',
+    '¡Récord desbloqueado! 🏆 Yuki hace una reverencia ante tu energía~'
+  ],
+  great: [
+    '¡Qué día tan activo! 🌸 Yuki meneando la colita por ti~',
+    '¡Súper bien hoy! ✨ Tu cuerpo te lo va a agradecer mañana 💕',
+    '¡Excelente jornada! 🎀 Yuki está muy orgullosa de ti~',
+    '¡Eso es! 💃 ¡Tú y tu cuerpo son el mejor equipo!'
+  ],
+  good: [
+    '¡Vas bien! 🐱 Yuki detecta buena energía hoy~',
+    '¡Movimiento registrado! 🌿 Cada paso cuenta, ¡sigue así!',
+    '¡Miau de aprobación! 💕 Hoy te moviste y eso es lo importante~',
+    '¡Bien por ti! ✨ Yuki te da un cabezazo de cariño 🐾'
+  ],
+  neutral: [
+    'Miau... 🐱 el día apenas empieza, ¿qué movemos hoy?',
+    'Yuki te mira con ojitos de "¿y si hacemos algo?" 👀',
+    'Aún hay tiempo~ 🌸 ¡Yuki te acompaña en lo que hagas!',
+    'Descansando también cuenta 💤 pero si quieres moverte, ¡aquí estoy!'
+  ],
+  lazy: [
+    'Psst... 😴 Yuki siente que hoy nos quedamos en el sofá~',
+    '¡Ei! 🐱 Yuki dice: aunque sea una vuelta a la manzana 🚶‍♀️',
+    'Miau suave... 💤 ¿Un pequeño estiramiento quizás? 🌿',
+    'Yuki no juzga 🎀 pero sí te da ojitos para que te muevas un poquito~'
+  ],
+  zero: [
+    '😿 Día de descanso total... Yuki te manda amor y ¡mañana con todo!',
+    'Oye... 🐾 Yuki te manda un abrazo suave y te espera mañana 💕',
+    'Día de reset 🌙 Yuki cuida de ti, ¡mañana volvemos!',
+    '💤 Hasta los gatitos necesitan días de nada. Yuki entiende~ 🌸'
+  ]
+};
+
+function getMsg(pool){ return pool[Math.floor(Math.random()*pool.length)]; }
+
+function renderYukiPet() {
+  var wrap = document.getElementById('yukiPetWidget');
+  if (!wrap) return;
+  var today = new Date();
+  var dk = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  var pasosLog={}; try{pasosLog=JSON.parse(localStorage.getItem('yuki_pasos_log')||'{}');}catch(e){}
+  var pasos = pasosLog[dk]||0;
+  var pasosGoal = parseInt(localStorage.getItem('yuki_pasos_goal')||'8000');
+  var actLog={}; try{actLog=JSON.parse(localStorage.getItem('yuki_act_log')||'{}');}catch(e){}
+  var actEntries = actLog[dk]||[];
+  var calQ = Math.round(actEntries.reduce(function(s,e){return s+(e.cal||0);},0));
+  var ejReg={}; try{ejReg=JSON.parse(localStorage.getItem('yuki_ejercicio_registros')||'{}');}catch(e){}
+  var ejHoy = ejReg[dk]||[];
+  var rutHechas = ejHoy.filter(function(r){return r.completedSteps&&r.completedSteps.length>0;}).length;
+  var scoreP = Math.min(100, pasos/pasosGoal*100);
+  var scoreCal = Math.min(100, calQ/300*100);
+  var scoreRut = Math.min(100, rutHechas*33);
+  var score = Math.round(scoreP*.4 + scoreCal*.4 + scoreRut*.2);
+  var estado,pool,mouth,item,bow;
+  if      (score>=90){estado='excited';pool=YW_MSGS.superstar;mouth='ᵕ̈';item='🏆';bow='🎀';}
+  else if (score>=70){estado='proud';  pool=YW_MSGS.great;    mouth='ᵕ̈';item='⭐';bow='🎀';}
+  else if (score>=45){estado='happy';  pool=YW_MSGS.good;     mouth='ω'; item='🌸';bow='';}
+  else if (score>=20){estado='neutral';pool=YW_MSGS.neutral;  mouth='-'; item=''; bow='';}
+  else if (score>=5) {estado='sleepy'; pool=YW_MSGS.lazy;     mouth='~'; item='💤';bow='';}
+  else               {estado='sad';   pool=YW_MSGS.zero;      mouth='︵';item='🌙';bow='';}
+  var msg = getMsg(pool);
+  var sP = pasos>=pasosGoal?'good':pasos>=pasosGoal*.5?'warn':'';
+  var sC = calQ>=300?'good':calQ>=100?'warn':'';
+  var sR = rutHechas>=2?'good':rutHechas>=1?'warn':'';
+  wrap.innerHTML =
+    '<div class="yuki-pet-card">'+
+      '<div class="yuki-pet-scene">'+
+        '<div class="yw-wrap '+estado+'">'+
+          '<div class="yw-cat">'+
+            '<div class="yw-body"></div>'+
+            '<div class="yw-tail"></div>'+
+            '<div class="yw-head">'+
+              '<div class="yw-ear-l"></div><div class="yw-ear-r"></div>'+
+              '<div class="yw-eye-l"><div class="yw-pupil-l"></div></div>'+
+              '<div class="yw-eye-r"><div class="yw-pupil-r"></div></div>'+
+              '<div class="yw-blush-l"></div><div class="yw-blush-r"></div>'+
+              '<div class="yw-nose"></div>'+
+              '<div class="yw-wl"></div><div class="yw-wr"></div>'+
+              '<div class="yw-mouth">'+mouth+'</div>'+
+              (bow?'<div class="yw-bow">'+bow+'</div>':'')+
+            '</div>'+
+            (item?'<div class="yw-item">'+item+'</div>':'')+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="yuki-pet-text">'+
+        '<div class="yuki-pet-name">✦ Yuki dice...</div>'+
+        '<div class="yuki-pet-msg">'+msg+'</div>'+
+        '<div class="yuki-pet-stats">'+
+          '<span class="yuki-pet-stat '+sP+'">👟 '+pasos.toLocaleString('es-MX')+' pasos</span>'+
+          '<span class="yuki-pet-stat '+sC+'">🔥 '+calQ+' kcal</span>'+
+          '<span class="yuki-pet-stat '+sR+'">💪 '+rutHechas+' rutina'+(rutHechas!==1?'s':'')+'</span>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+}
+
+window.renderYukiPet = renderYukiPet;
+document.addEventListener('DOMContentLoaded', renderYukiPet);
+})();
+</script>
 
 </div><!-- end saludTabEjercicio-content -->
 
@@ -34382,28 +34947,93 @@ window.renderCalTracker = function() {
   root.appendChild(logSection);
 };
 
-// ── Open Food Facts search ───────────────────────────────────
-function searchOFF(q, inp, wrap, spinner, dk) {
-  var url = 'https://world.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(q)+'&search_simple=1&action=process&json=1&page_size=15&fields=product_name,brands,nutriments,serving_size';
-  fetch(url)
-    .then(function(r){ return r.json(); })
+// ── Helpers de búsqueda de alimentos ────────────────────────
+// Renderiza los resultados combinados en el wrap
+function _renderFoodResults(foods, inp, wrap, q, dk) {
+  if (foods.length === 0) {
+    wrap.innerHTML = '<div class="cal-no-results">Sin resultados para "'+q+'" 🌸<br><span style="font-size:.68rem">Intenta con otro nombre o en inglés</span></div>';
+    wrap.style.display = '';
+    return;
+  }
+  wrap.innerHTML = '';
+  wrap.style.display = '';
+  var ul = document.createElement('div');
+  ul.className = 'cal-search-results';
+  foods.slice(0, 12).forEach(function(food) {
+    var item = document.createElement('div');
+    item.className = 'cal-result-item';
+    item.innerHTML =
+      '<div style="flex:1;min-width:0">'+
+        '<div class="cal-result-name">'+food.name+'</div>'+
+        (food.brand ? '<div class="cal-result-brand">'+food.brand+'</div>' : '')+
+      '</div>'+
+      '<div style="text-align:right">'+
+        '<div class="cal-result-kcal">'+food.kcal+' kcal</div>'+
+        '<div style="font-size:.6rem;color:var(--muted);font-weight:600">por 100g</div>'+
+      '</div>';
+    item.onclick = function() {
+      inp.value = '';
+      wrap.style.display = 'none';
+      openQtyModal(food, dk);
+    };
+    ul.appendChild(item);
+  });
+  wrap.appendChild(ul);
+}
+
+// ── USDA FoodData Central search ────────────────────────────
+function _searchUSDA(q) {
+  // API pública sin key requerida (demo key con límite generoso)
+  var url = 'https://api.nal.usda.gov/fdc/v1/foods/search?query='+encodeURIComponent(q)+'&dataType=Foundation,SR%20Legacy&pageSize=15&api_key=DEMO_KEY';
+  return fetch(url)
+    .then(function(r) { return r.json(); })
     .then(function(data) {
-      spinner.style.display = 'none';
-      var products = (data.products||[]).filter(function(p){
-        return p.product_name && p.nutriments && p.nutriments['energy-kcal_100g'] != null;
+      var foods = [];
+      (data.foods || []).forEach(function(item) {
+        // Buscar nutrientes clave
+        var kcal = 0, prot = 0, carb = 0, fat = 0, fiber = 0, sugar = 0, sodium = 0;
+        (item.foodNutrients || []).forEach(function(n) {
+          var id = n.nutrientId;
+          var v  = n.value || 0;
+          if (id === 1008) kcal   = Math.round(v);
+          if (id === 1003) prot   = Math.round(v * 10) / 10;
+          if (id === 1005) carb   = Math.round(v * 10) / 10;
+          if (id === 1004) fat    = Math.round(v * 10) / 10;
+          if (id === 1079) fiber  = Math.round(v * 10) / 10;
+          if (id === 2000) sugar  = Math.round(v * 10) / 10;
+          if (id === 1093) sodium = Math.round(v);
+        });
+        if (kcal > 0) {
+          foods.push({
+            name:   item.description || 'Sin nombre',
+            brand:  item.brandOwner || '',
+            kcal:   kcal,
+            prot:   prot,
+            carb:   carb,
+            fat:    fat,
+            fiber:  fiber,
+            sugar:  sugar,
+            sodium: sodium,
+          });
+        }
       });
-      if (products.length === 0) {
-        wrap.innerHTML = '<div class="cal-no-results">Sin resultados para "'+q+'" 🌸<br><span style="font-size:.68rem">Intenta en inglés o con otro nombre</span></div>';
-        wrap.style.display = '';
-        return;
-      }
-      wrap.innerHTML = '';
-      wrap.style.display = '';
-      var ul = document.createElement('div');
-      ul.className = 'cal-search-results';
-      products.slice(0,12).forEach(function(p) {
+      return foods;
+    })
+    .catch(function() { return []; });
+}
+
+// ── Open Food Facts search ───────────────────────────────────
+function _searchOFF(q) {
+  var url = 'https://world.openfoodfacts.org/cgi/search.pl?search_terms='+encodeURIComponent(q)+'&search_simple=1&action=process&json=1&page_size=15&fields=product_name,brands,nutriments,serving_size';
+  return fetch(url)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var foods = [];
+      (data.products || []).filter(function(p) {
+        return p.product_name && p.nutriments && p.nutriments['energy-kcal_100g'] != null;
+      }).forEach(function(p) {
         var n = p.nutriments;
-        var food = {
+        foods.push({
           name:   p.product_name || 'Sin nombre',
           brand:  p.brands ? p.brands.split(',')[0].trim() : '',
           kcal:   Math.round(n['energy-kcal_100g'] || n['energy_100g']/4.184 || 0),
@@ -34412,27 +35042,39 @@ function searchOFF(q, inp, wrap, spinner, dk) {
           fat:    Math.round((n['fat_100g']||0)*10)/10,
           fiber:  Math.round((n['fiber_100g']||0)*10)/10,
           sugar:  Math.round((n['sugars_100g']||0)*10)/10,
-          sodium: Math.round((n['sodium_100g']||0)*1000), // mg
-        };
-        var item = document.createElement('div');
-        item.className = 'cal-result-item';
-        item.innerHTML =
-          '<div style="flex:1;min-width:0">'+
-            '<div class="cal-result-name">'+food.name+'</div>'+
-            (food.brand ? '<div class="cal-result-brand">'+food.brand+'</div>' : '')+
-          '</div>'+
-          '<div style="text-align:right">'+
-            '<div class="cal-result-kcal">'+food.kcal+' kcal</div>'+
-            '<div style="font-size:.6rem;color:var(--muted);font-weight:600">por 100g</div>'+
-          '</div>';
-        item.onclick = function() {
-          inp.value = '';
-          wrap.style.display = 'none';
-          openQtyModal(food, dk);
-        };
-        ul.appendChild(item);
+          sodium: Math.round((n['sodium_100g']||0)*1000),
+        });
       });
-      wrap.appendChild(ul);
+      return foods;
+    })
+    .catch(function() { return []; });
+}
+
+// ── Búsqueda combinada: USDA + Open Food Facts ───────────────
+function searchOFF(q, inp, wrap, spinner, dk) {
+  // Buscar en ambas APIs en paralelo
+  Promise.all([_searchUSDA(q), _searchOFF(q)])
+    .then(function(results) {
+      spinner.style.display = 'none';
+      var usdaFoods = results[0];
+      var offFoods  = results[1];
+
+      // Combinar: USDA primero (mejor para alimentos frescos), luego OFF
+      // Evitar duplicados obvios por nombre similar
+      var combined = usdaFoods.slice();
+      var usdaNames = usdaFoods.map(function(f) {
+        return f.name.toLowerCase().substring(0, 20);
+      });
+      offFoods.forEach(function(f) {
+        var fShort = f.name.toLowerCase().substring(0, 20);
+        var isDup = usdaNames.some(function(n) {
+          return n.indexOf(fShort.substring(0, 10)) >= 0 ||
+                 fShort.indexOf(n.substring(0, 10)) >= 0;
+        });
+        if (!isDup) combined.push(f);
+      });
+
+      _renderFoodResults(combined, inp, wrap, q, dk);
     })
     .catch(function() {
       spinner.style.display = 'none';
@@ -34523,7 +35165,7 @@ function openQtyModal(food, dk) {
 .pasos-card { background:var(--card); border:1.5px solid var(--border); border-radius:18px; padding:1.2rem; margin-bottom:1rem; }
 .pasos-ring-wrap { display:flex; align-items:center; justify-content:center; margin:.6rem 0 1rem; }
 .pasos-ring { position:relative; width:140px; height:140px; }
-.pasos-ring svg { transform:rotate(-90deg); }
+.pasos-ring svg { }
 .pasos-ring-bg   { fill:none; stroke:var(--surface); stroke-width:10; }
 .pasos-ring-fill { fill:none; stroke:var(--rosa); stroke-width:10; stroke-linecap:round; transition:stroke-dashoffset .6s ease; }
 .pasos-ring-done { stroke:#6dbf7a; }
