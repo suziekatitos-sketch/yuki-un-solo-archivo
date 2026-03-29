@@ -12902,6 +12902,7 @@ window.syncFromCloud = function() {
   <div class="diario-tabs">
     <button class="diario-tab active" id="journalTabBtnReflexion" onclick="journalShowTab('reflexion')">✍️ Reflexión</button>
     <button class="diario-tab" id="journalTabBtnCuadernos" onclick="journalShowTab('cuadernos')">📔 Cuadernos</button>
+    <button class="diario-tab" id="journalTabBtnDecisiones" onclick="journalShowTab('decisiones')">🧠 Decisiones</button>
   </div>
 </div>
 
@@ -13612,20 +13613,565 @@ window.syncFromCloud = function() {
 
 <script>
 window.journalShowTab = function(tab) {
-  var r = document.getElementById('journalTabReflexion');
-  var c = document.getElementById('journalTabCuadernos');
-  var br = document.getElementById('journalTabBtnReflexion');
-  var bc = document.getElementById('journalTabBtnCuadernos');
-  if (tab === 'reflexion') {
-    if(r) r.style.display=''; if(c) c.style.display='none';
-    if(br) br.classList.add('active'); if(bc) bc.classList.remove('active');
-  } else {
-    if(r) r.style.display='none'; if(c) c.style.display='';
-    if(br) br.classList.remove('active'); if(bc) bc.classList.add('active');
-    if(window.scrapbookRenderShelf) window.scrapbookRenderShelf('journal');
-  }
+  var tabs  = ['journalTabReflexion','journalTabCuadernos','journalTabDecisiones'];
+  var btns  = ['journalTabBtnReflexion','journalTabBtnCuadernos','journalTabBtnDecisiones'];
+  tabs.forEach(function(id,i){
+    var el = document.getElementById(id);
+    var btn = document.getElementById(btns[i]);
+    var key = id.replace('journalTab','').toLowerCase();
+    var active = (key === tab);
+    if(el)  el.style.display  = active ? '' : 'none';
+    if(btn) { if(active) btn.classList.add('active'); else btn.classList.remove('active'); }
+  });
+  if(tab === 'cuadernos' && window.scrapbookRenderShelf) window.scrapbookRenderShelf('journal');
+  if(tab === 'decisiones') { if(typeof render === 'function') render(); }
 };
 </script>
+
+
+<div id="journalTabDecisiones" style="display:none">
+
+
+<!-- ══════════════════════════════════════════
+     SECCIÓN · TOMAR UNA DECISIÓN
+══════════════════════════════════════════ -->
+<section class="decision-section" id="sec-decision">
+  <div class="decision-header">
+    <div>
+      <span class="section-sub">🧠 impulsividad</span>
+      <h2 class="section-title"><em>Tomar una</em> Decisión</h2>
+      <p class="decision-desc">Antes de actuar, piénsalo aquí 💭</p>
+    </div>
+    <button class="decision-new-btn" id="decisionNewBtn">+ nueva</button>
+  </div>
+
+  <!-- Formulario -->
+  <div class="decision-form" id="decisionForm" style="display:none">
+    <div class="decision-form-inner">
+
+      <!-- Dilema + fechas -->
+      <div class="dec-field">
+        <label class="dec-label">¿Cuál es el dilema?</label>
+        <textarea class="dec-input" id="decDilema" rows="2" placeholder="Describe la situación o decisión que necesitas tomar…"></textarea>
+      </div>
+      <div class="dec-row-2">
+        <div class="dec-field">
+          <label class="dec-label">Fecha</label>
+          <input class="dec-input" type="date" id="decFecha">
+        </div>
+        <div class="dec-field">
+          <label class="dec-label">Decidir antes de…</label>
+          <input class="dec-input" type="date" id="decDeadline">
+        </div>
+      </div>
+
+      <!-- Niveles -->
+      <div class="dec-field">
+        <label class="dec-label">Importancia de la decisión</label>
+        <div class="dec-chips" id="decImportancia">
+          <button class="dec-chip" data-val="trivial">🤏 Trivial</button>
+          <button class="dec-chip" data-val="worthwhile">👍 Vale la pena</button>
+          <button class="dec-chip" data-val="weighty">⚖️ Importante</button>
+          <button class="dec-chip" data-val="lifechanging">🌟 Cambia mi vida</button>
+        </div>
+      </div>
+      <div class="dec-field">
+        <label class="dec-label">Nivel de indecisión</label>
+        <div class="dec-chips" id="decIndecision">
+          <button class="dec-chip" data-val="wishy">🌊 Muy indecisa</button>
+          <button class="dec-chip" data-val="neutral">😐 Neutral</button>
+          <button class="dec-chip" data-val="partisan">🤔 Casi decidida</button>
+          <button class="dec-chip" data-val="mindmadeup">✅ Ya sé qué quiero</button>
+        </div>
+      </div>
+
+      <!-- Escenarios -->
+      <div class="dec-field">
+        <label class="dec-label">🌈 Mejor escenario posible</label>
+        <textarea class="dec-input" id="decMejor" rows="2" placeholder="Si sale todo bien…"></textarea>
+        <label class="dec-checkbox-row">
+          <input type="checkbox" id="decPipedream"> <span>¿Es un sueño pipe dream?</span>
+        </label>
+      </div>
+      <div class="dec-field">
+        <label class="dec-label">⛈️ Peor escenario posible</label>
+        <textarea class="dec-input" id="decPeor" rows="2" placeholder="En el peor caso…"></textarea>
+        <label class="dec-checkbox-row">
+          <input type="checkbox" id="decApocalypse"> <span>¿Es apocalíptico?</span>
+        </label>
+      </div>
+
+      <!-- Gut feelings + pros/cons -->
+      <div class="dec-two-col">
+        <div class="dec-field">
+          <label class="dec-label">💭 Sentimiento gut</label>
+          <textarea class="dec-input" id="decGut" rows="5" placeholder="¿Qué te dice tu instinto?"></textarea>
+        </div>
+        <div class="dec-field">
+          <label class="dec-label">⚖️ Pros y contras</label>
+          <div class="dec-proscons" id="decProsCons">
+            <div class="dec-proscons-list" id="decProsList"></div>
+            <div class="dec-proscons-list" id="decConsList"></div>
+          </div>
+          <div class="dec-proscons-add">
+            <button class="dec-add-btn pro" onclick="decAddPro()">+ Pro</button>
+            <button class="dec-add-btn con" onclick="decAddCon()">− Contra</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Conclusiones -->
+      <div class="dec-two-col">
+        <div class="dec-field">
+          <label class="dec-label">❤️ ¿Qué dice mi corazón?</label>
+          <textarea class="dec-input" id="decConcIntuitiva" rows="3" placeholder="Tu corazón dice…"></textarea>
+        </div>
+        <div class="dec-field">
+          <label class="dec-label">🧠 ¿Qué dice mi mente?</label>
+          <textarea class="dec-input" id="decConcRacional" rows="3" placeholder="Tu cabeza dice…"></textarea>
+        </div>
+      </div>
+      <div class="dec-two-col">
+        <div class="dec-field">
+          <label class="dec-label">✝️ ¿Qué haría Jesús?</label>
+          <textarea class="dec-input" id="decJesus" rows="3" placeholder="¿Qué crees que Él haría en tu lugar?"></textarea>
+        </div>
+        <div class="dec-field">
+          <label class="dec-label">📖 ¿Qué dice la Biblia?</label>
+          <textarea class="dec-input" id="decBiblia" rows="3" placeholder="Algún versículo, enseñanza o principio que aplique…"></textarea>
+        </div>
+      </div>
+
+      <!-- Decisión final -->
+      <div class="dec-field">
+        <label class="dec-label">🎯 Mi decisión</label>
+        <textarea class="dec-input" id="decDecision" rows="2" placeholder="Después de pensar todo esto, mi decisión es…"></textarea>
+        <label class="dec-checkbox-row">
+          <input type="checkbox" id="decForToday"> <span>Solo por hoy</span>
+        </label>
+      </div>
+      <div class="dec-field">
+        <label class="dec-label">👣 Próximos pasos</label>
+        <div id="decStepsList"></div>
+        <button class="dec-add-step-btn" onclick="decAddStep()">+ agregar paso</button>
+      </div>
+
+      <!-- Botones -->
+      <div class="dec-form-btns">
+        <button class="dec-cancel-btn" onclick="decCancelForm()">Cancelar</button>
+        <button class="dec-save-btn" onclick="decSave()">Guardar decisión</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Historial de decisiones -->
+  <div class="decision-list" id="decisionList"></div>
+</section>
+
+<!-- Modal ver decisión -->
+<div class="dec-view-backdrop" id="decViewBackdrop" style="display:none" onclick="if(event.target===this)decCloseView()">
+  <div class="dec-view-modal">
+    <div class="dec-view-header">
+      <span id="decViewTitle"></span>
+      <div style="display:flex;gap:.4rem">
+        <button onclick="decEditFromView()" style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--muted)">✏️</button>
+        <button onclick="decCloseView()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">✕</button>
+      </div>
+    </div>
+    <div class="dec-view-body" id="decViewBody"></div>
+  </div>
+</div>
+
+<style>
+  .decision-section { max-width: 780px; margin: 2rem auto 0; padding: 0 1rem 3rem; animation: fadeUp .5s .3s ease both; opacity:0; animation-fill-mode:both; }
+  .decision-header { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:1rem; }
+  .decision-desc { font-size:.78rem; color:var(--muted); margin:.2rem 0 0; font-weight:600; }
+  .decision-new-btn { background:var(--rosa); color:white; border:none; border-radius:20px; padding:.45rem 1.1rem; font-size:.78rem; font-weight:700; cursor:pointer; font-family:var(--font-body); white-space:nowrap; }
+
+  /* Form */
+  .decision-form { margin-bottom:1.5rem; }
+  .decision-form-inner { background:var(--card); border:1.5px solid var(--border); border-radius:18px; padding:1.2rem; display:flex; flex-direction:column; gap:1rem; }
+  .dec-field { display:flex; flex-direction:column; gap:.3rem; }
+  .dec-label { font-size:.7rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+  .dec-input { border:1.5px solid var(--border); border-radius:10px; padding:.5rem .7rem; font-family:var(--font-body); font-size:.88rem; color:var(--text); background:var(--surface); outline:none; width:100%; box-sizing:border-box; resize:none; }
+  .dec-input:focus { border-color:var(--rosa); }
+  .dec-row-2 { display:grid; grid-template-columns:1fr 1fr; gap:.8rem; }
+  .dec-two-col { display:grid; grid-template-columns:1fr 1fr; gap:.8rem; }
+  @media(max-width:520px){ .dec-two-col, .dec-row-2 { grid-template-columns:1fr; } }
+
+  /* Chips */
+  .dec-chips { display:flex; flex-wrap:wrap; gap:.4rem; }
+  .dec-chip { padding:.35rem .75rem; border:1.5px solid var(--border); border-radius:20px; background:var(--surface); font-family:var(--font-body); font-size:.72rem; font-weight:700; color:var(--muted); cursor:pointer; transition:all .15s; }
+  .dec-chip.active { background:var(--rosa); border-color:var(--rosa); color:white; }
+
+  /* Checkbox */
+  .dec-checkbox-row { display:flex; align-items:center; gap:.4rem; font-size:.75rem; color:var(--muted); font-weight:600; cursor:pointer; margin-top:.3rem; }
+
+  /* Pros/cons */
+  .dec-proscons { display:flex; flex-direction:column; gap:.3rem; margin-bottom:.4rem; }
+  .dec-proscons-item { display:flex; align-items:center; gap:.4rem; }
+  .dec-proscons-item input { flex:1; border:1.5px solid var(--border); border-radius:8px; padding:.3rem .5rem; font-size:.8rem; font-family:var(--font-body); background:var(--surface); color:var(--text); outline:none; }
+  .dec-proscons-item input:focus { border-color:var(--rosa); }
+  .dec-proscons-item .dec-sign { font-weight:900; font-size:.9rem; width:16px; flex-shrink:0; }
+  .dec-proscons-item .dec-sign.pro { color:var(--verde); }
+  .dec-proscons-item .dec-sign.con { color:var(--rosa); }
+  .dec-proscons-item button { background:none; border:none; color:var(--muted2); cursor:pointer; font-size:.8rem; padding:0 .2rem; }
+  .dec-proscons-add { display:flex; gap:.5rem; }
+  .dec-add-btn { padding:.3rem .8rem; border-radius:20px; border:1.5px solid var(--border); background:var(--surface); font-family:var(--font-body); font-size:.72rem; font-weight:700; cursor:pointer; }
+  .dec-add-btn.pro { color:var(--verde); border-color:var(--verde); }
+  .dec-add-btn.con { color:var(--rosa); border-color:var(--rosa); }
+
+  /* Steps */
+  .dec-step-row { display:flex; align-items:center; gap:.4rem; margin-bottom:.3rem; }
+  .dec-step-row input { flex:1; border:1.5px solid var(--border); border-radius:8px; padding:.35rem .5rem; font-size:.82rem; font-family:var(--font-body); background:var(--surface); color:var(--text); outline:none; }
+  .dec-step-row input:focus { border-color:var(--rosa); }
+  .dec-step-row button { background:none; border:none; color:var(--muted2); cursor:pointer; }
+  .dec-add-step-btn { font-size:.75rem; font-weight:700; color:var(--rosa); background:none; border:none; cursor:pointer; font-family:var(--font-body); padding:.2rem 0; }
+
+  /* Form btns */
+  .dec-form-btns { display:flex; justify-content:flex-end; gap:.6rem; padding-top:.4rem; border-top:1px solid var(--border); }
+  .dec-cancel-btn { background:var(--surface); border:1.5px solid var(--border); border-radius:20px; padding:.45rem 1.1rem; font-size:.8rem; font-weight:700; cursor:pointer; font-family:var(--font-body); color:var(--muted); }
+  .dec-save-btn { background:var(--rosa); border:none; border-radius:20px; padding:.45rem 1.2rem; font-size:.8rem; font-weight:700; cursor:pointer; font-family:var(--font-body); color:white; }
+
+  /* Historial cards */
+  .decision-list { display:flex; flex-direction:column; gap:.8rem; }
+  .dec-card { background:var(--card); border:1.5px solid var(--border); border-radius:14px; padding:.9rem 1.1rem; cursor:pointer; transition:border-color .2s; }
+  .dec-card:hover { border-color:var(--rosa-soft); }
+  .dec-card-top { display:flex; justify-content:space-between; align-items:flex-start; gap:.5rem; margin-bottom:.35rem; }
+  .dec-card-dilema { font-size:.88rem; font-weight:700; color:var(--text); flex:1; }
+  .dec-card-date { font-size:.68rem; color:var(--muted2); white-space:nowrap; }
+  .dec-card-chips { display:flex; flex-wrap:wrap; gap:.3rem; margin-bottom:.4rem; }
+  .dec-card-chip { font-size:.62rem; font-weight:700; padding:.15rem .5rem; border-radius:20px; background:var(--rosa-soft); color:var(--rosa); }
+  .dec-card-chip.verde { background:var(--verde-soft); color:var(--verde); }
+  .dec-card-decision { font-size:.78rem; color:var(--muted); font-style:italic; }
+  .dec-card-footer { display:flex; justify-content:flex-end; gap:.4rem; margin-top:.5rem; }
+  .dec-card-btn { background:none; border:none; font-size:.8rem; color:var(--muted2); cursor:pointer; font-family:var(--font-body); padding:.1rem .3rem; }
+  .dec-empty { text-align:center; color:var(--muted); font-size:.85rem; padding:2rem 1rem; }
+
+  /* View modal */
+  .dec-view-backdrop { position:fixed; inset:0; background:rgba(244,167,192,.18); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); z-index:9000; align-items:center; justify-content:center; padding:1rem; }
+  .dec-view-modal { background:var(--card); border-radius:20px; width:100%; max-width:560px; max-height:90vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,.18); z-index:9001; margin:auto; }
+  .dec-view-header { display:flex; justify-content:space-between; align-items:center; padding:1.1rem 1.3rem .8rem; font-family:var(--font-title); font-style:italic; font-size:1rem; font-weight:700; border-bottom:1px solid var(--border); }
+  .dec-view-body { padding:1.1rem 1.3rem; display:flex; flex-direction:column; gap:.9rem; }
+  .dec-view-row { display:flex; flex-direction:column; gap:.2rem; }
+  .dec-view-lbl { font-size:.68rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+  .dec-view-val { font-size:.88rem; color:var(--text); line-height:1.55; white-space:pre-wrap; }
+  .dec-view-two { display:grid; grid-template-columns:1fr 1fr; gap:.8rem; }
+  @media(max-width:480px){ .dec-view-two { grid-template-columns:1fr; } }
+  .dec-view-chips { display:flex; flex-wrap:wrap; gap:.35rem; }
+  .dec-view-chip { font-size:.7rem; font-weight:700; padding:.2rem .6rem; border-radius:20px; }
+  .dec-view-chip.rosa { background:var(--rosa-soft); color:var(--rosa); }
+  .dec-view-chip.verde { background:var(--verde-soft); color:var(--verde); }
+  .dec-view-pros { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:.2rem; }
+  .dec-view-pros li { font-size:.82rem; display:flex; gap:.4rem; }
+  .dec-view-pros li .s { font-weight:900; }
+  .dec-view-pros li .s.p { color:var(--verde); }
+  .dec-view-pros li .s.c { color:var(--rosa); }
+  .dec-view-steps { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:.25rem; }
+  .dec-view-steps li { font-size:.82rem; display:flex; gap:.4rem; }
+  .dec-view-steps li::before { content:'👣'; font-size:.75rem; }
+</style>
+
+<script>
+(function(){
+  var DEC_KEY = 'yuki_decisions';
+  var decisions = [];
+  var editingDecId = null;
+
+  var IMPORTANCIA_LABELS = { trivial:'🤏 Trivial', worthwhile:'👍 Vale la pena', weighty:'⚖️ Importante', lifechanging:'🌟 Cambia mi vida' };
+  var INDECISION_LABELS  = { wishy:'🌊 Muy indecisa', neutral:'😐 Neutral', partisan:'🤔 Casi decidida', mindmadeup:'✅ Ya sé qué quiero' };
+
+  function load() { try { decisions = JSON.parse(localStorage.getItem(DEC_KEY)) || []; } catch(e){ decisions=[]; } }
+  function save() {
+    localStorage.setItem(DEC_KEY, JSON.stringify(decisions));
+    if (window.cloudSave) window.cloudSave(DEC_KEY, decisions);
+    if (window.cloudSave) window.cloudSave(DEC_KEY, decisions);
+  }
+
+  // ── Chips toggle
+  function initChips(containerId, hidden) {
+    document.querySelectorAll('#' + containerId + ' .dec-chip').forEach(function(btn) {
+      btn.onclick = function() {
+        document.querySelectorAll('#' + containerId + ' .dec-chip').forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+      };
+    });
+  }
+  function getChipVal(containerId) {
+    var active = document.querySelector('#' + containerId + ' .dec-chip.active');
+    return active ? active.dataset.val : '';
+  }
+  function setChipVal(containerId, val) {
+    document.querySelectorAll('#' + containerId + ' .dec-chip').forEach(function(b){
+      b.classList.toggle('active', b.dataset.val === val);
+    });
+  }
+
+  // ── Pros/Cons
+  window.decAddPro = function(val) {
+    var row = document.createElement('div'); row.className = 'dec-proscons-item';
+    row.innerHTML = '<span class="dec-sign pro">+</span><input placeholder="Un pro…" value="'+(val||'')+'"><button onclick="this.parentElement.remove()">✕</button>';
+    document.getElementById('decProsList').appendChild(row);
+  };
+  window.decAddCon = function(val) {
+    var row = document.createElement('div'); row.className = 'dec-proscons-item';
+    row.innerHTML = '<span class="dec-sign con">−</span><input placeholder="Un contra…" value="'+(val||'')+'"><button onclick="this.parentElement.remove()">✕</button>';
+    document.getElementById('decConsList').appendChild(row);
+  };
+
+  // ── Steps
+  window.decAddStep = function(val) {
+    var row = document.createElement('div'); row.className = 'dec-step-row';
+    row.innerHTML = '<input placeholder="Paso a seguir…" value="'+(val||'')+'"><button onclick="this.parentElement.remove()">✕</button>';
+    document.getElementById('decStepsList').appendChild(row);
+  };
+
+  function clearForm() {
+    document.getElementById('decDilema').value = '';
+    document.getElementById('decFecha').value = new Date().toISOString().slice(0,10);
+    document.getElementById('decDeadline').value = '';
+    document.getElementById('decMejor').value = '';
+    document.getElementById('decPeor').value = '';
+    document.getElementById('decGut').value = '';
+    document.getElementById('decConcIntuitiva').value = '';
+    document.getElementById('decConcRacional').value = '';
+    document.getElementById('decJesus').value = '';
+    document.getElementById('decBiblia').value = '';
+    document.getElementById('decDecision').value = '';
+    document.getElementById('decPipedream').checked = false;
+    document.getElementById('decApocalypse').checked = false;
+    document.getElementById('decForToday').checked = false;
+    document.getElementById('decProsList').innerHTML = '';
+    document.getElementById('decConsList').innerHTML = '';
+    document.getElementById('decStepsList').innerHTML = '';
+    setChipVal('decImportancia', '');
+    setChipVal('decIndecision', '');
+    // Start with 3 empty pros/cons
+    decAddPro(); decAddPro(); decAddPro();
+    decAddCon(); decAddCon(); decAddCon();
+    decAddStep();
+  }
+
+  document.getElementById('decisionNewBtn').onclick = function() {
+    editingDecId = null;
+    clearForm();
+    document.getElementById('decisionForm').style.display = '';
+    document.getElementById('decisionForm').scrollIntoView({ behavior:'smooth', block:'start' });
+    setTimeout(function(){ document.getElementById('decDilema').focus(); }, 200);
+  };
+
+  window.decCancelForm = function() {
+    document.getElementById('decisionForm').style.display = 'none';
+    editingDecId = null;
+  };
+
+  window.decSave = function() {
+    var dilema = document.getElementById('decDilema').value.trim();
+    if (!dilema) { alert('Describe el dilema primero 💭'); return; }
+
+    var pros = Array.from(document.querySelectorAll('#decProsList input')).map(function(i){ return i.value.trim(); }).filter(Boolean);
+    var cons = Array.from(document.querySelectorAll('#decConsList input')).map(function(i){ return i.value.trim(); }).filter(Boolean);
+    var steps = Array.from(document.querySelectorAll('#decStepsList input')).map(function(i){ return i.value.trim(); }).filter(Boolean);
+
+    var dec = {
+      id: editingDecId || ('dec_' + Date.now()),
+      fecha: document.getElementById('decFecha').value,
+      deadline: document.getElementById('decDeadline').value,
+      dilema: dilema,
+      importancia: getChipVal('decImportancia'),
+      indecision: getChipVal('decIndecision'),
+      mejor: document.getElementById('decMejor').value.trim(),
+      pipedream: document.getElementById('decPipedream').checked,
+      peor: document.getElementById('decPeor').value.trim(),
+      apocalypse: document.getElementById('decApocalypse').checked,
+      gut: document.getElementById('decGut').value.trim(),
+      pros: pros,
+      cons: cons,
+      concIntuitiva: document.getElementById('decConcIntuitiva').value.trim(),
+      concRacional: document.getElementById('decConcRacional').value.trim(),
+      jesus: document.getElementById('decJesus').value.trim(),
+      biblia: document.getElementById('decBiblia').value.trim(),
+      decision: document.getElementById('decDecision').value.trim(),
+      forToday: document.getElementById('decForToday').checked,
+      steps: steps,
+    };
+
+    load();
+    if (editingDecId) {
+      var idx = decisions.findIndex(function(d){ return d.id === editingDecId; });
+      if (idx >= 0) decisions[idx] = dec; else decisions.unshift(dec);
+    } else {
+      decisions.unshift(dec);
+    }
+    save();
+    editingDecId = null;
+    document.getElementById('decisionForm').style.display = 'none';
+    render();
+  };
+
+  function render() {
+    load();
+    var list = document.getElementById('decisionList');
+    list.innerHTML = '';
+    if (decisions.length === 0) {
+      list.innerHTML = '<div class="dec-empty">Aún no tienes decisiones guardadas 💭<br><span style="font-size:.75rem">Cuando tengas un dilema, ¡escríbelo aquí antes de actuar!</span></div>';
+      return;
+    }
+    decisions.forEach(function(dec) {
+      var card = document.createElement('div'); card.className = 'dec-card';
+      var chips = '';
+      if (dec.importancia) chips += '<span class="dec-card-chip">' + (IMPORTANCIA_LABELS[dec.importancia]||dec.importancia) + '</span>';
+      if (dec.indecision)  chips += '<span class="dec-card-chip verde">' + (INDECISION_LABELS[dec.indecision]||dec.indecision) + '</span>';
+      card.innerHTML =
+        '<div class="dec-card-top">' +
+          '<div class="dec-card-dilema">' + dec.dilema + '</div>' +
+          '<div class="dec-card-date">' + (dec.fecha || '') + (dec.deadline ? '<br>📅 ' + dec.deadline : '') + '</div>' +
+        '</div>' +
+        (chips ? '<div class="dec-card-chips">' + chips + '</div>' : '') +
+        (dec.decision ? '<div class="dec-card-decision">🎯 ' + dec.decision + '</div>' : '') +
+        '<div class="dec-card-footer">' +
+          '<button class="dec-card-btn" onclick="decEdit(\'' + dec.id + '\');event.stopPropagation()">✏️</button>' +
+          '<button class="dec-card-btn" onclick="decDelete(\'' + dec.id + '\');event.stopPropagation()">🗑️</button>' +
+        '</div>';
+      card.onclick = function(){ decOpenView(dec.id); };
+      list.appendChild(card);
+    });
+  }
+
+  window.decDelete = function(id) {
+    if (!confirm('¿Eliminar esta decisión?')) return;
+    load();
+    decisions = decisions.filter(function(d){ return d.id !== id; });
+    save(); render();
+  };
+
+  window.decEdit = function(id) {
+    load();
+    var dec = decisions.find(function(d){ return d.id === id; });
+    if (!dec) return;
+    editingDecId = id;
+    clearForm();
+    document.getElementById('decDilema').value = dec.dilema || '';
+    document.getElementById('decFecha').value = dec.fecha || '';
+    document.getElementById('decDeadline').value = dec.deadline || '';
+    document.getElementById('decMejor').value = dec.mejor || '';
+    document.getElementById('decPeor').value = dec.peor || '';
+    document.getElementById('decGut').value = dec.gut || '';
+    document.getElementById('decConcIntuitiva').value = dec.concIntuitiva || '';
+    document.getElementById('decConcRacional').value = dec.concRacional || '';
+    document.getElementById('decJesus').value = dec.jesus || '';
+    document.getElementById('decBiblia').value = dec.biblia || '';
+    document.getElementById('decDecision').value = dec.decision || '';
+    document.getElementById('decPipedream').checked = !!dec.pipedream;
+    document.getElementById('decApocalypse').checked = !!dec.apocalypse;
+    document.getElementById('decForToday').checked = !!dec.forToday;
+    setChipVal('decImportancia', dec.importancia || '');
+    setChipVal('decIndecision', dec.indecision || '');
+    document.getElementById('decProsList').innerHTML = '';
+    document.getElementById('decConsList').innerHTML = '';
+    document.getElementById('decStepsList').innerHTML = '';
+    (dec.pros || []).forEach(function(p){ decAddPro(p); });
+    (dec.cons || []).forEach(function(c){ decAddCon(c); });
+    (dec.steps || []).forEach(function(s){ decAddStep(s); });
+    if (!dec.pros || dec.pros.length === 0) { decAddPro(); decAddPro(); }
+    if (!dec.cons || dec.cons.length === 0) { decAddCon(); decAddCon(); }
+    if (!dec.steps || dec.steps.length === 0) { decAddStep(); }
+    document.getElementById('decisionForm').style.display = '';
+    document.getElementById('decisionForm').scrollIntoView({ behavior:'smooth', block:'start' });
+  };
+
+  // ── Vista de solo lectura
+  window.decOpenView = function(id) {
+    load();
+    var dec = decisions.find(function(d){ return d.id === id; });
+    if (!dec) return;
+    document.getElementById('decViewTitle').textContent = '💭 ' + dec.dilema;
+    var body = document.getElementById('decViewBody');
+    body.innerHTML = '';
+
+    function row(lbl, val) {
+      if (!val) return;
+      var d = document.createElement('div'); d.className = 'dec-view-row';
+      d.innerHTML = '<div class="dec-view-lbl">'+lbl+'</div><div class="dec-view-val">'+val+'</div>';
+      body.appendChild(d);
+    }
+
+    // Chips
+    if (dec.importancia || dec.indecision) {
+      var cr = document.createElement('div'); cr.className = 'dec-view-chips';
+      if (dec.importancia) cr.innerHTML += '<span class="dec-view-chip rosa">'+(IMPORTANCIA_LABELS[dec.importancia]||dec.importancia)+'</span>';
+      if (dec.indecision)  cr.innerHTML += '<span class="dec-view-chip verde">'+(INDECISION_LABELS[dec.indecision]||dec.indecision)+'</span>';
+      body.appendChild(cr);
+    }
+
+    if (dec.fecha || dec.deadline) row('Fecha / Deadline', (dec.fecha||'') + (dec.deadline ? ' → decidir antes del ' + dec.deadline : ''));
+    if (dec.mejor) row('🌈 Mejor escenario' + (dec.pipedream ? ' (pipe dream 😅)' : ''), dec.mejor);
+    if (dec.peor)  row('⛈️ Peor escenario' + (dec.apocalypse ? ' (apocalíptico 😱)' : ''), dec.peor);
+
+    // Gut + pros/cons en dos columnas
+    if (dec.gut || (dec.pros && dec.pros.length) || (dec.cons && dec.cons.length)) {
+      var two = document.createElement('div'); two.className = 'dec-view-two';
+      if (dec.gut) {
+        var g = document.createElement('div'); g.className = 'dec-view-row';
+        g.innerHTML = '<div class="dec-view-lbl">💭 Gut feeling</div><div class="dec-view-val">'+dec.gut+'</div>';
+        two.appendChild(g);
+      }
+      if ((dec.pros && dec.pros.length) || (dec.cons && dec.cons.length)) {
+        var pc = document.createElement('div'); pc.className = 'dec-view-row';
+        pc.innerHTML = '<div class="dec-view-lbl">⚖️ Pros y contras</div>';
+        var ul = document.createElement('ul'); ul.className = 'dec-view-pros';
+        (dec.pros||[]).forEach(function(p){ ul.innerHTML += '<li><span class="s p">+</span>'+p+'</li>'; });
+        (dec.cons||[]).forEach(function(c){ ul.innerHTML += '<li><span class="s c">−</span>'+c+'</li>'; });
+        pc.appendChild(ul); two.appendChild(pc);
+      }
+      body.appendChild(two);
+    }
+
+    // Conclusiones
+    if (dec.concIntuitiva || dec.concRacional) {
+      var two2 = document.createElement('div'); two2.className = 'dec-view-two';
+      if (dec.concIntuitiva) { var r = document.createElement('div'); r.className='dec-view-row'; r.innerHTML='<div class="dec-view-lbl">❤️ ¿Qué dice mi corazón?</div><div class="dec-view-val">'+dec.concIntuitiva+'</div>'; two2.appendChild(r); }
+      if (dec.concRacional)  { var r2 = document.createElement('div'); r2.className='dec-view-row'; r2.innerHTML='<div class="dec-view-lbl">🧠 ¿Qué dice mi mente?</div><div class="dec-view-val">'+dec.concRacional+'</div>'; two2.appendChild(r2); }
+      body.appendChild(two2);
+    }
+
+    if (dec.jesus || dec.biblia) {
+      var two3 = document.createElement('div'); two3.className = 'dec-view-two';
+      if (dec.jesus)  { var r3 = document.createElement('div'); r3.className='dec-view-row'; r3.innerHTML='<div class="dec-view-lbl">✝️ ¿Qué haría Jesús?</div><div class="dec-view-val">'+dec.jesus+'</div>'; two3.appendChild(r3); }
+      if (dec.biblia) { var r4 = document.createElement('div'); r4.className='dec-view-row'; r4.innerHTML='<div class="dec-view-lbl">📖 ¿Qué dice la Biblia?</div><div class="dec-view-val">'+dec.biblia+'</div>'; two3.appendChild(r4); }
+      body.appendChild(two3);
+    }
+
+    if (dec.decision) row('🎯 Mi decisión' + (dec.forToday ? ' (solo por hoy)' : ''), dec.decision);
+
+    if (dec.steps && dec.steps.length) {
+      var sr = document.createElement('div'); sr.className = 'dec-view-row';
+      sr.innerHTML = '<div class="dec-view-lbl">👣 Próximos pasos</div>';
+      var sl = document.createElement('ul'); sl.className = 'dec-view-steps';
+      dec.steps.forEach(function(s){ sl.innerHTML += '<li>'+s+'</li>'; });
+      sr.appendChild(sl); body.appendChild(sr);
+    }
+
+    document.getElementById('decViewBackdrop').style.display = 'flex';
+    window._viewingDecId = id;
+  };
+
+  window.decCloseView = function() {
+    document.getElementById('decViewBackdrop').style.display = 'none';
+  };
+
+  window.decEditFromView = function() {
+    decCloseView();
+    if (window._viewingDecId) decEdit(window._viewingDecId);
+  };
+
+  initChips('decImportancia');
+  initChips('decIndecision');
+  render();
+})();
+</script>
+
+</div><!-- end journalTabDecisiones -->
 
 </div><!-- end page-journal -->
 
@@ -17225,546 +17771,6 @@ renderTracker();
   <div class="mens-card" id="mensCard"></div>
 </section>
 
-
-<!-- ══════════════════════════════════════════
-     SECCIÓN · TOMAR UNA DECISIÓN
-══════════════════════════════════════════ -->
-<section class="decision-section" id="sec-decision">
-  <div class="decision-header">
-    <div>
-      <span class="section-sub">🧠 impulsividad</span>
-      <h2 class="section-title"><em>Tomar una</em> Decisión</h2>
-      <p class="decision-desc">Antes de actuar, piénsalo aquí 💭</p>
-    </div>
-    <button class="decision-new-btn" id="decisionNewBtn">+ nueva</button>
-  </div>
-
-  <!-- Formulario -->
-  <div class="decision-form" id="decisionForm" style="display:none">
-    <div class="decision-form-inner">
-
-      <!-- Dilema + fechas -->
-      <div class="dec-field">
-        <label class="dec-label">¿Cuál es el dilema?</label>
-        <textarea class="dec-input" id="decDilema" rows="2" placeholder="Describe la situación o decisión que necesitas tomar…"></textarea>
-      </div>
-      <div class="dec-row-2">
-        <div class="dec-field">
-          <label class="dec-label">Fecha</label>
-          <input class="dec-input" type="date" id="decFecha">
-        </div>
-        <div class="dec-field">
-          <label class="dec-label">Decidir antes de…</label>
-          <input class="dec-input" type="date" id="decDeadline">
-        </div>
-      </div>
-
-      <!-- Niveles -->
-      <div class="dec-field">
-        <label class="dec-label">Importancia de la decisión</label>
-        <div class="dec-chips" id="decImportancia">
-          <button class="dec-chip" data-val="trivial">🤏 Trivial</button>
-          <button class="dec-chip" data-val="worthwhile">👍 Vale la pena</button>
-          <button class="dec-chip" data-val="weighty">⚖️ Importante</button>
-          <button class="dec-chip" data-val="lifechanging">🌟 Cambia mi vida</button>
-        </div>
-      </div>
-      <div class="dec-field">
-        <label class="dec-label">Nivel de indecisión</label>
-        <div class="dec-chips" id="decIndecision">
-          <button class="dec-chip" data-val="wishy">🌊 Muy indecisa</button>
-          <button class="dec-chip" data-val="neutral">😐 Neutral</button>
-          <button class="dec-chip" data-val="partisan">🤔 Casi decidida</button>
-          <button class="dec-chip" data-val="mindmadeup">✅ Ya sé qué quiero</button>
-        </div>
-      </div>
-
-      <!-- Escenarios -->
-      <div class="dec-field">
-        <label class="dec-label">🌈 Mejor escenario posible</label>
-        <textarea class="dec-input" id="decMejor" rows="2" placeholder="Si sale todo bien…"></textarea>
-        <label class="dec-checkbox-row">
-          <input type="checkbox" id="decPipedream"> <span>¿Es un sueño pipe dream?</span>
-        </label>
-      </div>
-      <div class="dec-field">
-        <label class="dec-label">⛈️ Peor escenario posible</label>
-        <textarea class="dec-input" id="decPeor" rows="2" placeholder="En el peor caso…"></textarea>
-        <label class="dec-checkbox-row">
-          <input type="checkbox" id="decApocalypse"> <span>¿Es apocalíptico?</span>
-        </label>
-      </div>
-
-      <!-- Gut feelings + pros/cons -->
-      <div class="dec-two-col">
-        <div class="dec-field">
-          <label class="dec-label">💭 Sentimiento gut</label>
-          <textarea class="dec-input" id="decGut" rows="5" placeholder="¿Qué te dice tu instinto?"></textarea>
-        </div>
-        <div class="dec-field">
-          <label class="dec-label">⚖️ Pros y contras</label>
-          <div class="dec-proscons" id="decProsCons">
-            <div class="dec-proscons-list" id="decProsList"></div>
-            <div class="dec-proscons-list" id="decConsList"></div>
-          </div>
-          <div class="dec-proscons-add">
-            <button class="dec-add-btn pro" onclick="decAddPro()">+ Pro</button>
-            <button class="dec-add-btn con" onclick="decAddCon()">− Contra</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Conclusiones -->
-      <div class="dec-two-col">
-        <div class="dec-field">
-          <label class="dec-label">❤️ ¿Qué dice mi corazón?</label>
-          <textarea class="dec-input" id="decConcIntuitiva" rows="3" placeholder="Tu corazón dice…"></textarea>
-        </div>
-        <div class="dec-field">
-          <label class="dec-label">🧠 ¿Qué dice mi mente?</label>
-          <textarea class="dec-input" id="decConcRacional" rows="3" placeholder="Tu cabeza dice…"></textarea>
-        </div>
-      </div>
-      <div class="dec-two-col">
-        <div class="dec-field">
-          <label class="dec-label">✝️ ¿Qué haría Jesús?</label>
-          <textarea class="dec-input" id="decJesus" rows="3" placeholder="¿Qué crees que Él haría en tu lugar?"></textarea>
-        </div>
-        <div class="dec-field">
-          <label class="dec-label">📖 ¿Qué dice la Biblia?</label>
-          <textarea class="dec-input" id="decBiblia" rows="3" placeholder="Algún versículo, enseñanza o principio que aplique…"></textarea>
-        </div>
-      </div>
-
-      <!-- Decisión final -->
-      <div class="dec-field">
-        <label class="dec-label">🎯 Mi decisión</label>
-        <textarea class="dec-input" id="decDecision" rows="2" placeholder="Después de pensar todo esto, mi decisión es…"></textarea>
-        <label class="dec-checkbox-row">
-          <input type="checkbox" id="decForToday"> <span>Solo por hoy</span>
-        </label>
-      </div>
-      <div class="dec-field">
-        <label class="dec-label">👣 Próximos pasos</label>
-        <div id="decStepsList"></div>
-        <button class="dec-add-step-btn" onclick="decAddStep()">+ agregar paso</button>
-      </div>
-
-      <!-- Botones -->
-      <div class="dec-form-btns">
-        <button class="dec-cancel-btn" onclick="decCancelForm()">Cancelar</button>
-        <button class="dec-save-btn" onclick="decSave()">Guardar decisión</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Historial de decisiones -->
-  <div class="decision-list" id="decisionList"></div>
-</section>
-
-<!-- Modal ver decisión -->
-<div class="dec-view-backdrop" id="decViewBackdrop" style="display:none" onclick="if(event.target===this)decCloseView()">
-  <div class="dec-view-modal">
-    <div class="dec-view-header">
-      <span id="decViewTitle"></span>
-      <div style="display:flex;gap:.4rem">
-        <button onclick="decEditFromView()" style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--muted)">✏️</button>
-        <button onclick="decCloseView()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">✕</button>
-      </div>
-    </div>
-    <div class="dec-view-body" id="decViewBody"></div>
-  </div>
-</div>
-
-<style>
-  .decision-section { max-width: 780px; margin: 2rem auto 0; padding: 0 1rem 3rem; animation: fadeUp .5s .3s ease both; opacity:0; animation-fill-mode:both; }
-  .decision-header { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:1rem; }
-  .decision-desc { font-size:.78rem; color:var(--muted); margin:.2rem 0 0; font-weight:600; }
-  .decision-new-btn { background:var(--rosa); color:white; border:none; border-radius:20px; padding:.45rem 1.1rem; font-size:.78rem; font-weight:700; cursor:pointer; font-family:var(--font-body); white-space:nowrap; }
-
-  /* Form */
-  .decision-form { margin-bottom:1.5rem; }
-  .decision-form-inner { background:var(--card); border:1.5px solid var(--border); border-radius:18px; padding:1.2rem; display:flex; flex-direction:column; gap:1rem; }
-  .dec-field { display:flex; flex-direction:column; gap:.3rem; }
-  .dec-label { font-size:.7rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
-  .dec-input { border:1.5px solid var(--border); border-radius:10px; padding:.5rem .7rem; font-family:var(--font-body); font-size:.88rem; color:var(--text); background:var(--surface); outline:none; width:100%; box-sizing:border-box; resize:none; }
-  .dec-input:focus { border-color:var(--rosa); }
-  .dec-row-2 { display:grid; grid-template-columns:1fr 1fr; gap:.8rem; }
-  .dec-two-col { display:grid; grid-template-columns:1fr 1fr; gap:.8rem; }
-  @media(max-width:520px){ .dec-two-col, .dec-row-2 { grid-template-columns:1fr; } }
-
-  /* Chips */
-  .dec-chips { display:flex; flex-wrap:wrap; gap:.4rem; }
-  .dec-chip { padding:.35rem .75rem; border:1.5px solid var(--border); border-radius:20px; background:var(--surface); font-family:var(--font-body); font-size:.72rem; font-weight:700; color:var(--muted); cursor:pointer; transition:all .15s; }
-  .dec-chip.active { background:var(--rosa); border-color:var(--rosa); color:white; }
-
-  /* Checkbox */
-  .dec-checkbox-row { display:flex; align-items:center; gap:.4rem; font-size:.75rem; color:var(--muted); font-weight:600; cursor:pointer; margin-top:.3rem; }
-
-  /* Pros/cons */
-  .dec-proscons { display:flex; flex-direction:column; gap:.3rem; margin-bottom:.4rem; }
-  .dec-proscons-item { display:flex; align-items:center; gap:.4rem; }
-  .dec-proscons-item input { flex:1; border:1.5px solid var(--border); border-radius:8px; padding:.3rem .5rem; font-size:.8rem; font-family:var(--font-body); background:var(--surface); color:var(--text); outline:none; }
-  .dec-proscons-item input:focus { border-color:var(--rosa); }
-  .dec-proscons-item .dec-sign { font-weight:900; font-size:.9rem; width:16px; flex-shrink:0; }
-  .dec-proscons-item .dec-sign.pro { color:var(--verde); }
-  .dec-proscons-item .dec-sign.con { color:var(--rosa); }
-  .dec-proscons-item button { background:none; border:none; color:var(--muted2); cursor:pointer; font-size:.8rem; padding:0 .2rem; }
-  .dec-proscons-add { display:flex; gap:.5rem; }
-  .dec-add-btn { padding:.3rem .8rem; border-radius:20px; border:1.5px solid var(--border); background:var(--surface); font-family:var(--font-body); font-size:.72rem; font-weight:700; cursor:pointer; }
-  .dec-add-btn.pro { color:var(--verde); border-color:var(--verde); }
-  .dec-add-btn.con { color:var(--rosa); border-color:var(--rosa); }
-
-  /* Steps */
-  .dec-step-row { display:flex; align-items:center; gap:.4rem; margin-bottom:.3rem; }
-  .dec-step-row input { flex:1; border:1.5px solid var(--border); border-radius:8px; padding:.35rem .5rem; font-size:.82rem; font-family:var(--font-body); background:var(--surface); color:var(--text); outline:none; }
-  .dec-step-row input:focus { border-color:var(--rosa); }
-  .dec-step-row button { background:none; border:none; color:var(--muted2); cursor:pointer; }
-  .dec-add-step-btn { font-size:.75rem; font-weight:700; color:var(--rosa); background:none; border:none; cursor:pointer; font-family:var(--font-body); padding:.2rem 0; }
-
-  /* Form btns */
-  .dec-form-btns { display:flex; justify-content:flex-end; gap:.6rem; padding-top:.4rem; border-top:1px solid var(--border); }
-  .dec-cancel-btn { background:var(--surface); border:1.5px solid var(--border); border-radius:20px; padding:.45rem 1.1rem; font-size:.8rem; font-weight:700; cursor:pointer; font-family:var(--font-body); color:var(--muted); }
-  .dec-save-btn { background:var(--rosa); border:none; border-radius:20px; padding:.45rem 1.2rem; font-size:.8rem; font-weight:700; cursor:pointer; font-family:var(--font-body); color:white; }
-
-  /* Historial cards */
-  .decision-list { display:flex; flex-direction:column; gap:.8rem; }
-  .dec-card { background:var(--card); border:1.5px solid var(--border); border-radius:14px; padding:.9rem 1.1rem; cursor:pointer; transition:border-color .2s; }
-  .dec-card:hover { border-color:var(--rosa-soft); }
-  .dec-card-top { display:flex; justify-content:space-between; align-items:flex-start; gap:.5rem; margin-bottom:.35rem; }
-  .dec-card-dilema { font-size:.88rem; font-weight:700; color:var(--text); flex:1; }
-  .dec-card-date { font-size:.68rem; color:var(--muted2); white-space:nowrap; }
-  .dec-card-chips { display:flex; flex-wrap:wrap; gap:.3rem; margin-bottom:.4rem; }
-  .dec-card-chip { font-size:.62rem; font-weight:700; padding:.15rem .5rem; border-radius:20px; background:var(--rosa-soft); color:var(--rosa); }
-  .dec-card-chip.verde { background:var(--verde-soft); color:var(--verde); }
-  .dec-card-decision { font-size:.78rem; color:var(--muted); font-style:italic; }
-  .dec-card-footer { display:flex; justify-content:flex-end; gap:.4rem; margin-top:.5rem; }
-  .dec-card-btn { background:none; border:none; font-size:.8rem; color:var(--muted2); cursor:pointer; font-family:var(--font-body); padding:.1rem .3rem; }
-  .dec-empty { text-align:center; color:var(--muted); font-size:.85rem; padding:2rem 1rem; }
-
-  /* View modal */
-  .dec-view-backdrop { position:fixed; inset:0; background:rgba(244,167,192,.18); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); z-index:9000; align-items:center; justify-content:center; padding:1rem; }
-  .dec-view-modal { background:var(--card); border-radius:20px; width:100%; max-width:560px; max-height:90vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,.18); z-index:9001; margin:auto; }
-  .dec-view-header { display:flex; justify-content:space-between; align-items:center; padding:1.1rem 1.3rem .8rem; font-family:var(--font-title); font-style:italic; font-size:1rem; font-weight:700; border-bottom:1px solid var(--border); }
-  .dec-view-body { padding:1.1rem 1.3rem; display:flex; flex-direction:column; gap:.9rem; }
-  .dec-view-row { display:flex; flex-direction:column; gap:.2rem; }
-  .dec-view-lbl { font-size:.68rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
-  .dec-view-val { font-size:.88rem; color:var(--text); line-height:1.55; white-space:pre-wrap; }
-  .dec-view-two { display:grid; grid-template-columns:1fr 1fr; gap:.8rem; }
-  @media(max-width:480px){ .dec-view-two { grid-template-columns:1fr; } }
-  .dec-view-chips { display:flex; flex-wrap:wrap; gap:.35rem; }
-  .dec-view-chip { font-size:.7rem; font-weight:700; padding:.2rem .6rem; border-radius:20px; }
-  .dec-view-chip.rosa { background:var(--rosa-soft); color:var(--rosa); }
-  .dec-view-chip.verde { background:var(--verde-soft); color:var(--verde); }
-  .dec-view-pros { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:.2rem; }
-  .dec-view-pros li { font-size:.82rem; display:flex; gap:.4rem; }
-  .dec-view-pros li .s { font-weight:900; }
-  .dec-view-pros li .s.p { color:var(--verde); }
-  .dec-view-pros li .s.c { color:var(--rosa); }
-  .dec-view-steps { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:.25rem; }
-  .dec-view-steps li { font-size:.82rem; display:flex; gap:.4rem; }
-  .dec-view-steps li::before { content:'👣'; font-size:.75rem; }
-</style>
-
-<script>
-(function(){
-  var DEC_KEY = 'yuki_decisions';
-  var decisions = [];
-  var editingDecId = null;
-
-  var IMPORTANCIA_LABELS = { trivial:'🤏 Trivial', worthwhile:'👍 Vale la pena', weighty:'⚖️ Importante', lifechanging:'🌟 Cambia mi vida' };
-  var INDECISION_LABELS  = { wishy:'🌊 Muy indecisa', neutral:'😐 Neutral', partisan:'🤔 Casi decidida', mindmadeup:'✅ Ya sé qué quiero' };
-
-  function load() { try { decisions = JSON.parse(localStorage.getItem(DEC_KEY)) || []; } catch(e){ decisions=[]; } }
-  function save() {
-    localStorage.setItem(DEC_KEY, JSON.stringify(decisions));
-    if (window.cloudSave) window.cloudSave(DEC_KEY, decisions);
-    if (window.cloudSave) window.cloudSave(DEC_KEY, decisions);
-  }
-
-  // ── Chips toggle
-  function initChips(containerId, hidden) {
-    document.querySelectorAll('#' + containerId + ' .dec-chip').forEach(function(btn) {
-      btn.onclick = function() {
-        document.querySelectorAll('#' + containerId + ' .dec-chip').forEach(function(b){ b.classList.remove('active'); });
-        btn.classList.add('active');
-      };
-    });
-  }
-  function getChipVal(containerId) {
-    var active = document.querySelector('#' + containerId + ' .dec-chip.active');
-    return active ? active.dataset.val : '';
-  }
-  function setChipVal(containerId, val) {
-    document.querySelectorAll('#' + containerId + ' .dec-chip').forEach(function(b){
-      b.classList.toggle('active', b.dataset.val === val);
-    });
-  }
-
-  // ── Pros/Cons
-  window.decAddPro = function(val) {
-    var row = document.createElement('div'); row.className = 'dec-proscons-item';
-    row.innerHTML = '<span class="dec-sign pro">+</span><input placeholder="Un pro…" value="'+(val||'')+'"><button onclick="this.parentElement.remove()">✕</button>';
-    document.getElementById('decProsList').appendChild(row);
-  };
-  window.decAddCon = function(val) {
-    var row = document.createElement('div'); row.className = 'dec-proscons-item';
-    row.innerHTML = '<span class="dec-sign con">−</span><input placeholder="Un contra…" value="'+(val||'')+'"><button onclick="this.parentElement.remove()">✕</button>';
-    document.getElementById('decConsList').appendChild(row);
-  };
-
-  // ── Steps
-  window.decAddStep = function(val) {
-    var row = document.createElement('div'); row.className = 'dec-step-row';
-    row.innerHTML = '<input placeholder="Paso a seguir…" value="'+(val||'')+'"><button onclick="this.parentElement.remove()">✕</button>';
-    document.getElementById('decStepsList').appendChild(row);
-  };
-
-  function clearForm() {
-    document.getElementById('decDilema').value = '';
-    document.getElementById('decFecha').value = new Date().toISOString().slice(0,10);
-    document.getElementById('decDeadline').value = '';
-    document.getElementById('decMejor').value = '';
-    document.getElementById('decPeor').value = '';
-    document.getElementById('decGut').value = '';
-    document.getElementById('decConcIntuitiva').value = '';
-    document.getElementById('decConcRacional').value = '';
-    document.getElementById('decJesus').value = '';
-    document.getElementById('decBiblia').value = '';
-    document.getElementById('decDecision').value = '';
-    document.getElementById('decPipedream').checked = false;
-    document.getElementById('decApocalypse').checked = false;
-    document.getElementById('decForToday').checked = false;
-    document.getElementById('decProsList').innerHTML = '';
-    document.getElementById('decConsList').innerHTML = '';
-    document.getElementById('decStepsList').innerHTML = '';
-    setChipVal('decImportancia', '');
-    setChipVal('decIndecision', '');
-    // Start with 3 empty pros/cons
-    decAddPro(); decAddPro(); decAddPro();
-    decAddCon(); decAddCon(); decAddCon();
-    decAddStep();
-  }
-
-  document.getElementById('decisionNewBtn').onclick = function() {
-    editingDecId = null;
-    clearForm();
-    document.getElementById('decisionForm').style.display = '';
-    document.getElementById('decisionForm').scrollIntoView({ behavior:'smooth', block:'start' });
-    setTimeout(function(){ document.getElementById('decDilema').focus(); }, 200);
-  };
-
-  window.decCancelForm = function() {
-    document.getElementById('decisionForm').style.display = 'none';
-    editingDecId = null;
-  };
-
-  window.decSave = function() {
-    var dilema = document.getElementById('decDilema').value.trim();
-    if (!dilema) { alert('Describe el dilema primero 💭'); return; }
-
-    var pros = Array.from(document.querySelectorAll('#decProsList input')).map(function(i){ return i.value.trim(); }).filter(Boolean);
-    var cons = Array.from(document.querySelectorAll('#decConsList input')).map(function(i){ return i.value.trim(); }).filter(Boolean);
-    var steps = Array.from(document.querySelectorAll('#decStepsList input')).map(function(i){ return i.value.trim(); }).filter(Boolean);
-
-    var dec = {
-      id: editingDecId || ('dec_' + Date.now()),
-      fecha: document.getElementById('decFecha').value,
-      deadline: document.getElementById('decDeadline').value,
-      dilema: dilema,
-      importancia: getChipVal('decImportancia'),
-      indecision: getChipVal('decIndecision'),
-      mejor: document.getElementById('decMejor').value.trim(),
-      pipedream: document.getElementById('decPipedream').checked,
-      peor: document.getElementById('decPeor').value.trim(),
-      apocalypse: document.getElementById('decApocalypse').checked,
-      gut: document.getElementById('decGut').value.trim(),
-      pros: pros,
-      cons: cons,
-      concIntuitiva: document.getElementById('decConcIntuitiva').value.trim(),
-      concRacional: document.getElementById('decConcRacional').value.trim(),
-      jesus: document.getElementById('decJesus').value.trim(),
-      biblia: document.getElementById('decBiblia').value.trim(),
-      decision: document.getElementById('decDecision').value.trim(),
-      forToday: document.getElementById('decForToday').checked,
-      steps: steps,
-    };
-
-    load();
-    if (editingDecId) {
-      var idx = decisions.findIndex(function(d){ return d.id === editingDecId; });
-      if (idx >= 0) decisions[idx] = dec; else decisions.unshift(dec);
-    } else {
-      decisions.unshift(dec);
-    }
-    save();
-    editingDecId = null;
-    document.getElementById('decisionForm').style.display = 'none';
-    render();
-  };
-
-  function render() {
-    load();
-    var list = document.getElementById('decisionList');
-    list.innerHTML = '';
-    if (decisions.length === 0) {
-      list.innerHTML = '<div class="dec-empty">Aún no tienes decisiones guardadas 💭<br><span style="font-size:.75rem">Cuando tengas un dilema, ¡escríbelo aquí antes de actuar!</span></div>';
-      return;
-    }
-    decisions.forEach(function(dec) {
-      var card = document.createElement('div'); card.className = 'dec-card';
-      var chips = '';
-      if (dec.importancia) chips += '<span class="dec-card-chip">' + (IMPORTANCIA_LABELS[dec.importancia]||dec.importancia) + '</span>';
-      if (dec.indecision)  chips += '<span class="dec-card-chip verde">' + (INDECISION_LABELS[dec.indecision]||dec.indecision) + '</span>';
-      card.innerHTML =
-        '<div class="dec-card-top">' +
-          '<div class="dec-card-dilema">' + dec.dilema + '</div>' +
-          '<div class="dec-card-date">' + (dec.fecha || '') + (dec.deadline ? '<br>📅 ' + dec.deadline : '') + '</div>' +
-        '</div>' +
-        (chips ? '<div class="dec-card-chips">' + chips + '</div>' : '') +
-        (dec.decision ? '<div class="dec-card-decision">🎯 ' + dec.decision + '</div>' : '') +
-        '<div class="dec-card-footer">' +
-          '<button class="dec-card-btn" onclick="decEdit(\'' + dec.id + '\');event.stopPropagation()">✏️</button>' +
-          '<button class="dec-card-btn" onclick="decDelete(\'' + dec.id + '\');event.stopPropagation()">🗑️</button>' +
-        '</div>';
-      card.onclick = function(){ decOpenView(dec.id); };
-      list.appendChild(card);
-    });
-  }
-
-  window.decDelete = function(id) {
-    if (!confirm('¿Eliminar esta decisión?')) return;
-    load();
-    decisions = decisions.filter(function(d){ return d.id !== id; });
-    save(); render();
-  };
-
-  window.decEdit = function(id) {
-    load();
-    var dec = decisions.find(function(d){ return d.id === id; });
-    if (!dec) return;
-    editingDecId = id;
-    clearForm();
-    document.getElementById('decDilema').value = dec.dilema || '';
-    document.getElementById('decFecha').value = dec.fecha || '';
-    document.getElementById('decDeadline').value = dec.deadline || '';
-    document.getElementById('decMejor').value = dec.mejor || '';
-    document.getElementById('decPeor').value = dec.peor || '';
-    document.getElementById('decGut').value = dec.gut || '';
-    document.getElementById('decConcIntuitiva').value = dec.concIntuitiva || '';
-    document.getElementById('decConcRacional').value = dec.concRacional || '';
-    document.getElementById('decJesus').value = dec.jesus || '';
-    document.getElementById('decBiblia').value = dec.biblia || '';
-    document.getElementById('decDecision').value = dec.decision || '';
-    document.getElementById('decPipedream').checked = !!dec.pipedream;
-    document.getElementById('decApocalypse').checked = !!dec.apocalypse;
-    document.getElementById('decForToday').checked = !!dec.forToday;
-    setChipVal('decImportancia', dec.importancia || '');
-    setChipVal('decIndecision', dec.indecision || '');
-    document.getElementById('decProsList').innerHTML = '';
-    document.getElementById('decConsList').innerHTML = '';
-    document.getElementById('decStepsList').innerHTML = '';
-    (dec.pros || []).forEach(function(p){ decAddPro(p); });
-    (dec.cons || []).forEach(function(c){ decAddCon(c); });
-    (dec.steps || []).forEach(function(s){ decAddStep(s); });
-    if (!dec.pros || dec.pros.length === 0) { decAddPro(); decAddPro(); }
-    if (!dec.cons || dec.cons.length === 0) { decAddCon(); decAddCon(); }
-    if (!dec.steps || dec.steps.length === 0) { decAddStep(); }
-    document.getElementById('decisionForm').style.display = '';
-    document.getElementById('decisionForm').scrollIntoView({ behavior:'smooth', block:'start' });
-  };
-
-  // ── Vista de solo lectura
-  window.decOpenView = function(id) {
-    load();
-    var dec = decisions.find(function(d){ return d.id === id; });
-    if (!dec) return;
-    document.getElementById('decViewTitle').textContent = '💭 ' + dec.dilema;
-    var body = document.getElementById('decViewBody');
-    body.innerHTML = '';
-
-    function row(lbl, val) {
-      if (!val) return;
-      var d = document.createElement('div'); d.className = 'dec-view-row';
-      d.innerHTML = '<div class="dec-view-lbl">'+lbl+'</div><div class="dec-view-val">'+val+'</div>';
-      body.appendChild(d);
-    }
-
-    // Chips
-    if (dec.importancia || dec.indecision) {
-      var cr = document.createElement('div'); cr.className = 'dec-view-chips';
-      if (dec.importancia) cr.innerHTML += '<span class="dec-view-chip rosa">'+(IMPORTANCIA_LABELS[dec.importancia]||dec.importancia)+'</span>';
-      if (dec.indecision)  cr.innerHTML += '<span class="dec-view-chip verde">'+(INDECISION_LABELS[dec.indecision]||dec.indecision)+'</span>';
-      body.appendChild(cr);
-    }
-
-    if (dec.fecha || dec.deadline) row('Fecha / Deadline', (dec.fecha||'') + (dec.deadline ? ' → decidir antes del ' + dec.deadline : ''));
-    if (dec.mejor) row('🌈 Mejor escenario' + (dec.pipedream ? ' (pipe dream 😅)' : ''), dec.mejor);
-    if (dec.peor)  row('⛈️ Peor escenario' + (dec.apocalypse ? ' (apocalíptico 😱)' : ''), dec.peor);
-
-    // Gut + pros/cons en dos columnas
-    if (dec.gut || (dec.pros && dec.pros.length) || (dec.cons && dec.cons.length)) {
-      var two = document.createElement('div'); two.className = 'dec-view-two';
-      if (dec.gut) {
-        var g = document.createElement('div'); g.className = 'dec-view-row';
-        g.innerHTML = '<div class="dec-view-lbl">💭 Gut feeling</div><div class="dec-view-val">'+dec.gut+'</div>';
-        two.appendChild(g);
-      }
-      if ((dec.pros && dec.pros.length) || (dec.cons && dec.cons.length)) {
-        var pc = document.createElement('div'); pc.className = 'dec-view-row';
-        pc.innerHTML = '<div class="dec-view-lbl">⚖️ Pros y contras</div>';
-        var ul = document.createElement('ul'); ul.className = 'dec-view-pros';
-        (dec.pros||[]).forEach(function(p){ ul.innerHTML += '<li><span class="s p">+</span>'+p+'</li>'; });
-        (dec.cons||[]).forEach(function(c){ ul.innerHTML += '<li><span class="s c">−</span>'+c+'</li>'; });
-        pc.appendChild(ul); two.appendChild(pc);
-      }
-      body.appendChild(two);
-    }
-
-    // Conclusiones
-    if (dec.concIntuitiva || dec.concRacional) {
-      var two2 = document.createElement('div'); two2.className = 'dec-view-two';
-      if (dec.concIntuitiva) { var r = document.createElement('div'); r.className='dec-view-row'; r.innerHTML='<div class="dec-view-lbl">❤️ ¿Qué dice mi corazón?</div><div class="dec-view-val">'+dec.concIntuitiva+'</div>'; two2.appendChild(r); }
-      if (dec.concRacional)  { var r2 = document.createElement('div'); r2.className='dec-view-row'; r2.innerHTML='<div class="dec-view-lbl">🧠 ¿Qué dice mi mente?</div><div class="dec-view-val">'+dec.concRacional+'</div>'; two2.appendChild(r2); }
-      body.appendChild(two2);
-    }
-
-    if (dec.jesus || dec.biblia) {
-      var two3 = document.createElement('div'); two3.className = 'dec-view-two';
-      if (dec.jesus)  { var r3 = document.createElement('div'); r3.className='dec-view-row'; r3.innerHTML='<div class="dec-view-lbl">✝️ ¿Qué haría Jesús?</div><div class="dec-view-val">'+dec.jesus+'</div>'; two3.appendChild(r3); }
-      if (dec.biblia) { var r4 = document.createElement('div'); r4.className='dec-view-row'; r4.innerHTML='<div class="dec-view-lbl">📖 ¿Qué dice la Biblia?</div><div class="dec-view-val">'+dec.biblia+'</div>'; two3.appendChild(r4); }
-      body.appendChild(two3);
-    }
-
-    if (dec.decision) row('🎯 Mi decisión' + (dec.forToday ? ' (solo por hoy)' : ''), dec.decision);
-
-    if (dec.steps && dec.steps.length) {
-      var sr = document.createElement('div'); sr.className = 'dec-view-row';
-      sr.innerHTML = '<div class="dec-view-lbl">👣 Próximos pasos</div>';
-      var sl = document.createElement('ul'); sl.className = 'dec-view-steps';
-      dec.steps.forEach(function(s){ sl.innerHTML += '<li>'+s+'</li>'; });
-      sr.appendChild(sl); body.appendChild(sr);
-    }
-
-    document.getElementById('decViewBackdrop').style.display = 'flex';
-    window._viewingDecId = id;
-  };
-
-  window.decCloseView = function() {
-    document.getElementById('decViewBackdrop').style.display = 'none';
-  };
-
-  window.decEditFromView = function() {
-    decCloseView();
-    if (window._viewingDecId) decEdit(window._viewingDecId);
-  };
-
-  initChips('decImportancia');
-  initChips('decIndecision');
-  render();
-})();
-</script>
-
 </div><!-- end saludTabRegistros-content -->
 
 <!-- TAB: Ejercicio -->
@@ -19118,7 +19124,7 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
 <div id="sec-recetario-nav" style="scroll-margin-top:60px"></div>
 <section class="recetario-section" id="sec-recetario">
   <span class="section-sub">🍽️ mis opciones</span>
-  <h2 class="section-title"><em>Mi</em> Recetario</h2>
+  <h2 class="section-title"><em>Mi</em> Nutrición</h2>
 
   <!-- Tabs -->
   <div class="diario-tabs" style="margin-bottom:1.2rem">
@@ -20695,6 +20701,16 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
   <span class="section-sub">💸 mis finanzas</span>
   <h2 class="section-title"><em>Mis</em> Finanzas</h2>
 
+  <!-- Main tabs -->
+  <div class="fin-main-tabs" id="finMainTabs">
+    <button class="fin-main-tab active" id="finMainTabGastos" onclick="finShowMainTab('gastos')">📊 Gastos</button>
+    <button class="fin-main-tab" id="finMainTabFrascos" onclick="finShowMainTab('frascos')">🫙 Frascos</button>
+    <button class="fin-main-tab" id="finMainTabVibe" onclick="finShowMainTab('vibe')">✨ Vibe</button>
+  </div>
+
+  <!-- ── TAB: GASTOS (existing) ── -->
+  <div id="finTabGastos">
+
   <!-- Selector mes/semana -->
   <div class="fin-period-tabs" id="finPeriodTabs">
     <button class="fin-tab active" data-period="mes">📅 Este mes</button>
@@ -20742,6 +20758,27 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
       <button class="rutina-new-btn" id="finAddMovBtn">＋ Agregar</button>
     </div>
     <div id="finMovsList"></div>
+  </div>
+
+  </div><!-- end finTabGastos -->
+
+  <!-- ── TAB: FRASCOS DE AHORRO ── -->
+  <div id="finTabFrascos" style="display:none">
+    <div class="frascos-header">
+      <p class="frascos-desc">Guarda para lo que más amas 🌸 Cada frasco es un sueño</p>
+      <button class="frascos-new-btn" onclick="frascosOpenModal(null)">＋ Nuevo frasco</button>
+    </div>
+    <div id="frascosList" class="frascos-grid"></div>
+  </div>
+
+  <!-- ── TAB: VIBE DEL GASTO ── -->
+  <div id="finTabVibe" style="display:none">
+    <div class="vibe-header">
+      <p class="vibe-desc">¿Cómo te sentiste al gastar? Registra el vibe 💭</p>
+      <button class="vibe-add-btn" onclick="vibeOpenModal(null)">＋ Registrar gasto</button>
+    </div>
+    <div id="vibeSummary" class="vibe-summary-wrap"></div>
+    <div id="vibeList" class="vibe-list"></div>
   </div>
 
 </section>
@@ -23114,7 +23151,7 @@ function openMpPicker(dk, slot) {
 
   // ── Desde recetario ──
   var recSec = document.createElement('div');
-  recSec.innerHTML = '<div style="font-size:.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.6rem">Desde mi recetario</div>';
+  recSec.innerHTML = '<div style="font-size:.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.6rem">Desde mi nutrición</div>';
 
   var recList = typeof recetas !== 'undefined' ? recetas : [];
   if (recList.length === 0) {
@@ -25630,7 +25667,7 @@ const NAV_PAGES = [
   { icon:'🍏', label:'Salud',       page:'page-salud'     },
   { icon:'✨', label:'Selfcare',    page:'page-selfcare'  },
   { icon:'👗', label:'Armario',     page:'page-armario'   },
-  { icon:'🍽️', label:'Recetario',   page:'page-recetario' },
+  { icon:'🌿', label:'Mi Nutrición',   page:'page-recetario' },
   { icon:'🧺', label:'Despensa',    page:'page-despensa'  },
   { icon:'🧹', label:'Limpieza',    page:'page-limpieza'  },
   { icon:'📋', label:'Listas',      page:'page-listas'    },
@@ -25668,7 +25705,7 @@ const DRAWER_STRUCTURE = {
     ]},
     { id:'hogar', icon:'⭐', label:'Hogar', items: [
       { icon:'', label:'Armario',   page:'page-armario'   },
-      { icon:'', label:'Recetario', page:'page-recetario' },
+      { icon:'', label:'Mi Nutrición', page:'page-recetario' },
       { icon:'', label:'Despensa',  page:'page-despensa'  },
       { icon:'', label:'Limpieza',  page:'page-limpieza'  },
       { icon:'', label:'Listas',    page:'page-listas'    },
@@ -29944,7 +29981,7 @@ document.addEventListener('DOMContentLoaded', function() {
     { id:'tareas',       label:'📝 Tareas',       page:'page-tareas' },
     { id:'journal',      label:'📓 Journal',      page:'page-journal' },
     { id:'rutinas',      label:'🌸 Rutinas',      page:'page-rutinas' },
-    { id:'recetario',    label:'🍽️ Recetario',    page:'page-recetario' },
+    { id:'recetario',    label:'🌿 Mi Nutrición',    page:'page-recetario' },
     { id:'watchlist',    label:'🎬 Watchlist',    page:'page-listas' },
     { id:'listas',       label:'⚡ Listas',       page:'page-listas' },
     { id:'finanzas',     label:'💸 Finanzas',     page:'page-finanzas' },
@@ -30070,7 +30107,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var hayNombre = name.toLowerCase().indexOf(ql)>=0;
         var hayIng = ing.toLowerCase().indexOf(ql)>=0;
         if(hayNombre||hayIng){
-          results.push({ seccion:'recetario', icon:'🍽️', title:name, snippet:hayIng?'Ingrediente: '+snippet(ing,q,60):'', page:'page-recetario' });
+          results.push({ seccion:'recetario', icon:'🌿', title:name, snippet:hayIng?'Ingrediente: '+snippet(ing,q,60):'', page:'page-recetario' });
         }
       });
     } catch(e){}
@@ -34786,6 +34823,12 @@ function calSaveLog(data) {
 }
 function calLoadGoals() { try { return JSON.parse(localStorage.getItem(CAL_GOAL_KEY)||'{"kcal":2000,"prot":50,"carb":250,"fat":70}'); } catch(e){ return {kcal:2000,prot:50,carb:250,fat:70}; } }
 function calSaveGoals(g) { try { localStorage.setItem(CAL_GOAL_KEY, JSON.stringify(g)); } catch(e){} }
+var CAL_CUSTOM_KEY = 'yuki_cal_custom_foods';
+function calLoadCustomFoods() { try { return JSON.parse(localStorage.getItem(CAL_CUSTOM_KEY)||'[]'); } catch(e){ return []; } }
+function calSaveCustomFoods(arr) {
+  try { localStorage.setItem(CAL_CUSTOM_KEY, JSON.stringify(arr)); } catch(e){}
+  if (window.cloudSave) window.cloudSave(CAL_CUSTOM_KEY, arr);
+}
 function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
 
 // ── Main render ──────────────────────────────────────────────
@@ -34905,12 +34948,23 @@ window.renderCalTracker = function() {
     resultsWrap.style.display = 'none';
     resultsWrap.innerHTML = '';
     if (q.length < 2) return;
+    // Show matching custom foods immediately
+    var customs = calLoadCustomFoods().filter(function(f) {
+      return f.name.toLowerCase().indexOf(q.toLowerCase()) >= 0;
+    });
     spinner.style.display = 'block';
-    _searchTimer = setTimeout(function(){ searchOFF(q, searchInp, resultsWrap, spinner, dk); }, 500);
+    _searchTimer = setTimeout(function(){ searchOFF(q, searchInp, resultsWrap, spinner, dk, customs); }, 500);
   };
+
+  // ── Manual food button ──
+  var manualBtn = document.createElement('button');
+  manualBtn.innerHTML = '\u270F\uFE0F Agregar alimento manualmente';
+  manualBtn.style.cssText = 'margin-top:.6rem;width:100%;padding:.5rem;border:1.5px dashed var(--rosa);border-radius:12px;background:var(--rosa-soft);color:var(--rosa);font-family:var(--font-body);font-size:.72rem;font-weight:800;cursor:pointer;transition:opacity .15s;';
+  manualBtn.onclick = function() { openManualFoodModal(dk); };
 
   searchSection.appendChild(searchWrap);
   searchSection.appendChild(resultsWrap);
+  searchSection.appendChild(manualBtn);
   root.appendChild(searchSection);
 
   // ── Log list ──
@@ -34962,9 +35016,10 @@ function _renderFoodResults(foods, inp, wrap, q, dk) {
   foods.slice(0, 12).forEach(function(food) {
     var item = document.createElement('div');
     item.className = 'cal-result-item';
+    var customBadge = food._custom ? '<span style="font-size:.58rem;background:var(--rosa-soft);color:var(--rosa);border-radius:8px;padding:.1rem .35rem;font-weight:800;margin-left:.3rem;">⭐ mío</span>' : '';
     item.innerHTML =
       '<div style="flex:1;min-width:0">'+
-        '<div class="cal-result-name">'+food.name+'</div>'+
+        '<div class="cal-result-name">'+food.name+customBadge+'</div>'+
         (food.brand ? '<div class="cal-result-brand">'+food.brand+'</div>' : '')+
       '</div>'+
       '<div style="text-align:right">'+
@@ -34979,6 +35034,85 @@ function _renderFoodResults(foods, inp, wrap, q, dk) {
     ul.appendChild(item);
   });
   wrap.appendChild(ul);
+}
+
+// ── Manual food entry modal ──────────────────────────────────
+function openManualFoodModal(dk) {
+  var old = document.getElementById('calManualModal');
+  if (old) old.remove();
+
+  var back = document.createElement('div');
+  back.className = 'cal-qty-modal-back';
+  back.id = 'calManualModal';
+
+  var box = document.createElement('div');
+  box.className = 'cal-qty-modal';
+
+  box.innerHTML =
+    '<div class="cal-qty-title" style="margin-bottom:.3rem">✏️ Agregar alimento</div>'+
+    '<div class="cal-qty-sub" style="margin-bottom:.8rem">Se guardará en tu lista de alimentos personales ⭐</div>'+
+    '<div style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:.8rem">'+
+      '<div style="display:flex;flex-direction:column;gap:.15rem">'+
+        '<label style="font-size:.65rem;font-weight:800;color:var(--muted);text-transform:uppercase">Nombre *</label>'+
+        '<input id="mfName" class="cal-qty-inp" style="width:100%;text-align:left;padding-left:.4rem" placeholder="Ej: Arroz con leche" maxlength="60">'+
+      '</div>'+
+      '<div style="display:flex;gap:.5rem">'+
+        '<div style="flex:1;display:flex;flex-direction:column;gap:.15rem">'+
+          '<label style="font-size:.65rem;font-weight:800;color:var(--muted);text-transform:uppercase">Calorías (kcal) *</label>'+
+          '<input id="mfKcal" class="cal-qty-inp" type="number" min="0" max="9999" placeholder="por 100g">'+
+        '</div>'+
+      '</div>'+
+      '<div style="font-size:.65rem;font-weight:800;color:var(--muted);text-transform:uppercase;margin-top:.2rem">Macronutrientes (opcional, por 100g)</div>'+
+      '<div style="display:flex;gap:.5rem;flex-wrap:wrap">'+
+        '<div style="flex:1;min-width:60px;display:flex;flex-direction:column;gap:.15rem">'+
+          '<label style="font-size:.6rem;font-weight:700;color:#81c784">Proteína g</label>'+
+          '<input id="mfProt" class="cal-qty-inp" type="number" min="0" max="999" placeholder="0">'+
+        '</div>'+
+        '<div style="flex:1;min-width:60px;display:flex;flex-direction:column;gap:.15rem">'+
+          '<label style="font-size:.6rem;font-weight:700;color:#64b5f6">Carbs g</label>'+
+          '<input id="mfCarb" class="cal-qty-inp" type="number" min="0" max="999" placeholder="0">'+
+        '</div>'+
+        '<div style="flex:1;min-width:60px;display:flex;flex-direction:column;gap:.15rem">'+
+          '<label style="font-size:.6rem;font-weight:700;color:#ffb74d">Grasa g</label>'+
+          '<input id="mfFat" class="cal-qty-inp" type="number" min="0" max="999" placeholder="0">'+
+        '</div>'+
+      '</div>'+
+    '</div>'+
+    '<div id="mfError" style="color:#e57373;font-size:.65rem;font-weight:700;min-height:1rem;margin-bottom:.3rem"></div>'+
+    '<div class="cal-qty-btns">'+
+      '<button class="cal-qty-cancel" onclick="document.getElementById(\'calManualModal\').remove()">Cancelar</button>'+
+      '<button class="cal-qty-ok" id="mfSaveBtn">Guardar y registrar 🌸</button>'+
+    '</div>';
+
+  back.appendChild(box);
+  document.body.appendChild(back);
+
+  setTimeout(function(){ var el=document.getElementById('mfName'); if(el) el.focus(); }, 80);
+
+  document.getElementById('mfSaveBtn').onclick = function() {
+    var name = (document.getElementById('mfName').value||'').trim();
+    var kcal = parseInt(document.getElementById('mfKcal').value)||0;
+    var prot = parseFloat(document.getElementById('mfProt').value)||0;
+    var carb = parseFloat(document.getElementById('mfCarb').value)||0;
+    var fat  = parseFloat(document.getElementById('mfFat').value)||0;
+    var errEl = document.getElementById('mfError');
+
+    if (!name) { errEl.textContent='El nombre es obligatorio'; return; }
+    if (kcal <= 0) { errEl.textContent='Las calorías deben ser mayor a 0'; return; }
+    errEl.textContent = '';
+
+    var food = { id:uid(), name:name, brand:'', kcal:kcal, prot:prot, carb:carb, fat:fat, fiber:0, sugar:0, sodium:0 };
+    // Save to custom foods library
+    var customs = calLoadCustomFoods();
+    customs.unshift(food);
+    calSaveCustomFoods(customs);
+
+    // Also register immediately for today
+    back.remove();
+    openQtyModal(food, dk);
+  };
+
+  back.addEventListener('click', function(e){ if(e.target===back) back.remove(); });
 }
 
 // ── USDA FoodData Central search ────────────────────────────
@@ -35051,7 +35185,8 @@ function _searchOFF(q) {
 }
 
 // ── Búsqueda combinada: USDA + Open Food Facts ───────────────
-function searchOFF(q, inp, wrap, spinner, dk) {
+function searchOFF(q, inp, wrap, spinner, dk, customFoods) {
+  customFoods = customFoods || [];
   // Buscar en ambas APIs en paralelo
   Promise.all([_searchUSDA(q), _searchOFF(q)])
     .then(function(results) {
@@ -35059,18 +35194,20 @@ function searchOFF(q, inp, wrap, spinner, dk) {
       var usdaFoods = results[0];
       var offFoods  = results[1];
 
-      // Combinar: USDA primero (mejor para alimentos frescos), luego OFF
-      // Evitar duplicados obvios por nombre similar
-      var combined = usdaFoods.slice();
-      var usdaNames = usdaFoods.map(function(f) {
-        return f.name.toLowerCase().substring(0, 20);
+      // Combinar: mis alimentos primero, luego USDA, luego OFF
+      var combined = customFoods.map(function(f) {
+        return Object.assign({}, f, { _custom: true });
+      });
+      var allNames = customFoods.map(function(f){ return f.name.toLowerCase().substring(0,20); });
+
+      usdaFoods.forEach(function(f) {
+        var fShort = f.name.toLowerCase().substring(0,20);
+        var isDup = allNames.some(function(n){ return n.indexOf(fShort.substring(0,10))>=0||fShort.indexOf(n.substring(0,10))>=0; });
+        if (!isDup) { combined.push(f); allNames.push(fShort); }
       });
       offFoods.forEach(function(f) {
-        var fShort = f.name.toLowerCase().substring(0, 20);
-        var isDup = usdaNames.some(function(n) {
-          return n.indexOf(fShort.substring(0, 10)) >= 0 ||
-                 fShort.indexOf(n.substring(0, 10)) >= 0;
-        });
+        var fShort = f.name.toLowerCase().substring(0,20);
+        var isDup = allNames.some(function(n){ return n.indexOf(fShort.substring(0,10))>=0||fShort.indexOf(n.substring(0,10))>=0; });
         if (!isDup) combined.push(f);
       });
 
@@ -35078,8 +35215,13 @@ function searchOFF(q, inp, wrap, spinner, dk) {
     })
     .catch(function() {
       spinner.style.display = 'none';
-      wrap.innerHTML = '<div class="cal-no-results">Error de conexión 😕<br><span style="font-size:.68rem">Verifica tu internet e intenta de nuevo</span></div>';
-      wrap.style.display = '';
+      // If API fails but we have custom matches, show those
+      if (customFoods.length > 0) {
+        _renderFoodResults(customFoods.map(function(f){ return Object.assign({},f,{_custom:true}); }), inp, wrap, q, dk);
+      } else {
+        wrap.innerHTML = '<div class="cal-no-results">Error de conexión 😕<br><span style="font-size:.68rem">Verifica tu internet e intenta de nuevo</span></div>';
+        wrap.style.display = '';
+      }
     });
 }
 
@@ -35377,3 +35519,575 @@ window.renderPasos = function() {
 </script>
 </body>
 </html>
+<!-- ============================================================
+     💸 FINANZAS SIN ESTRÉS — FRASCOS & VIBE
+============================================================ -->
+<style>
+/* ── Main tab switcher ── */
+.fin-main-tabs { display:flex; gap:.4rem; flex-wrap:wrap; margin-bottom:1.2rem; }
+.fin-main-tab {
+  background:var(--card); border:1.5px solid var(--border);
+  color:var(--muted); font-family:var(--font-body);
+  font-size:.72rem; font-weight:800; padding:.38rem .9rem;
+  border-radius:20px; cursor:pointer; transition:all .18s;
+}
+.fin-main-tab.active {
+  background:var(--rosa-soft); border-color:var(--rosa); color:var(--rosa);
+}
+
+/* ── Frascos ── */
+.frascos-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:.5rem; }
+.frascos-desc { font-size:.75rem; color:var(--muted); font-weight:600; margin:0; }
+.frascos-new-btn { background:var(--rosa); color:white; border:none; border-radius:20px; padding:.42rem 1rem; font-size:.75rem; font-weight:700; cursor:pointer; font-family:var(--font-body); white-space:nowrap; }
+.frascos-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:1rem; padding-bottom:3rem; }
+.frasco-card {
+  background:var(--card); border:1.5px solid var(--border);
+  border-radius:20px; padding:1rem .9rem 1rem; display:flex;
+  flex-direction:column; align-items:center; gap:.5rem;
+  cursor:pointer; transition:transform .18s, box-shadow .18s;
+  position:relative;
+}
+.frasco-card:hover { transform:translateY(-3px); box-shadow:0 8px 24px rgba(0,0,0,.12); }
+.frasco-jar-wrap { position:relative; width:72px; height:88px; }
+.frasco-jar-svg { width:72px; height:88px; }
+.frasco-fill { transition:height .6s ease, y .6s ease; }
+.frasco-emoji-sticker {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-54%);
+  font-size:1.5rem; pointer-events:none; user-select:none;
+}
+.frasco-name { font-size:.78rem; font-weight:800; color:var(--text); text-align:center; line-height:1.2; }
+.frasco-amounts { font-size:.68rem; font-weight:700; color:var(--muted); text-align:center; }
+.frasco-pct { font-size:.65rem; font-weight:800; color:var(--rosa); }
+.frasco-add-btn {
+  margin-top:.1rem; background:var(--rosa-soft); border:1.5px solid var(--rosa);
+  color:var(--rosa); border-radius:12px; padding:.2rem .65rem;
+  font-size:.65rem; font-weight:800; cursor:pointer; font-family:var(--font-body);
+}
+.frasco-del-btn {
+  position:absolute; top:.45rem; right:.55rem;
+  background:none; border:none; font-size:.85rem; cursor:pointer;
+  color:var(--muted); opacity:.5; padding:0;
+}
+.frasco-del-btn:hover { opacity:1; color:#e57373; }
+.frascos-empty { text-align:center; padding:2.5rem 1rem; color:var(--muted); font-size:.82rem; font-weight:600; }
+
+/* ── Frasco modal ── */
+.frasco-modal-back {
+  position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9999;
+  display:flex; align-items:center; justify-content:center; padding:1rem;
+}
+.frasco-modal {
+  background:var(--card); border-radius:22px; padding:1.4rem 1.2rem;
+  width:100%; max-width:360px; display:flex; flex-direction:column; gap:.8rem;
+  box-shadow:0 16px 48px rgba(0,0,0,.25);
+}
+.frasco-modal-title { font-size:1rem; font-weight:800; color:var(--text); margin:0; }
+.frasco-modal label { font-size:.65rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; display:block; margin-bottom:.2rem; }
+.frasco-modal input[type=text], .frasco-modal input[type=number] {
+  width:100%; box-sizing:border-box;
+  border:1.5px solid var(--border); border-radius:10px;
+  padding:.45rem .7rem; font-family:var(--font-body); font-size:.88rem;
+  color:var(--text); background:var(--surface); outline:none;
+}
+.frasco-modal input:focus { border-color:var(--rosa); }
+.frasco-modal-row { display:flex; gap:.6rem; }
+.frasco-modal-btns { display:flex; gap:.6rem; margin-top:.2rem; }
+.frasco-modal-cancel { flex:1; background:var(--surface); border:1.5px solid var(--border); border-radius:14px; padding:.5rem; font-family:var(--font-body); font-size:.78rem; font-weight:700; cursor:pointer; color:var(--muted); }
+.frasco-modal-ok { flex:2; background:var(--rosa); border:none; border-radius:14px; padding:.5rem; font-family:var(--font-body); font-size:.78rem; font-weight:800; cursor:pointer; color:white; }
+.frasco-emoji-picker { display:flex; flex-wrap:wrap; gap:.35rem; }
+.frasco-emoji-opt {
+  font-size:1.3rem; cursor:pointer; padding:.2rem .3rem; border-radius:8px;
+  border:2px solid transparent; transition:border .15s;
+}
+.frasco-emoji-opt.selected { border-color:var(--rosa); background:var(--rosa-soft); }
+
+/* ── Abono modal ── */
+.frasco-abono-modal { max-width:300px; }
+
+/* ── Vibe ── */
+.vibe-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:.5rem; }
+.vibe-desc { font-size:.75rem; color:var(--muted); font-weight:600; margin:0; }
+.vibe-add-btn { background:var(--rosa); color:white; border:none; border-radius:20px; padding:.42rem 1rem; font-size:.75rem; font-weight:700; cursor:pointer; font-family:var(--font-body); white-space:nowrap; }
+.vibe-summary-wrap { background:var(--card); border:1.5px solid var(--border); border-radius:18px; padding:1rem 1.1rem; margin-bottom:1rem; }
+.vibe-summary-title { font-size:.68rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:.7rem; }
+.vibe-bars { display:flex; flex-direction:column; gap:.5rem; margin-bottom:.6rem; }
+.vibe-bar-row { display:flex; align-items:center; gap:.6rem; }
+.vibe-bar-emoji { font-size:1.1rem; width:1.4rem; text-align:center; }
+.vibe-bar-track { flex:1; background:var(--surface); border-radius:20px; height:10px; overflow:hidden; }
+.vibe-bar-fill { height:100%; border-radius:20px; transition:width .6s ease; }
+.vibe-bar-label { font-size:.65rem; font-weight:700; color:var(--muted); min-width:52px; text-align:right; }
+.vibe-insight { font-size:.75rem; font-weight:700; color:var(--text); background:var(--rosa-soft); border-left:3px solid var(--rosa); border-radius:0 10px 10px 0; padding:.55rem .8rem; line-height:1.4; }
+.vibe-list { display:flex; flex-direction:column; gap:.6rem; padding-bottom:3rem; }
+.vibe-item {
+  background:var(--card); border:1.5px solid var(--border); border-radius:16px;
+  padding:.7rem .9rem; display:flex; align-items:center; gap:.8rem;
+  position:relative;
+}
+.vibe-item-emoji { font-size:1.5rem; flex-shrink:0; }
+.vibe-item-info { flex:1; min-width:0; }
+.vibe-item-desc { font-size:.82rem; font-weight:700; color:var(--text); }
+.vibe-item-meta { font-size:.65rem; color:var(--muted); font-weight:600; margin-top:.1rem; }
+.vibe-item-monto { font-size:.85rem; font-weight:800; color:var(--rosa); flex-shrink:0; }
+.vibe-item-del { background:none; border:none; font-size:.85rem; cursor:pointer; color:var(--muted); opacity:.5; padding:.2rem; }
+.vibe-item-del:hover { opacity:1; color:#e57373; }
+.vibe-empty { text-align:center; padding:2.5rem 1rem; color:var(--muted); font-size:.82rem; font-weight:600; }
+
+/* ── Vibe modal ── */
+.vibe-modal-back {
+  position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9999;
+  display:flex; align-items:center; justify-content:center; padding:1rem;
+}
+.vibe-modal {
+  background:var(--card); border-radius:22px; padding:1.4rem 1.2rem;
+  width:100%; max-width:360px; display:flex; flex-direction:column; gap:.8rem;
+  box-shadow:0 16px 48px rgba(0,0,0,.25);
+}
+.vibe-modal-title { font-size:1rem; font-weight:800; color:var(--text); margin:0; }
+.vibe-modal label { font-size:.65rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; display:block; margin-bottom:.2rem; }
+.vibe-modal input[type=text], .vibe-modal input[type=number] {
+  width:100%; box-sizing:border-box;
+  border:1.5px solid var(--border); border-radius:10px;
+  padding:.45rem .7rem; font-family:var(--font-body); font-size:.88rem;
+  color:var(--text); background:var(--surface); outline:none;
+}
+.vibe-modal input:focus { border-color:var(--rosa); }
+.vibe-emojis { display:flex; gap:.5rem; flex-wrap:wrap; }
+.vibe-emoji-opt {
+  display:flex; flex-direction:column; align-items:center; gap:.2rem;
+  cursor:pointer; padding:.35rem .5rem; border-radius:12px;
+  border:2px solid transparent; transition:border .15s; flex:1; min-width:60px;
+}
+.vibe-emoji-opt .ve-icon { font-size:1.5rem; }
+.vibe-emoji-opt .ve-lbl { font-size:.58rem; font-weight:700; color:var(--muted); text-align:center; line-height:1.2; }
+.vibe-emoji-opt.selected { border-color:var(--rosa); background:var(--rosa-soft); }
+.vibe-emoji-opt.selected .ve-lbl { color:var(--rosa); }
+.vibe-modal-btns { display:flex; gap:.6rem; margin-top:.2rem; }
+.vibe-modal-cancel { flex:1; background:var(--surface); border:1.5px solid var(--border); border-radius:14px; padding:.5rem; font-family:var(--font-body); font-size:.78rem; font-weight:700; cursor:pointer; color:var(--muted); }
+.vibe-modal-ok { flex:2; background:var(--rosa); border:none; border-radius:14px; padding:.5rem; font-family:var(--font-body); font-size:.78rem; font-weight:800; cursor:pointer; color:white; }
+</style>
+
+<script>
+(function(){
+'use strict';
+
+// ── Storage ──────────────────────────────────────────────────
+var FRASCOS_KEY = 'yuki_frascos_ahorro';
+var VIBE_KEY    = 'yuki_vibe_gastos';
+
+function loadFrascos() { try { return JSON.parse(localStorage.getItem(FRASCOS_KEY)||'[]'); } catch(e){ return []; } }
+function saveFrascos(arr) {
+  try { localStorage.setItem(FRASCOS_KEY, JSON.stringify(arr)); } catch(e){}
+  if (window.cloudSave) window.cloudSave(FRASCOS_KEY, arr);
+}
+function loadVibe() { try { return JSON.parse(localStorage.getItem(VIBE_KEY)||'[]'); } catch(e){ return []; } }
+function saveVibe(arr) {
+  try { localStorage.setItem(VIBE_KEY, JSON.stringify(arr)); } catch(e){}
+  if (window.cloudSave) window.cloudSave(VIBE_KEY, arr);
+}
+
+// ── Tab switcher ─────────────────────────────────────────────
+window.finShowMainTab = function(tab) {
+  var tabs = ['finTabGastos','finTabFrascos','finTabVibe'];
+  var btns = ['finMainTabGastos','finMainTabFrascos','finMainTabVibe'];
+  var keys = ['gastos','frascos','vibe'];
+  tabs.forEach(function(id, i) {
+    var el  = document.getElementById(id);
+    var btn = document.getElementById(btns[i]);
+    var active = keys[i] === tab;
+    if (el)  el.style.display  = active ? '' : 'none';
+    if (btn) { if(active) btn.classList.add('active'); else btn.classList.remove('active'); }
+  });
+  if (tab === 'frascos') renderFrascos();
+  if (tab === 'vibe')    renderVibe();
+};
+
+// ── FRASCOS ──────────────────────────────────────────────────
+var FRASCO_EMOJIS = ['🌸','💐','🌷','🌿','✈️','👗','👠','💻','🎮','☕','🍰','🎨','🎵','📚','💍','🏠','🌙','⭐','🦋','🐱'];
+var FRASCO_COLORS = ['#f9a8d4','#f0abfc','#c4b5fd','#a5f3fc','#6ee7b7','#fde68a','#fdba74','#fca5a5','#ddd6fe','#bae6fd'];
+
+function frascosUID(){ return 'fr_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
+
+function renderFrascos() {
+  var root = document.getElementById('frascosList');
+  if (!root) return;
+  var frascos = loadFrascos();
+  root.innerHTML = '';
+  if (frascos.length === 0) {
+    root.innerHTML = '<div class="frascos-empty">Aún no tienes frascos 🫙<br><span style="font-size:.72rem">¡Crea uno para tu primer sueño!</span></div>';
+    return;
+  }
+  frascos.forEach(function(fr) {
+    root.appendChild(buildFrascoCard(fr));
+  });
+}
+
+function buildFrascoCard(fr) {
+  var pct = fr.meta > 0 ? Math.min(100, Math.round((fr.ahorrado / fr.meta) * 100)) : 0;
+  var fillH = Math.round(pct * 0.52); // max fill height ~52px inside jar
+  var fillY  = 62 - fillH;
+  var color  = fr.color || '#f9a8d4';
+
+  var card = document.createElement('div');
+  card.className = 'frasco-card';
+
+  // Delete btn
+  var del = document.createElement('button');
+  del.className = 'frasco-del-btn';
+  del.textContent = '✕';
+  del.title = 'Eliminar frasco';
+  del.onclick = function(e) {
+    e.stopPropagation();
+    if (!confirm('¿Eliminar "'+fr.nombre+'"?')) return;
+    var arr = loadFrascos().filter(function(f){ return f.id !== fr.id; });
+    saveFrascos(arr);
+    renderFrascos();
+  };
+
+  // Jar SVG
+  var jarWrap = document.createElement('div');
+  jarWrap.className = 'frasco-jar-wrap';
+  jarWrap.innerHTML =
+    '<svg class="frasco-jar-svg" viewBox="0 0 72 88" xmlns="http://www.w3.org/2000/svg">'+
+      // Lid
+      '<rect x="18" y="4" width="36" height="10" rx="4" fill="'+color+'" opacity=".7"/>'+
+      '<rect x="14" y="12" width="44" height="5" rx="2" fill="'+color+'"/>'+
+      // Jar body outline
+      '<path d="M14 17 Q10 20 10 26 L10 76 Q10 84 18 84 L54 84 Q62 84 62 76 L62 26 Q62 20 58 17 Z" fill="var(--surface)" stroke="'+color+'" stroke-width="2"/>'+
+      // Liquid fill
+      '<clipPath id="jar-clip-'+fr.id+'">'+
+        '<path d="M12 17 Q10 20 10 26 L10 76 Q10 84 18 84 L54 84 Q62 84 62 76 L62 26 Q62 20 60 17 Z"/>'+
+      '</clipPath>'+
+      '<rect class="frasco-fill" x="10" y="'+fillY+'" width="52" height="'+fillH+'" fill="'+color+'" opacity=".45" clip-path="url(#jar-clip-'+fr.id+')"/>'+
+      // Shine
+      '<ellipse cx="22" cy="35" rx="4" ry="8" fill="white" opacity=".18"/>'+
+    '</svg>'+
+    '<div class="frasco-emoji-sticker">'+fr.emoji+'</div>';
+
+  var name = document.createElement('div');
+  name.className = 'frasco-name';
+  name.textContent = fr.nombre;
+
+  var amounts = document.createElement('div');
+  amounts.className = 'frasco-amounts';
+  var sym = fr.simbolo || '$';
+  amounts.textContent = sym+(fr.ahorrado||0).toLocaleString()+' / '+sym+(fr.meta||0).toLocaleString();
+
+  var pctEl = document.createElement('div');
+  pctEl.className = 'frasco-pct';
+  pctEl.textContent = pct+'% logrado ✨';
+
+  var abonoBtn = document.createElement('button');
+  abonoBtn.className = 'frasco-add-btn';
+  abonoBtn.textContent = '＋ Abonar';
+  abonoBtn.onclick = function(e) { e.stopPropagation(); frascosOpenAbono(fr); };
+
+  card.appendChild(del);
+  card.appendChild(jarWrap);
+  card.appendChild(name);
+  card.appendChild(amounts);
+  card.appendChild(pctEl);
+  card.appendChild(abonoBtn);
+
+  // Click to edit
+  card.onclick = function() { frascosOpenModal(fr); };
+  return card;
+}
+
+window.frascosOpenModal = function(fr) {
+  var old = document.getElementById('frascosModal');
+  if (old) old.remove();
+
+  var isEdit = !!fr;
+  fr = fr || { id: frascosUID(), nombre:'', emoji:'🌸', color: FRASCO_COLORS[loadFrascos().length % FRASCO_COLORS.length], meta:0, ahorrado:0, simbolo:'$' };
+
+  var back = document.createElement('div');
+  back.className = 'frasco-modal-back';
+  back.id = 'frascosModal';
+
+  var box = document.createElement('div');
+  box.className = 'frasco-modal';
+
+  var selectedEmoji = fr.emoji;
+  var selectedColor = fr.color;
+
+  box.innerHTML =
+    '<div class="frasco-modal-title">'+(isEdit ? '✏️ Editar frasco' : '🫙 Nuevo frasco')+'</div>'+
+    '<div><label>Nombre del sueño</label><input id="frNombre" type="text" placeholder="Ej: Viaje a Europa" maxlength="40" value="'+escHtml(fr.nombre)+'"></div>'+
+    '<div><label>Emoji 🌸</label><div class="frasco-emoji-picker" id="frEmojiPicker"></div></div>'+
+    '<div class="frasco-modal-row">'+
+      '<div style="flex:1"><label>Meta 🎯</label><input id="frMeta" type="number" min="0" placeholder="Ej: 5000" value="'+(fr.meta||'')+'"></div>'+
+      '<div style="flex:1"><label>Ya ahorrado</label><input id="frAhorrado" type="number" min="0" placeholder="0" value="'+(fr.ahorrado||'')+'"></div>'+
+    '</div>'+
+    '<div><label>Símbolo moneda</label><input id="frSimbolo" type="text" maxlength="3" placeholder="$" value="'+(fr.simbolo||'$')+'"></div>'+
+    '<div id="frColorRow"><label>Color del frasco</label><div style="display:flex;gap:.4rem;flex-wrap:wrap" id="frColorPicker"></div></div>'+
+    '<div id="frError" style="color:#e57373;font-size:.65rem;font-weight:700;min-height:.9rem"></div>'+
+    '<div class="frasco-modal-btns">'+
+      '<button class="frasco-modal-cancel" onclick="document.getElementById(\'frascosModal\').remove()">Cancelar</button>'+
+      '<button class="frasco-modal-ok" id="frSaveBtn">Guardar 🌸</button>'+
+    '</div>';
+
+  back.appendChild(box);
+  document.body.appendChild(back);
+
+  // Build emoji picker
+  var epick = document.getElementById('frEmojiPicker');
+  FRASCO_EMOJIS.forEach(function(em) {
+    var span = document.createElement('span');
+    span.className = 'frasco-emoji-opt' + (em === selectedEmoji ? ' selected' : '');
+    span.textContent = em;
+    span.onclick = function() {
+      selectedEmoji = em;
+      epick.querySelectorAll('.frasco-emoji-opt').forEach(function(s){ s.classList.remove('selected'); });
+      span.classList.add('selected');
+    };
+    epick.appendChild(span);
+  });
+
+  // Build color picker
+  var cpick = document.getElementById('frColorPicker');
+  FRASCO_COLORS.forEach(function(col) {
+    var swatch = document.createElement('div');
+    swatch.style.cssText = 'width:22px;height:22px;border-radius:50%;background:'+col+';cursor:pointer;border:2px solid '+(col===selectedColor?'var(--text)':'transparent')+';transition:border .15s;';
+    swatch.onclick = function() {
+      selectedColor = col;
+      cpick.querySelectorAll('div').forEach(function(s){ s.style.border='2px solid transparent'; });
+      swatch.style.border = '2px solid var(--text)';
+    };
+    cpick.appendChild(swatch);
+  });
+
+  setTimeout(function(){ var el=document.getElementById('frNombre'); if(el){el.focus();el.select();} }, 80);
+
+  document.getElementById('frSaveBtn').onclick = function() {
+    var nombre = (document.getElementById('frNombre').value||'').trim();
+    var meta    = parseFloat(document.getElementById('frMeta').value)||0;
+    var ahorrado= parseFloat(document.getElementById('frAhorrado').value)||0;
+    var simbolo = (document.getElementById('frSimbolo').value||'$').trim() || '$';
+    var errEl   = document.getElementById('frError');
+    if (!nombre) { errEl.textContent='El nombre es obligatorio'; return; }
+    fr.nombre   = nombre;
+    fr.emoji    = selectedEmoji;
+    fr.color    = selectedColor;
+    fr.meta     = meta;
+    fr.ahorrado = ahorrado;
+    fr.simbolo  = simbolo;
+    var arr = loadFrascos();
+    var idx = arr.findIndex(function(f){ return f.id===fr.id; });
+    if (idx >= 0) arr[idx] = fr; else arr.push(fr);
+    saveFrascos(arr);
+    back.remove();
+    renderFrascos();
+  };
+
+  back.addEventListener('click', function(e){ if(e.target===back) back.remove(); });
+};
+
+function frascosOpenAbono(fr) {
+  var old = document.getElementById('frascosAbonoModal');
+  if (old) old.remove();
+
+  var back = document.createElement('div');
+  back.className = 'frasco-modal-back';
+  back.id = 'frascosAbonoModal';
+
+  var sym = fr.simbolo || '$';
+  var box = document.createElement('div');
+  box.className = 'frasco-modal frasco-abono-modal';
+  box.innerHTML =
+    '<div class="frasco-modal-title">'+fr.emoji+' Abonar a "'+escHtml(fr.nombre)+'"</div>'+
+    '<div style="font-size:.72rem;color:var(--muted);font-weight:600">Ahorrado: '+sym+(fr.ahorrado||0)+' / Meta: '+sym+(fr.meta||0)+'</div>'+
+    '<div><label>Cuánto vas a abonar</label><input id="abonoMonto" type="number" min="0" placeholder="Ej: 200" style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:10px;padding:.45rem .7rem;font-family:var(--font-body);font-size:.88rem;color:var(--text);background:var(--surface);outline:none;"></div>'+
+    '<div id="abonoError" style="color:#e57373;font-size:.65rem;font-weight:700;min-height:.9rem"></div>'+
+    '<div class="frasco-modal-btns">'+
+      '<button class="frasco-modal-cancel" onclick="document.getElementById(\'frascosAbonoModal\').remove()">Cancelar</button>'+
+      '<button class="frasco-modal-ok" id="abonoOkBtn">¡Abonar! 🌸</button>'+
+    '</div>';
+
+  back.appendChild(box);
+  document.body.appendChild(back);
+  setTimeout(function(){ var el=document.getElementById('abonoMonto'); if(el) el.focus(); }, 80);
+
+  document.getElementById('abonoOkBtn').onclick = function() {
+    var monto = parseFloat(document.getElementById('abonoMonto').value)||0;
+    if (monto <= 0) { document.getElementById('abonoError').textContent='Ingresa un monto mayor a 0'; return; }
+    var arr = loadFrascos();
+    var idx = arr.findIndex(function(f){ return f.id===fr.id; });
+    if (idx >= 0) { arr[idx].ahorrado = (arr[idx].ahorrado||0) + monto; }
+    saveFrascos(arr);
+    back.remove();
+    renderFrascos();
+  };
+  back.addEventListener('click', function(e){ if(e.target===back) back.remove(); });
+}
+
+// ── VIBE DEL GASTO ────────────────────────────────────────────
+var VIBES = [
+  { emoji:'🛒', key:'necesidad',  label:'Necesidad',         color:'#81c784' },
+  { emoji:'✨', key:'valiosa',    label:'Capricho que valió', color:'#f9a8d4' },
+  { emoji:'🫠', key:'impulso',    label:'Impulso (me arrepiento)', color:'#e57373' },
+];
+
+function vibeUID(){ return 'vb_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
+
+function renderVibe() {
+  renderVibeSummary();
+  renderVibeList();
+}
+
+function renderVibeSummary() {
+  var root = document.getElementById('vibeSummary');
+  if (!root) return;
+  var items = loadVibe();
+  var now = new Date();
+  var thisMonth = items.filter(function(v) {
+    var d = new Date(v.fecha);
+    return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
+  });
+  if (thisMonth.length === 0) { root.innerHTML = ''; return; }
+
+  var counts = {}, totals = {};
+  VIBES.forEach(function(v){ counts[v.key]=0; totals[v.key]=0; });
+  thisMonth.forEach(function(v){ if(counts[v.vibe]!==undefined){ counts[v.vibe]++; totals[v.vibe]+=(v.monto||0); } });
+
+  var max = Math.max.apply(null, VIBES.map(function(v){ return totals[v.key]; })) || 1;
+
+  var barsHtml = VIBES.map(function(v) {
+    var pct = Math.round((totals[v.key]/max)*100);
+    return '<div class="vibe-bar-row">'+
+      '<span class="vibe-bar-emoji">'+v.emoji+'</span>'+
+      '<div class="vibe-bar-track"><div class="vibe-bar-fill" style="width:'+pct+'%;background:'+v.color+'"></div></div>'+
+      '<span class="vibe-bar-label">$'+totals[v.key].toLocaleString()+'</span>'+
+    '</div>';
+  }).join('');
+
+  // Insight
+  var impulsoTotal = totals['impulso'];
+  var totalAll = VIBES.reduce(function(s,v){ return s+totals[v.key]; }, 0);
+  var insight = '';
+  if (totalAll > 0) {
+    var impPct = Math.round(impulsoTotal/totalAll*100);
+    if (impPct >= 40) insight = '⚠️ Este mes el '+impPct+'% de tus gastos fueron por impulso. ¡Cuida ese dinero para tus frascos de ahorro! 🫙';
+    else if (impPct >= 20) insight = '💛 '+impPct+'% de impulsos este mes. Vas bien, pero puedes mejorar. ¡Tú puedes!';
+    else if (counts['valiosa'] >= counts['impulso']) insight = '🌸 ¡Muy bien! La mayoría de tus gastos han valido la pena este mes ✨';
+    else insight = '💚 Tus finanzas están muy conscientes este mes. ¡Sigue así! 🌿';
+  }
+
+  root.innerHTML =
+    '<div class="vibe-summary-title">📊 Resumen del mes</div>'+
+    '<div class="vibe-bars">'+barsHtml+'</div>'+
+    (insight ? '<div class="vibe-insight">'+insight+'</div>' : '');
+}
+
+function renderVibeList() {
+  var root = document.getElementById('vibeList');
+  if (!root) return;
+  var items = loadVibe().slice().reverse();
+  root.innerHTML = '';
+  if (items.length === 0) {
+    root.innerHTML = '<div class="vibe-empty">Aún no hay gastos registrados ✨<br><span style="font-size:.72rem">Registra tu primer gasto y ponle vibe</span></div>';
+    return;
+  }
+  items.forEach(function(it) {
+    var vibeInfo = VIBES.find(function(v){ return v.key===it.vibe; }) || VIBES[0];
+    var card = document.createElement('div');
+    card.className = 'vibe-item';
+    card.innerHTML =
+      '<div class="vibe-item-emoji">'+vibeInfo.emoji+'</div>'+
+      '<div class="vibe-item-info">'+
+        '<div class="vibe-item-desc">'+escHtml(it.desc)+'</div>'+
+        '<div class="vibe-item-meta">'+vibeInfo.label+' · '+(it.fecha||'')+'</div>'+
+      '</div>'+
+      '<div class="vibe-item-monto">$'+(it.monto||0).toLocaleString()+'</div>';
+    var del = document.createElement('button');
+    del.className = 'vibe-item-del';
+    del.textContent = '✕';
+    del.onclick = function() {
+      if (!confirm('¿Eliminar este gasto?')) return;
+      var arr = loadVibe().filter(function(x){ return x.id!==it.id; });
+      saveVibe(arr);
+      renderVibe();
+    };
+    card.appendChild(del);
+    root.appendChild(card);
+  });
+}
+
+window.vibeOpenModal = function(it) {
+  var old = document.getElementById('vibeModal');
+  if (old) old.remove();
+
+  var isEdit = !!it;
+  it = it || { id:vibeUID(), desc:'', monto:0, vibe:'necesidad', fecha:new Date().toISOString().slice(0,10) };
+
+  var back = document.createElement('div');
+  back.className = 'vibe-modal-back';
+  back.id = 'vibeModal';
+
+  var box = document.createElement('div');
+  box.className = 'vibe-modal';
+
+  var selectedVibe = it.vibe || 'necesidad';
+
+  box.innerHTML =
+    '<div class="vibe-modal-title">✨ '+(isEdit?'Editar':'Registrar')+' gasto</div>'+
+    '<div><label>Descripción</label><input id="vibeDesc" type="text" placeholder="Ej: Ropa en el mall" maxlength="60" value="'+escHtml(it.desc)+'"></div>'+
+    '<div><label>Monto ($)</label><input id="vibeMonto" type="number" min="0" placeholder="0" value="'+(it.monto||'')+'"></div>'+
+    '<div><label>¿Qué vibe fue este gasto? 🌸</label>'+
+      '<div class="vibe-emojis" id="vibeEmojis">'+
+        VIBES.map(function(v){
+          return '<div class="vibe-emoji-opt'+(v.key===selectedVibe?' selected':'')+'" data-vibe="'+v.key+'">'+
+            '<span class="ve-icon">'+v.emoji+'</span>'+
+            '<span class="ve-lbl">'+v.label+'</span>'+
+          '</div>';
+        }).join('')+
+      '</div>'+
+    '</div>'+
+    '<div><label>Fecha</label><input id="vibeFecha" type="date" value="'+it.fecha+'"></div>'+
+    '<div id="vibeError" style="color:#e57373;font-size:.65rem;font-weight:700;min-height:.9rem"></div>'+
+    '<div class="vibe-modal-btns">'+
+      '<button class="vibe-modal-cancel" onclick="document.getElementById(\'vibeModal\').remove()">Cancelar</button>'+
+      '<button class="vibe-modal-ok" id="vibeSaveBtn">Guardar ✨</button>'+
+    '</div>';
+
+  back.appendChild(box);
+  document.body.appendChild(back);
+  setTimeout(function(){ var el=document.getElementById('vibeDesc'); if(el){el.focus();el.select();} }, 80);
+
+  // Vibe picker
+  box.querySelectorAll('.vibe-emoji-opt').forEach(function(opt) {
+    opt.onclick = function() {
+      selectedVibe = opt.dataset.vibe;
+      box.querySelectorAll('.vibe-emoji-opt').forEach(function(o){ o.classList.remove('selected'); });
+      opt.classList.add('selected');
+    };
+  });
+
+  document.getElementById('vibeSaveBtn').onclick = function() {
+    var desc  = (document.getElementById('vibeDesc').value||'').trim();
+    var monto = parseFloat(document.getElementById('vibeMonto').value)||0;
+    var fecha = document.getElementById('vibeFecha').value || new Date().toISOString().slice(0,10);
+    var errEl = document.getElementById('vibeError');
+    if (!desc) { errEl.textContent='La descripción es obligatoria'; return; }
+    if (monto <= 0) { errEl.textContent='Ingresa un monto mayor a 0'; return; }
+    it.desc  = desc;
+    it.monto = monto;
+    it.vibe  = selectedVibe;
+    it.fecha = fecha;
+    var arr = loadVibe();
+    var idx = arr.findIndex(function(x){ return x.id===it.id; });
+    if (idx >= 0) arr[idx] = it; else arr.push(it);
+    saveVibe(arr);
+    back.remove();
+    renderVibe();
+  };
+
+  back.addEventListener('click', function(e){ if(e.target===back) back.remove(); });
+};
+
+// ── Helpers ──────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+})();
+</script>
