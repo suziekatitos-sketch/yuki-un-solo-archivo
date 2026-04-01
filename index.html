@@ -620,6 +620,66 @@ window.kittyConfirm = function(msg, onYes, onNo) {
   }
   .day-slot-wrap:last-child { border-right: none; }
 
+  /* ── Vista HOY: columnas verticales anchas en lugar de filas ── */
+  .day-slots-row-hoy {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: .75rem;
+    padding: .9rem;
+    background: var(--bg);
+  }
+  .day-slots-row-hoy .day-slot-wrap {
+    border-right: none;
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: .85rem .9rem 1rem;
+    background: var(--card);
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    min-height: 140px;
+  }
+  .day-slots-row-hoy .day-slot-wrap:last-child { border-right: 1.5px solid var(--border); }
+  .day-slots-row-hoy .slot-manana-cell-wrap { border-top: 3px solid var(--manana-border) !important; }
+  .day-slots-row-hoy .slot-tarde-cell-wrap  { border-top: 3px solid var(--tarde-border)  !important; }
+  .day-slots-row-hoy .slot-noche-cell-wrap  { border-top: 3px solid var(--noche-border)  !important; }
+  /* Etiqueta del slot más grande en vista hoy */
+  .day-slots-row-hoy .day-slot-label {
+    font-size: .68rem;
+    margin-bottom: .5rem;
+    padding: .25rem .55rem;
+  }
+  .day-slots-row-hoy .day-slot-label .slot-icon { font-size: 1rem; }
+  /* Cell sin borde propio dentro de vista hoy (el wrap ya tiene el borde) */
+  .day-slots-row-hoy .cell {
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    min-height: 60px;
+    padding: 0;
+    flex: 1;
+  }
+  .day-slots-row-hoy .cell.today-cell {
+    background: transparent;
+    box-shadow: none;
+  }
+  .day-slots-row-hoy .cell:hover { border: none; }
+  /* Pills un poco más anchas en vista hoy */
+  .day-slots-row-hoy .task-pill {
+    font-size: .78rem;
+    padding: .4rem .6rem;
+  }
+  @media (max-width: 480px) {
+    .day-slots-row-hoy {
+      grid-template-columns: 1fr;
+      gap: .55rem;
+    }
+    .day-slots-row-hoy .day-slot-wrap {
+      min-height: auto;
+    }
+  }
+
   .day-slot-label {
     display: flex;
     align-items: center;
@@ -5916,7 +5976,7 @@ function todayKey() { return dateKey(new Date()); }
   var YUKI_LANGS = {
     es: {
       // Nav / global
-      inicio:'Inicio', semana:'Mi Semana', logros:'Logros', habitos:'Hábitos',
+      inicio:'Inicio', semana:'Agenda', logros:'Logros', habitos:'Hábitos',
       salud:'Mi Salud', concentro:'Me Concentro', journal:'Journal', config:'Config',
       tareas:'Tareas', rutinas:'Rutinas', horario:'Horario', fe:'Fe', calma:'Calma',
       // Config
@@ -5963,7 +6023,7 @@ function todayKey() { return dateKey(new Date()); }
       salud_label:'salud',
     },
     en: {
-      inicio:'Home', semana:'My Week', logros:'Achievements', habitos:'Habits',
+      inicio:'Home', semana:'Agenda', logros:'Achievements', habitos:'Habits',
       salud:'My Health', concentro:'Focus', journal:'Journal', config:'Settings',
       tareas:'Tasks', rutinas:'Routines', horario:'Schedule', fe:'Faith', calma:'Calm',
       ajustes:'settings', configuracion:'Settings', idioma:'Language',
@@ -6006,7 +6066,7 @@ function todayKey() { return dateKey(new Date()); }
       salud_label:'health',
     },
     fr: {
-      inicio:'Accueil', semana:'Ma Semaine', logros:'Succès', habitos:'Habitudes',
+      inicio:'Accueil', semana:'Agenda', logros:'Succès', habitos:'Habitudes',
       salud:'Ma Santé', concentro:'Concentration', journal:'Journal', config:'Réglages',
       tareas:'Tâches', rutinas:'Routines', horario:'Horaire', fe:'Foi', calma:'Calme',
       ajustes:'réglages', configuracion:'Configuration', idioma:'Langue',
@@ -6049,7 +6109,7 @@ function todayKey() { return dateKey(new Date()); }
       salud_label:'santé',
     },
     de: {
-      inicio:'Startseite', semana:'Meine Woche', logros:'Erfolge', habitos:'Gewohnheiten',
+      inicio:'Startseite', semana:'Agenda', logros:'Erfolge', habitos:'Gewohnheiten',
       salud:'Meine Gesundheit', concentro:'Fokus', journal:'Tagebuch', config:'Einstellungen',
       tareas:'Aufgaben', rutinas:'Routinen', horario:'Stundenplan', fe:'Glaube', calma:'Ruhe',
       ajustes:'einstellungen', configuracion:'Einstellungen', idioma:'Sprache',
@@ -7171,7 +7231,7 @@ function todayKey() { return dateKey(new Date()); }
         habitos = window._habitosData || JSON.parse(localStorage.getItem('habitos_data') || '[]');
       } catch(e){}
       var total = habitos.length;
-      var done  = habitos.filter(function(h){ return h.completions && h.completions[todayKey]; }).length;
+      var done  = habitos.filter(function(h){ return h.completions && habitoIsDone(h, todayKey); }).length;
       var pct   = total > 0 ? Math.round(done/total*100) : 0;
       var accent = done === total && total > 0 ? 'var(--verde)' : 'var(--alerta)';
       row.appendChild(makeWidget(
@@ -7481,6 +7541,7 @@ function todayKey() { return dateKey(new Date()); }
       setTimeout(function(){ if(window._renderCitaWidget) window._renderCitaWidget(); }, 400);
       setTimeout(function(){ if(window.renderVersiones) window.renderVersiones(); }, 450);
       setTimeout(function(){ if(window.renderReminderBanner) window.renderReminderBanner(); }, 300);
+      setTimeout(function(){ if(typeof renderTimeline === 'function') renderTimeline(); }, 300);
     }
     if (pageId === 'page-calma') setTimeout(function(){
       eventoRender();
@@ -7795,7 +7856,7 @@ function todayKey() { return dateKey(new Date()); }
     try {
       var habitos = window._habitosData || JSON.parse(localStorage.getItem('habitos_data') || '[]');
       if (habitos.length > 0) {
-        var doneAyer = habitos.filter(function(h){ return h.completions && h.completions[dkAyer]; }).length;
+        var doneAyer = habitos.filter(function(h){ return h.completions && habitoIsDone(h, dkAyer); }).length;
         var totalH   = habitos.length;
         var pctH     = totalH > 0 ? doneAyer / totalH : 0;
         if (pctH >= 0.75) {
@@ -9352,6 +9413,24 @@ function todayKey() { return dateKey(new Date()); }
   setTimeout(renderMetas, 150);
 })();
 </script>
+
+<!-- ══════════════════════════════════════════
+     LÍNEA DE TIEMPO · movida a Inicio
+══════════════════════════════════════════ -->
+<section class="timeline-section" id="sec-timeline" style="margin-top:0">
+  <span class="section-sub">visualización del día</span>
+  <h2 class="section-title"><em>Mi Línea</em> de Tiempo <span style="font-style:normal;font-weight:400">⋆˚꩜｡</span></h2>
+  <div class="timeline-wrap">
+    <div class="tl-day-selector" id="tlDaySelector"></div>
+    <div class="tl-track" id="tlTrack"></div>
+    <div class="tl-day-prog">
+      <span class="tl-prog-label">Progreso de hoy</span>
+      <div class="tl-prog-track"><div class="tl-prog-fill" id="tlProgFill"></div></div>
+      <span class="tl-prog-stars" id="tlProgStars"></span>
+    </div>
+  </div>
+</section>
+
 </div><!-- end page-inicio -->
 
 <!-- ══════════════════════════════════════════
@@ -9858,19 +9937,105 @@ function todayKey() { return dateKey(new Date()); }
 
 <div id="page-semana" class="page-section">
 <header class="header" id="sec-semana">
-  <span class="week-label">🌿 organizador semanal</span>
-  <h1><em>Mi Semana</em></h1>
-  <div class="nav-week">
+  <span class="week-label">🗓️ organizador</span>
+  <h1><em>Agenda</em></h1>
+
+  <!-- Tabs de vista -->
+  <div class="agenda-view-tabs" id="agendaViewTabs">
+    <button class="agenda-view-tab active" data-vista="hoy">Hoy</button>
+    <button class="agenda-view-tab" data-vista="3dias">3 días</button>
+    <button class="agenda-view-tab" data-vista="semana">Mi Semana</button>
+    <button class="agenda-view-tab" data-vista="mes">Mes</button>
+  </div>
+
+  <div class="nav-week" id="agendaNavWeek" style="display:none">
     <button class="nav-btn" id="prevWeek">‹</button>
     <span class="current-week" id="weekLabel"></span>
     <button class="nav-btn" id="nextWeek">›</button>
   </div>
 </header>
 
-<div class="grid-outer" id="gridOuter"></div>
+<style>
+  .agenda-view-tabs {
+    display: flex;
+    gap: .35rem;
+    flex-wrap: wrap;
+    padding: .4rem 1rem .2rem;
+    max-width: 780px;
+    margin: 0 auto;
+  }
+  .agenda-view-tab {
+    padding: .35rem .85rem;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    font-family: var(--font-body);
+    font-size: .75rem;
+    font-weight: 700;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .agenda-view-tab:hover { border-color: var(--rosa); color: var(--rosa); }
+  .agenda-view-tab.active { background: var(--rosa); border-color: var(--rosa); color: white; }
 
-<div class="week-progress">
-  <span class="prog-label">Progreso semanal</span>
+  /* Vista mes */
+  .agenda-mes-wrap { max-width: 780px; margin: 0 auto; padding: .8rem 1rem 2rem; }
+  .agenda-mes-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: .8rem; }
+  .agenda-mes-nav button { background: none; border: none; font-size: 1.1rem; cursor: pointer; color: var(--muted); padding: .2rem .5rem; }
+  .agenda-mes-nav span { font-size: .88rem; font-weight: 800; color: var(--text); }
+  .agenda-mes-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; }
+  .agenda-mes-head { text-align: center; font-size: .6rem; font-weight: 800; color: var(--muted2); padding: .25rem 0; text-transform: uppercase; }
+  .agenda-mes-cell {
+    min-height: 52px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    padding: .25rem .3rem;
+    cursor: pointer;
+    transition: border-color .15s;
+    position: relative;
+  }
+  .agenda-mes-cell:hover { border-color: var(--rosa); }
+  .agenda-mes-cell.today { background: var(--rosa-soft); border-color: var(--rosa); }
+  .agenda-mes-cell.other-month { opacity: .38; }
+  .agenda-mes-cell-num { font-size: .72rem; font-weight: 800; color: var(--text); }
+  .agenda-mes-cell.today .agenda-mes-cell-num { color: var(--rosa); }
+  .agenda-mes-pill-mini {
+    font-size: .52rem; font-weight: 700;
+    border-radius: 6px; padding: .08rem .28rem;
+    margin-top: .12rem;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 100%;
+    display: block;
+  }
+  .agenda-mes-more { font-size: .5rem; color: var(--muted2); font-weight: 700; margin-top: .1rem; }
+  /* Modal día del mes */
+  .agenda-day-modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(244,167,192,.18);
+    backdrop-filter: blur(4px);
+    z-index: 9200;
+    display: flex; align-items: flex-end; justify-content: center;
+    padding: 1rem;
+  }
+  .agenda-day-modal-box {
+    background: var(--card);
+    border-radius: 20px 20px 0 0;
+    width: 100%; max-width: 540px;
+    max-height: 80vh; overflow-y: auto;
+    padding: 1.2rem 1.4rem 2rem;
+    box-shadow: 0 -4px 32px rgba(0,0,0,.12);
+  }
+  .agenda-day-modal-title { font-family: var(--font-title); font-style: italic; font-size: 1.1rem; font-weight: 700; color: var(--text); margin-bottom: .9rem; }
+</style>
+
+<div class="grid-outer" id="gridOuter"></div>
+<!-- Vista mes (oculta por defecto) -->
+<div id="agendaMesWrap" style="display:none"></div>
+
+<div class="week-progress" id="agendaProgress">
+  <span class="prog-label">Progreso del día</span>
   <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
   <span class="prog-pct" id="progPct">0%</span>
 </div>
@@ -19018,6 +19183,7 @@ const SLOTS  = [
 
 // --- STATE ------------------------------------------------
 let weekOffset = 0;
+let agendaVista = 'hoy'; // 'hoy' | '3dias' | 'semana' | 'mes'
 
 // Recurring tasks: array of { id, text, slotId, recurrence, days, interval, createdAt }
 // recurrence: 'daily' | 'weekly' | 'once' | 'custom'
@@ -19084,19 +19250,56 @@ function completionKey(taskId, date) {
 
 // --- RENDER -----------------------------------------------
 function render() {
-  const dates = getWeekDates(weekOffset);
+  // Vista Mes tiene su propio render
+  if (agendaVista === 'mes') { renderMes(); return; }
 
-  // Etiqueta semana: Lun 9 - Dom 15 mar
+  const allDates = getWeekDates(weekOffset);
+  let dates;
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  if (agendaVista === 'hoy') {
+    // Solo el día de hoy (o el día correspondiente si el offset no es 0)
+    dates = allDates.filter(d => {
+      const dd = new Date(d); dd.setHours(0,0,0,0);
+      return dd.getTime() === today.getTime();
+    });
+    if (dates.length === 0) dates = [today]; // fallback
+  } else if (agendaVista === '3dias') {
+    // Hoy + mañana + pasado mañana
+    dates = [0,1,2].map(i => { const d = new Date(today); d.setDate(today.getDate()+i); return d; });
+  } else {
+    // semana completa
+    dates = allDates;
+  }
+
+  // Etiqueta de navegación
+  const _wl = document.getElementById('weekLabel');
   const fmtShort = d => d.toLocaleDateString('es-MX', {weekday:'short', day:'numeric'});
   const fmtMonth = d => d.toLocaleDateString('es-MX', {month:'short'});
-  const _wl = document.getElementById('weekLabel');
-  if (_wl) _wl.textContent = fmtShort(dates[0]) + ' — ' + fmtShort(dates[6]) + ' ' + fmtMonth(dates[6]);
+  if (_wl) {
+    if (agendaVista === 'hoy') {
+      _wl.textContent = dates[0].toLocaleDateString('es-MX', {weekday:'long', day:'numeric', month:'long'});
+    } else if (agendaVista === '3dias') {
+      _wl.textContent = fmtShort(dates[0]) + ' — ' + fmtShort(dates[2]);
+    } else {
+      _wl.textContent = fmtShort(allDates[0]) + ' — ' + fmtShort(allDates[6]) + ' ' + fmtMonth(allDates[6]);
+    }
+  }
+
+  // Mostrar/ocultar nav de semana
+  const navWeek = document.getElementById('agendaNavWeek');
+  if (navWeek) navWeek.style.display = (agendaVista === 'semana') ? '' : 'none';
 
   const container = document.getElementById('gridOuter');
   if (!container) return;
   container.innerHTML = '';
+  document.getElementById('agendaMesWrap').style.display = 'none';
+  container.style.display = '';
 
-  // Layout VERTICAL: cada día es un bloque
+  // Progreso label
+  const progLabel = document.querySelector('#agendaProgress .prog-label');
+  if (progLabel) progLabel.textContent = agendaVista === 'hoy' ? 'Progreso del día' : agendaVista === 'semana' ? 'Progreso semanal' : 'Progreso';
+
   let todayBlock = null;
 
   dates.forEach((date) => {
@@ -19105,19 +19308,24 @@ function render() {
     const jsDay = date.getDay();
     const dayIdx = jsDay === 0 ? 6 : jsDay - 1;
 
-    // Cabecera del día
     const dayBlock = document.createElement('div');
-    dayBlock.className = 'day-block' + (isToday ? ' today-block' : '') + (isPast ? ' day-collapsed' : '');
+    // En vista hoy no colapsar pasados
+    const showCollapsed = isPast && agendaVista !== 'hoy';
+    dayBlock.className = 'day-block' + (isToday ? ' today-block' : '') + (showCollapsed ? ' day-collapsed' : '');
+    // En vista hoy quitar el borde/fondo del bloque exterior (las columnas tienen su propio estilo)
+    if (agendaVista === 'hoy') {
+      dayBlock.style.cssText = 'background:transparent;border:none;box-shadow:none;border-radius:0';
+    }
 
     const dayHeader = document.createElement('div');
-    dayHeader.className = 'day-block-header' + (isPast ? ' day-header-collapsible' : '');
+    dayHeader.className = 'day-block-header' + (showCollapsed ? ' day-header-collapsible' : '');
     dayHeader.innerHTML =
       '<span class="day-block-name">' + date.toLocaleDateString('es-MX', {weekday:'short'}).replace('.','').toUpperCase() + '</span>' +
       '<span class="day-block-num">' + date.toLocaleDateString('es-MX', {day:'numeric', month:'short'}) + '</span>' +
       (isToday ? '<span class="day-block-today-badge">hoy</span>' : '') +
-      (isPast ? '<span class="day-collapse-chevron">›</span>' : '');
+      (showCollapsed ? '<span class="day-collapse-chevron">›</span>' : '');
 
-    if (isPast) {
+    if (showCollapsed) {
       dayHeader.addEventListener('click', function() {
         dayBlock.classList.toggle('day-collapsed');
       });
@@ -19125,13 +19333,21 @@ function render() {
 
     dayBlock.appendChild(dayHeader);
 
-    // Franjas del día (mañana, tarde, noche) en fila
+    // En vista hoy ocultar el header del día (es redundante, ya dice "hoy" en el badge del tab)
+    if (agendaVista === 'hoy') dayHeader.style.display = 'none';
+
     const slotsRow = document.createElement('div');
-    slotsRow.className = 'day-slots-row';
+    slotsRow.className = 'day-slots-row' + (agendaVista === 'hoy' ? ' day-slots-row-hoy' : '');
 
     SLOTS.forEach(slot => {
       const slotWrap = document.createElement('div');
       slotWrap.className = 'day-slot-wrap';
+      // En vista hoy: añadir color de borde superior directamente al wrap
+      if (agendaVista === 'hoy') {
+        const borderColors = { m: 'var(--manana-border)', t: 'var(--tarde-border)', n: 'var(--noche-border)' };
+        slotWrap.style.borderTopColor = borderColors[slot.id] || 'var(--border)';
+        slotWrap.style.borderTopWidth = '3px';
+      }
 
       const slotLabel = document.createElement('div');
       slotLabel.className = 'day-slot-label ' + slot.cls;
@@ -19158,8 +19374,11 @@ function render() {
 
   updateProgress();
 
-  // Auto-scroll a hoy
-  if (todayBlock) {
+  // Mostrar/ocultar barra de progreso según vista
+  var progEl = document.getElementById('agendaProgress');
+  if (progEl) progEl.style.display = '';
+
+  if (todayBlock && agendaVista !== 'semana') {
     setTimeout(function() {
       todayBlock.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 120);
@@ -19561,6 +19780,215 @@ function saveTaskModal() {
 // --- NAVIGATION --------------------------------------------
 var _pW = document.getElementById('prevWeek'); if(_pW) _pW.onclick = () => { weekOffset--; render(); };
 var _nW = document.getElementById('nextWeek'); if(_nW) _nW.onclick = () => { weekOffset++; render(); };
+
+// ── Tabs de vista de Agenda ──────────────────────────────────────
+// Diferido para que SLOTS, isTodayDate etc. ya estén definidos
+setTimeout(function() {
+  var tabs = document.querySelectorAll('.agenda-view-tab');
+  tabs.forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      tabs.forEach(function(t){ t.classList.remove('active'); });
+      tab.classList.add('active');
+      agendaVista = tab.dataset.vista;
+      weekOffset = 0;
+      render();
+    });
+  });
+}, 0);
+
+// ── Vista mes ──────────────────────────────────────────────────
+var _mesYear  = new Date().getFullYear();
+var _mesMonth = new Date().getMonth();
+var _mesDayModalOpen = false;
+
+function renderMes() {
+  var container = document.getElementById('gridOuter');
+  var mesWrap   = document.getElementById('agendaMesWrap');
+  if (!mesWrap) return;
+  container.style.display = 'none';
+  mesWrap.style.display   = '';
+  document.getElementById('agendaNavWeek').style.display = 'none';
+  mesWrap.innerHTML = '';
+
+  var MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var DIAS_CORTOS = ['L','M','X','J','V','S','D'];
+
+  var wrap = document.createElement('div');
+  wrap.className = 'agenda-mes-wrap';
+
+  // Nav
+  var nav = document.createElement('div');
+  nav.className = 'agenda-mes-nav';
+  var prevBtn = document.createElement('button');
+  prevBtn.textContent = '‹';
+  prevBtn.onclick = function() { _mesMonth--; if(_mesMonth<0){_mesMonth=11;_mesYear--;} renderMes(); };
+  var nextBtn = document.createElement('button');
+  nextBtn.textContent = '›';
+  nextBtn.onclick = function() { _mesMonth++; if(_mesMonth>11){_mesMonth=0;_mesYear++;} renderMes(); };
+  var lbl = document.createElement('span');
+  lbl.textContent = MESES[_mesMonth] + ' ' + _mesYear;
+  nav.appendChild(prevBtn); nav.appendChild(lbl); nav.appendChild(nextBtn);
+  wrap.appendChild(nav);
+
+  // Grid
+  var grid = document.createElement('div');
+  grid.className = 'agenda-mes-grid';
+
+  // Cabeceras días
+  DIAS_CORTOS.forEach(function(d) {
+    var h = document.createElement('div');
+    h.className = 'agenda-mes-head';
+    h.textContent = d;
+    grid.appendChild(h);
+  });
+
+  var today = new Date(); today.setHours(0,0,0,0);
+  var firstDay = new Date(_mesYear, _mesMonth, 1);
+  var startDow = firstDay.getDay(); // 0=dom
+  var offset   = startDow === 0 ? 6 : startDow - 1; // ajustar a lunes
+  var daysInMonth = new Date(_mesYear, _mesMonth+1, 0).getDate();
+  var daysInPrevMonth = new Date(_mesYear, _mesMonth, 0).getDate();
+
+  // Días del mes anterior (relleno)
+  for (var i = offset; i > 0; i--) {
+    var cell = document.createElement('div');
+    cell.className = 'agenda-mes-cell other-month';
+    var num = document.createElement('div');
+    num.className = 'agenda-mes-cell-num';
+    num.textContent = daysInPrevMonth - i + 1;
+    cell.appendChild(num);
+    grid.appendChild(cell);
+  }
+
+  // Días del mes actual
+  for (var day = 1; day <= daysInMonth; day++) {
+    var cellDate = new Date(_mesYear, _mesMonth, day);
+    var dk = dateKey(cellDate);
+    var isToday = cellDate.getTime() === today.getTime();
+
+    var cell = document.createElement('div');
+    cell.className = 'agenda-mes-cell' + (isToday ? ' today' : '');
+
+    var num = document.createElement('div');
+    num.className = 'agenda-mes-cell-num';
+    num.textContent = day;
+    cell.appendChild(num);
+
+    // Tareas del día (miniatura)
+    var dayTasks = recurringTasks.filter(function(t){ return taskVisibleOnDate(t, cellDate); });
+    var MAX_SHOW = 2;
+    dayTasks.slice(0, MAX_SHOW).forEach(function(t) {
+      var slotInfo = SLOTS.find(function(s){ return s.id === t.slotId; }) || SLOTS[0];
+      var pill = document.createElement('span');
+      pill.className = 'agenda-mes-pill-mini';
+      var cKey = completionKey(t.id, cellDate);
+      var done = !!completions[cKey];
+      var colors = { m:'#fb923c', t:'#60a5fa', n:'#c084fc' };
+      pill.style.cssText = 'background:' + (colors[t.slotId]||'var(--rosa)') + '22;color:' + (colors[t.slotId]||'var(--rosa)') + ';' + (done?'text-decoration:line-through;opacity:.6':'');
+      pill.textContent = (done?'✓ ':'') + t.text;
+      cell.appendChild(pill);
+    });
+    if (dayTasks.length > MAX_SHOW) {
+      var more = document.createElement('div');
+      more.className = 'agenda-mes-more';
+      more.textContent = '+' + (dayTasks.length - MAX_SHOW) + ' más';
+      cell.appendChild(more);
+    }
+
+    // Clic → abrir detalle del día
+    cell.onclick = (function(d, dkk) {
+      return function() { abrirDiaModal(d, dkk); };
+    })(cellDate, dk);
+
+    grid.appendChild(cell);
+  }
+
+  // Relleno días del mes siguiente
+  var totalCells = offset + daysInMonth;
+  var remaining  = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+  for (var j = 1; j <= remaining; j++) {
+    var cell = document.createElement('div');
+    cell.className = 'agenda-mes-cell other-month';
+    var num = document.createElement('div');
+    num.className = 'agenda-mes-cell-num';
+    num.textContent = j;
+    cell.appendChild(num);
+    grid.appendChild(cell);
+  }
+
+  wrap.appendChild(grid);
+  mesWrap.appendChild(wrap);
+
+  // Progreso: ocultar en vista mes
+  var progEl = document.getElementById('agendaProgress');
+  if (progEl) progEl.style.display = 'none';
+}
+
+// Modal detalle de un día (desde vista mes)
+function abrirDiaModal(date, dk) {
+  var backdrop = document.createElement('div');
+  backdrop.className = 'agenda-day-modal-backdrop';
+  backdrop.onclick = function(e){ if(e.target===backdrop) backdrop.remove(); };
+
+  var box = document.createElement('div');
+  box.className = 'agenda-day-modal-box';
+
+  var MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  var titulo = date.toLocaleDateString('es-MX', {weekday:'long'}) + ', ' + date.getDate() + ' de ' + MESES[date.getMonth()];
+
+  var titleEl = document.createElement('div');
+  titleEl.className = 'agenda-day-modal-title';
+  titleEl.textContent = titulo;
+  box.appendChild(titleEl);
+
+  var closeBtn = document.createElement('button');
+  closeBtn.textContent = '✕';
+  closeBtn.style.cssText = 'position:absolute;top:1rem;right:1.1rem;background:none;border:none;font-size:1rem;cursor:pointer;color:var(--muted2)';
+  box.appendChild(closeBtn);
+  closeBtn.onclick = function(){ backdrop.remove(); };
+
+  var dayTasks = recurringTasks.filter(function(t){ return taskVisibleOnDate(t, date); });
+
+  if (!dayTasks.length) {
+    var empty = document.createElement('div');
+    empty.style.cssText = 'font-size:.82rem;color:var(--muted);font-style:italic;padding:.5rem 0';
+    empty.textContent = 'Sin tareas para este día 🌸';
+    box.appendChild(empty);
+  }
+
+  SLOTS.forEach(function(slot) {
+    var slotTasks = dayTasks.filter(function(t){ return t.slotId === slot.id; });
+    if (!slotTasks.length) return;
+
+    var slotHead = document.createElement('div');
+    slotHead.style.cssText = 'font-size:.7rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:1rem 0 .4rem';
+    slotHead.textContent = slot.icon + ' ' + slot.name;
+    box.appendChild(slotHead);
+
+    slotTasks.forEach(function(t) {
+      var cKey = completionKey(t.id, date);
+      var done = !!completions[cKey];
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:.6rem;padding:.45rem .6rem;border-radius:10px;background:var(--surface);border:1.5px solid var(--border);margin-bottom:.35rem;cursor:pointer';
+      row.innerHTML =
+        '<span style="font-size:.85rem;'+(done?'color:var(--rosa)':'color:var(--muted)')+'">'+( done?'✓':'○')+'</span>' +
+        '<span style="flex:1;font-size:.82rem;font-weight:700;color:var(--text);'+(done?'text-decoration:line-through;opacity:.6':'')+'">'+t.text+'</span>' +
+        '<span style="font-size:.65rem;color:var(--muted2)">'+slot.name+'</span>';
+      row.onclick = function() {
+        openTaskTimer(t.id, t.text, date);
+        backdrop.remove();
+      };
+      box.appendChild(row);
+    });
+  });
+
+  backdrop.appendChild(box);
+  document.body.appendChild(backdrop);
+}
+
+// Asegurarse de mostrar progreso en vistas normales — integrado directamente en render()
+
+// Renderizar vista hoy por defecto — se llama al final del script principal
 
 // --- SYNC FROM CLOUD ---------------------------------------
 window.syncFromCloud = function() {
@@ -21318,8 +21746,6 @@ window.archiveConfirmar = function() {
   if (chip && window.starBurst) starBurst(chip);
 };
 
-// Override render to also re-render checkin/spark when week changes
-const _origRender = render;
 // patch nav buttons to also refresh extra sections
 document.getElementById('prevWeek').addEventListener('click', () => { loadCheckin(); renderCheckin(); loadSpark(); });
 document.getElementById('nextWeek').addEventListener('click', () => { loadCheckin(); renderCheckin(); loadSpark(); });
@@ -21577,22 +22003,7 @@ renderTracker();
 ══════════════════════════════════════════ -->
 
 
-<!-- ══════════════════════════════════════════
-     SECCIÓN 10 · LÍNEA DE TIEMPO VISUAL
-══════════════════════════════════════════ -->
-<section class="timeline-section" id="sec-timeline">
-  <span class="section-sub">visualización del día</span>
-  <h2 class="section-title"><em>Mi Línea</em> de Tiempo <span style="font-style:normal;font-weight:400">⋆˚꩜｡</span></h2>
-  <div class="timeline-wrap">
-    <div class="tl-day-selector" id="tlDaySelector"></div>
-    <div class="tl-track" id="tlTrack"></div>
-    <div class="tl-day-prog">
-      <span class="tl-prog-label">Progreso de hoy</span>
-      <div class="tl-prog-track"><div class="tl-prog-fill" id="tlProgFill"></div></div>
-      <span class="tl-prog-stars" id="tlProgStars"></span>
-    </div>
-  </div>
-</section>
+<!-- Timeline movida a página de Inicio -->
 
 <!-- ══════════════════════════════════════════
      SECCIÓN · AGRADECIMIENTO + SUEÑO + MENSTRUACIÓN
@@ -29955,15 +30366,31 @@ function dateKey(d) {
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
+// ── Helpers con soporte de meta (counter) ─────────────────────
+// completions[dk] puede ser true (legacy) o un número
+function habitoGetCount(h, dk) {
+  var v = h.completions[dk];
+  if (!v) return 0;
+  if (v === true) return 1; // migración legacy
+  return typeof v === 'number' ? v : 1;
+}
+
+function habitoGetMeta(h) {
+  return (h.meta && h.meta >= 1) ? Math.floor(h.meta) : 1;
+}
+
+function habitoIsDone(h, dk) {
+  return habitoGetCount(h, dk) >= habitoGetMeta(h);
+}
+
 function habitoGetRacha(h) {
   var streak = 0;
   var d = new Date(); d.setHours(0,0,0,0);
-  // start from yesterday if not done today, or today if done
   var todayKey = dateKey(d);
-  if (!h.completions[todayKey]) { d.setDate(d.getDate()-1); }
+  if (!habitoIsDone(h, todayKey)) { d.setDate(d.getDate()-1); }
   while (true) {
     var k = dateKey(d);
-    if (!h.completions[k]) break;
+    if (!habitoIsDone(h, k)) break;
     streak++;
     d.setDate(d.getDate()-1);
   }
@@ -29971,7 +30398,7 @@ function habitoGetRacha(h) {
 }
 
 function habitoGetBestRacha(h) {
-  var keys = Object.keys(h.completions).filter(function(k){ return h.completions[k]; }).sort();
+  var keys = Object.keys(h.completions).filter(function(k){ return habitoIsDone(h, k); }).sort();
   if (!keys.length) return 0;
   var best = 1; var cur = 1;
   for (var i = 1; i < keys.length; i++) {
@@ -29986,11 +30413,10 @@ function habitoGetBestRacha(h) {
 function habitoGetPctMes(h) {
   var now = new Date();
   var year = now.getFullYear(); var month = now.getMonth();
-  var daysInMonth = new Date(year, month+1, 0).getDate();
   var done = 0;
   for (var d = 1; d <= now.getDate(); d++) {
     var k = year + '-' + String(month+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
-    if (h.completions[k]) done++;
+    if (habitoIsDone(h, k)) done++;
   }
   return Math.round((done / now.getDate()) * 100);
 }
@@ -30005,35 +30431,89 @@ function renderHabitos() {
   }
   var todayKey = dateKey(new Date());
   habitosData.forEach(function(h, idx) {
-    var done = !!h.completions[todayKey];
+    var meta  = habitoGetMeta(h);
+    var count = habitoGetCount(h, todayKey);
+    var done  = count >= meta;
     var racha = habitoGetRacha(h);
     var best  = habitoGetBestRacha(h);
     var pct   = habitoGetPctMes(h);
+    var hasCounter = meta > 1;
 
     var card = document.createElement('div');
     card.className = 'habito-card';
 
-    // Top row
     var top = document.createElement('div');
     top.className = 'habito-card-top';
 
+    // ── Botón / counter ────────────────────────────────────────
+    var chkWrap = document.createElement('div');
+    chkWrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:.25rem;flex-shrink:0';
+
     var chk = document.createElement('button');
     chk.className = 'habito-check-btn' + (done ? ' done' : '');
-    chk.textContent = done ? '✓' : (h.emoji || '⭐');
-    chk.onclick = function() {
-      var _wasHabitoDone = !!habitosData[idx].completions[todayKey];
-      if (_wasHabitoDone) {
-        delete habitosData[idx].completions[todayKey];
-      } else {
-        habitosData[idx].completions[todayKey] = true;
-        if (window.starBurst) window.starBurst(chk);
+
+    if (!hasCounter) {
+      // Comportamiento original: toggle simple
+      chk.textContent = done ? '✓' : (h.emoji || '⭐');
+      chk.onclick = function() {
+        var _was = habitoIsDone(habitosData[idx], todayKey);
+        if (_was) {
+          delete habitosData[idx].completions[todayKey];
+        } else {
+          habitosData[idx].completions[todayKey] = true;
+          if (window.starBurst) window.starBurst(chk);
+          if (window.yukiVtTaskDone) window.yukiVtTaskDone();
+        }
+        saveHabitos(); renderHabitos();
+      };
+    } else {
+      // Counter: muestra emoji + progreso, cada tap suma 1
+      chk.style.cssText += ';flex-direction:column;gap:1px;line-height:1.1;font-size:.75rem;padding:.35rem .4rem;min-width:44px';
+      chk.innerHTML =
+        '<span style="font-size:1rem">' + (done ? '✓' : (h.emoji || '⭐')) + '</span>' +
+        '<span style="font-size:.65rem;font-weight:800;opacity:.85">' + count + '/' + meta + '</span>';
+      chk.title = 'Toca para registrar una vez más (' + count + '/' + meta + ')';
+      chk.onclick = function() {
+        var cur = habitoGetCount(habitosData[idx], todayKey);
+        var m   = habitoGetMeta(habitosData[idx]);
+        if (cur >= m) {
+          // Ya completado: resetear
+          delete habitosData[idx].completions[todayKey];
+        } else {
+          habitosData[idx].completions[todayKey] = cur + 1;
+          if (cur + 1 >= m) {
+            if (window.starBurst) window.starBurst(chk);
+            if (window.yukiVtTaskDone) window.yukiVtTaskDone();
+          }
+        }
+        saveHabitos(); renderHabitos();
+      };
+
+      // Mini barra de progreso debajo del botón
+      if (count > 0 && !done) {
+        var miniBar = document.createElement('div');
+        miniBar.style.cssText = 'width:44px;height:4px;border-radius:4px;background:var(--border);overflow:hidden;margin-top:1px';
+        var miniFill = document.createElement('div');
+        miniFill.style.cssText = 'height:100%;border-radius:4px;background:var(--rosa);width:' + Math.round((count/meta)*100) + '%';
+        miniBar.appendChild(miniFill);
+        chkWrap.appendChild(miniBar);
       }
-      saveHabitos(); renderHabitos();
-    };
+    }
+
+    chkWrap.insertBefore(chk, chkWrap.firstChild);
 
     var info = document.createElement('div');
     info.className = 'habito-info';
-    info.innerHTML = '<div class="habito-name">' + (h.emoji ? h.emoji + ' ' : '') + h.nombre + '</div>';
+    var nameEl = document.createElement('div');
+    nameEl.className = 'habito-name';
+    nameEl.textContent = (h.emoji ? h.emoji + ' ' : '') + h.nombre;
+    if (hasCounter) {
+      var metaBadge = document.createElement('span');
+      metaBadge.style.cssText = 'font-size:.6rem;font-weight:800;color:var(--muted2);margin-left:.4rem;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:.1rem .45rem';
+      metaBadge.textContent = '×' + meta + ' al día';
+      nameEl.appendChild(metaBadge);
+    }
+    info.appendChild(nameEl);
 
     var stats = document.createElement('div');
     stats.className = 'habito-stats';
@@ -30043,7 +30523,6 @@ function renderHabitos() {
       '<span class="habito-stat pct">📅 ' + pct + '% este mes</span>';
     info.appendChild(stats);
 
-    // Progress bar
     var bar = document.createElement('div');
     bar.className = 'habito-progress-bar';
     var fill = document.createElement('div');
@@ -30051,7 +30530,6 @@ function renderHabitos() {
     fill.style.width = pct + '%';
     bar.appendChild(fill);
 
-    // Delete btn
     var del = document.createElement('button');
     del.className = 'habito-del-btn';
     del.textContent = '✕';
@@ -30063,7 +30541,6 @@ function renderHabitos() {
       }
     };
 
-    // Timer button
     var timerBtn = document.createElement('button');
     timerBtn.title = 'Abrir temporizador';
     timerBtn.style.cssText = 'background:none;border:1.5px solid var(--border);border-radius:50%;width:28px;height:28px;font-size:.78rem;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;margin-left:auto';
@@ -30075,7 +30552,7 @@ function renderHabitos() {
     timerBtn.onmouseenter = function(){ this.style.borderColor='var(--rosa)'; this.style.color='var(--rosa)'; };
     timerBtn.onmouseleave = function(){ this.style.borderColor='var(--border)'; this.style.color='var(--muted)'; };
 
-    top.appendChild(chk);
+    top.appendChild(chkWrap);
     top.appendChild(info);
     top.appendChild(timerBtn);
     card.appendChild(top);
@@ -30099,11 +30576,18 @@ window.openHabitoModal = function() {
         '<label class="habito-modal-label">Nombre del hábito</label>' +
         '<input class="habito-modal-input" id="hModalNombre" placeholder="Ej: Beber 2L de agua">' +
       '</div>' +
+      '<div class="habito-modal-field">' +
+        '<label class="habito-modal-label">¿Cuántas veces al día?</label>' +
+        '<div style="display:flex;align-items:center;gap:.6rem">' +
+          '<input class="habito-modal-input" id="hModalMeta" type="number" min="1" max="20" value="1" style="width:70px;text-align:center">' +
+          '<span style="font-size:.75rem;color:var(--muted);font-weight:600">veces para que cuente el hábito</span>' +
+        '</div>' +
+        '<div style="font-size:.65rem;color:var(--muted2);font-weight:600;margin-top:.3rem">Si pones 1, funciona como un check normal 🌸</div>' +
+      '</div>' +
       '<button class="habito-modal-save" id="hModalSave">Guardar hábito</button>' +
     '</div>';
 
   ov.onclick = function(e) { if (e.target === ov) document.body.removeChild(ov); };
-  document.getElementById('hModalSave', ov);
   document.body.appendChild(ov);
 
   setTimeout(function() {
@@ -30111,11 +30595,19 @@ window.openHabitoModal = function() {
     if (saveBtn) saveBtn.onclick = function() {
       var nombre = (document.getElementById('hModalNombre').value || '').trim();
       var emoji  = (document.getElementById('hModalEmoji').value || '').trim();
+      var meta   = parseInt(document.getElementById('hModalMeta').value) || 1;
       if (!nombre) { document.getElementById('hModalNombre').focus(); return; }
-      habitosData.push({ id: 'h_' + Date.now(), nombre: nombre, emoji: emoji, completions: {} });
+      habitosData.push({
+        id: 'h_' + Date.now(),
+        nombre: nombre,
+        emoji: emoji,
+        meta: meta > 1 ? meta : undefined, // solo guardar si > 1
+        completions: {}
+      });
       saveHabitos(); renderHabitos();
       document.body.removeChild(ov);
     };
+    document.getElementById('hModalNombre').focus();
   }, 50);
 };
 
@@ -30650,7 +31142,7 @@ const NAV_PAGES = [
   { icon:'🏠', label:'Inicio',          page:'page-inicio'       },
   { icon:'🔍', label:'Buscar',          page:'page-buscar'       },
   { icon:'📝', label:'Tareas',          page:'page-tareas'       },
-  { icon:'🐱', label:'Mi Semana',       page:'page-semana'       },
+  { icon:'🐱', label:'Agenda',       page:'page-semana'       },
   { icon:'🗓️', label:'Horario',         page:'page-horario'      },
   { icon:'🌸', label:'Rutinas',         page:'page-rutinas'      },
   { icon:'✅', label:'Hábitos',         page:'page-habitos'      },
@@ -30689,7 +31181,7 @@ const DRAWER_STRUCTURE = {
   groups: [
     { id:'hoy', icon:'🌸', label:'Mi Día', items: [
       { icon:'♡', label:'Tareas',          page:'page-tareas'       },
-      { icon:'♡', label:'Mi Semana',       page:'page-semana'       },
+      { icon:'♡', label:'Agenda',       page:'page-semana'       },
       { icon:'♡', label:'Horario',         page:'page-horario'      },
       { icon:'♡', label:'Rutinas',         page:'page-rutinas'      },
       { icon:'♡', label:'Hábitos',         page:'page-habitos'      },
@@ -37627,7 +38119,7 @@ function notifCheck() {
   var habitoHora = localStorage.getItem('notif_habito_hora') || '08:00';
   if (timeStr === habitoHora) {
     if (typeof habitosData !== 'undefined' && habitosData.length) {
-      var pendientes = habitosData.filter(function(h) { return !h.completions[todayKey]; });
+      var pendientes = habitosData.filter(function(h) { return !habitoIsDone(h, todayKey); });
       if (pendientes.length) {
         notifFire(
           'Yuki 🔥 Hábitos',
