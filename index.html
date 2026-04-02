@@ -12436,6 +12436,200 @@ if (document.readyState !== 'loading') {
   font-family: var(--font-body); font-size: .78rem; font-weight: 700;
   padding: .52rem .9rem; border-radius: 14px; cursor: pointer;
 }
+
+/* ── Rituales ── */
+.rit-actividad-card {
+  background: var(--card); border: 1.5px solid var(--border);
+  border-radius: 18px; margin-bottom: .8rem; overflow: hidden;
+  transition: box-shadow .2s;
+}
+.rit-actividad-card:hover { box-shadow: 0 2px 14px rgba(212,116,138,.1); }
+.rit-actividad-hdr {
+  display: flex; align-items: center; gap: .7rem;
+  padding: .75rem 1rem; cursor: pointer;
+}
+.rit-actividad-emoji { font-size: 1.3rem; flex-shrink: 0; }
+.rit-actividad-nombre {
+  font-family: var(--font-body); font-size: .84rem; font-weight: 700;
+  color: var(--text); flex: 1;
+}
+.rit-actividad-meta {
+  font-size: .68rem; color: var(--muted2); font-style: italic;
+}
+.rit-actividad-actions { display: flex; gap: .4rem; }
+.rit-act-btn {
+  background: none; border: 1.5px solid var(--border); border-radius: 10px;
+  width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+  font-size: .75rem; cursor: pointer; transition: all .15s; color: var(--muted);
+}
+.rit-act-btn:hover { border-color: var(--rosa); color: var(--rosa); }
+.rit-chevron {
+  font-size: .65rem; color: var(--muted2); transition: transform .2s;
+  margin-left: .2rem;
+}
+.rit-actividad-card.rit-open .rit-chevron { transform: rotate(180deg); }
+.rit-actividad-body { display: none; padding: 0 1rem 1rem; }
+.rit-actividad-card.rit-open .rit-actividad-body { display: block; }
+
+/* Flow de rituales */
+.rit-flow {
+  display: grid; grid-template-columns: 1fr auto 1fr;
+  gap: .5rem; align-items: stretch; margin-top: .4rem;
+}
+.rit-slot {
+  background: var(--surface); border: 1.5px dashed var(--border);
+  border-radius: 14px; padding: .7rem .8rem;
+  display: flex; flex-direction: column; gap: .35rem;
+}
+.rit-slot.rit-slot-filled {
+  border-style: solid; border-color: var(--rosa);
+  background: var(--rosa-soft);
+}
+.rit-slot-label {
+  font-size: .62rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .04em; color: var(--muted2);
+}
+.rit-slot.rit-slot-filled .rit-slot-label { color: var(--rosa); }
+.rit-slot-desc {
+  font-size: .75rem; font-weight: 600; color: var(--text);
+  font-family: var(--font-body);
+}
+.rit-slot-mini {
+  font-size: .65rem; color: var(--muted2); margin-top: .1rem;
+}
+.rit-slot-add {
+  font-size: .7rem; color: var(--muted2); cursor: pointer;
+  text-align: center; padding: .3rem 0;
+  transition: color .15s;
+}
+.rit-slot-add:hover { color: var(--rosa); }
+.rit-actividad-center {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: .25rem; padding: .4rem .2rem;
+}
+.rit-act-central {
+  font-size: 1.5rem; text-align: center;
+}
+.rit-act-central-nombre {
+  font-size: .6rem; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .04em; text-align: center;
+  max-width: 60px; line-height: 1.2;
+}
+.rit-arrow {
+  font-size: .8rem; color: var(--muted2);
+}
+
+/* Check diario */
+.rit-daily-checks {
+  display: flex; flex-direction: column; gap: .3rem; margin-top: .75rem;
+  padding-top: .65rem; border-top: 1px solid var(--border);
+}
+.rit-daily-label {
+  font-size: .65rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .04em; color: var(--muted2); margin-bottom: .2rem;
+}
+.rit-check-row {
+  display: flex; align-items: center; gap: .6rem; cursor: pointer;
+  padding: .35rem .5rem; border-radius: 10px; transition: background .15s;
+}
+.rit-check-row:hover { background: var(--surface); }
+.rit-check-box {
+  width: 18px; height: 18px; border-radius: 6px;
+  border: 2px solid var(--border); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .65rem; transition: all .15s;
+}
+.rit-check-row.rit-checked .rit-check-box {
+  background: var(--rosa); border-color: var(--rosa); color: #fff;
+}
+.rit-check-row.rit-checked .rit-check-texto { text-decoration: line-through; color: var(--muted2); }
+.rit-check-tipo {
+  font-size: .6rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .03em; padding: .15rem .4rem; border-radius: 6px;
+  background: var(--surface); color: var(--muted2); flex-shrink: 0;
+}
+.rit-check-row.rit-tipo-antes .rit-check-tipo { background: #e8f4fd; color: #4a90c4; }
+.rit-check-row.rit-tipo-despues .rit-check-tipo { background: #f3e8fd; color: #9a5fb5; }
+.rit-check-texto { font-size: .75rem; color: var(--text); font-family: var(--font-body); }
+
+/* Progreso del flow */
+.rit-prog-bar {
+  height: 4px; background: var(--border); border-radius: 2px;
+  margin: .5rem 0 0; overflow: hidden;
+}
+.rit-prog-fill {
+  height: 100%; background: var(--rosa); border-radius: 2px;
+  transition: width .3s ease;
+}
+
+/* Modal rituales */
+.rit-modal-bd {
+  position: fixed; inset: 0; background: rgba(0,0,0,.45);
+  display: flex; flex-direction: column; align-items: flex-end;
+  justify-content: flex-end; z-index: 9999; padding: 1rem;
+}
+@media (min-width:520px) { .rit-modal-bd { align-items: center; justify-content: center; } }
+.rit-modal {
+  background: var(--card); border-radius: 24px 24px 24px 24px;
+  padding: 1.5rem; width: 100%; max-width: 480px;
+  max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 8px 40px rgba(0,0,0,.22);
+}
+.rit-modal-title {
+  font-family: var(--font-title); font-size: 1.1rem; font-weight: 800;
+  color: var(--text); margin-bottom: 1rem;
+}
+.rit-modal-section {
+  background: var(--surface); border-radius: 14px;
+  padding: .8rem 1rem; margin-bottom: .75rem;
+}
+.rit-modal-section-title {
+  font-size: .68rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--muted2); margin-bottom: .6rem;
+}
+.rit-modal-section.rit-sec-antes .rit-modal-section-title { color: #4a90c4; }
+.rit-modal-section.rit-sec-despues .rit-modal-section-title { color: #9a5fb5; }
+.rit-field { margin-bottom: .6rem; }
+.rit-label { font-size: .72rem; font-weight: 700; color: var(--muted); display: block; margin-bottom: .25rem; }
+.rit-input {
+  width: 100%; box-sizing: border-box;
+  background: var(--card); border: 1.5px solid var(--border);
+  border-radius: 11px; padding: .45rem .7rem;
+  font-family: var(--font-body); font-size: .78rem; color: var(--text);
+  outline: none; transition: border-color .18s;
+}
+.rit-input:focus { border-color: var(--rosa); }
+.rit-mini-row { display: flex; gap: .5rem; align-items: center; }
+.rit-mini-row .rit-input { flex: 1; }
+.rit-mini-label { font-size: .7rem; color: var(--muted2); white-space: nowrap; }
+.rit-modal-btns { display: flex; gap: .6rem; margin-top: 1rem; }
+.rit-modal-save {
+  flex: 1; background: var(--rosa-soft);
+  border: 1.5px solid var(--rosa); color: var(--rosa);
+  font-family: var(--font-body); font-size: .78rem; font-weight: 700;
+  padding: .52rem; border-radius: 14px; cursor: pointer;
+  transition: background .18s;
+}
+.rit-modal-save:hover { background: var(--rosa); color: #fff; }
+.rit-modal-cancel {
+  background: none; border: 1.5px solid var(--border); color: var(--muted);
+  font-family: var(--font-body); font-size: .78rem; font-weight: 700;
+  padding: .52rem 1.1rem; border-radius: 14px; cursor: pointer;
+}
+.rit-modal-del {
+  background: none; border: 1.5px solid #f0b0b0; color: #c05050;
+  font-family: var(--font-body); font-size: .78rem; font-weight: 700;
+  padding: .52rem .9rem; border-radius: 14px; cursor: pointer;
+}
+.rit-emoji-row {
+  display: flex; flex-wrap: wrap; gap: .3rem; margin-bottom: .8rem;
+}
+.rit-emoji-btn {
+  font-size: 1.1rem; padding: .3rem; border-radius: 8px;
+  border: 2px solid transparent; background: var(--surface);
+  cursor: pointer; transition: all .15s; line-height: 1;
+}
+.rit-emoji-btn.sel { border-color: var(--rosa); background: var(--rosa-soft); }
 </style>
 
 <script>
@@ -12739,6 +12933,272 @@ if (document.readyState !== 'loading') {
     if (p==='page-rutinas') setTimeout(orRender, 150);
   };
 
+})();
+</script>
+
+<script>
+/* ══════════════════════════════════════════
+   RITUALES — tab 2 de Rutinas
+   Estructura: [{id, emoji, nombre, antes:{desc, mins}, despues:{desc}}]
+   Checks diarios: {'actId|YYYY-MM-DD|antes': true, 'actId|YYYY-MM-DD|despues': true}
+══════════════════════════════════════════ */
+(function(){
+  var RIT_KEY = 'yuki_rituales';
+  var RIT_CHK = 'yuki_rituales_chk';
+  var RIT_EMOJIS = ['☀️','🌙','🍵','🥗','🥐','🍳','💪','🧘','📖','🚿','🧹','🏃','🌿','🎯','✨','🛁','🌸','🍽️','🎵','💤'];
+
+  function ritDKey() {
+    var d = new Date(); d.setHours(0,0,0,0);
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+  function ritLoad()     { try { return JSON.parse(localStorage.getItem(RIT_KEY)||'[]');  } catch(e){return[];} }
+  function ritLoadChk()  { try { return JSON.parse(localStorage.getItem(RIT_CHK)||'{}'); } catch(e){return{};} }
+  function ritSave(d)    { localStorage.setItem(RIT_KEY,  JSON.stringify(d)); if(window.cloudSave) window.cloudSave(RIT_KEY, d); }
+  function ritSaveChk(d) { localStorage.setItem(RIT_CHK, JSON.stringify(d)); if(window.cloudSave) window.cloudSave(RIT_CHK, d); }
+
+  function ritRender() {
+    var list = document.getElementById('ritList');
+    if (!list) return;
+    var acts = ritLoad();
+    var chk  = ritLoadChk();
+    var dk   = ritDKey();
+
+    if (acts.length === 0) {
+      list.innerHTML = '<div style="font-size:.72rem;color:var(--muted2);text-align:center;padding:1.2rem;font-style:italic">Aún no tienes actividades. ¡Crea tu primer ritual! 🕯️</div>';
+      return;
+    }
+
+    list.innerHTML = '';
+    acts.forEach(function(act) {
+      var tieneAntes   = act.antes   && act.antes.desc;
+      var tieneDespues = act.despues && act.despues.desc;
+      var total  = (tieneAntes?1:0) + (tieneDespues?1:0);
+      var hechos = 0;
+      if (tieneAntes   && chk[act.id+'|'+dk+'|antes'])   hechos++;
+      if (tieneDespues && chk[act.id+'|'+dk+'|despues']) hechos++;
+
+      var card = document.createElement('div');
+      card.className = 'rit-actividad-card';
+
+      /* Header */
+      var hdr = document.createElement('div');
+      hdr.className = 'rit-actividad-hdr';
+      hdr.innerHTML =
+        '<span class="rit-actividad-emoji">'+(act.emoji||'✨')+'</span>'+
+        '<div style="flex:1;min-width:0">'+
+          '<div class="rit-actividad-nombre">'+act.nombre+'</div>'+
+          (total>0
+            ? '<div class="rit-actividad-meta">'+
+                (tieneAntes?(act.antes.mins?act.antes.mins+' min antes':'antes'):'')+(tieneAntes&&tieneDespues?' · ':'')+(tieneDespues?'después':'')+'</div>'
+            : '<div class="rit-actividad-meta" style="font-style:italic">Sin rituales aún · toca ✏️ para añadir</div>')+
+        '</div>'+
+        (total>0?'<span style="font-size:.7rem;color:var(--muted2);font-weight:700">'+hechos+'/'+total+'</span>':'')+
+        '<div class="rit-actividad-actions">'+
+          '<button class="rit-act-btn rit-edit-btn" title="Editar">✏️</button>'+
+        '</div>'+
+        '<span class="rit-chevron">▼</span>';
+
+      /* Body */
+      var body = document.createElement('div');
+      body.className = 'rit-actividad-body';
+
+      /* Flow visual */
+      var flowEl = document.createElement('div');
+      flowEl.className = 'rit-flow';
+
+      var slotAntes = document.createElement('div');
+      slotAntes.className = 'rit-slot'+(tieneAntes?' rit-slot-filled':'');
+      slotAntes.innerHTML =
+        '<div class="rit-slot-label">🔵 Antes</div>'+
+        (tieneAntes
+          ? '<div class="rit-slot-desc">'+act.antes.desc+'</div>'+(act.antes.mins?'<div class="rit-slot-mini">⏱ '+act.antes.mins+' min de anticipación</div>':'')
+          : '<div class="rit-slot-add">＋ Añadir ritual previo</div>');
+
+      var centro = document.createElement('div');
+      centro.className = 'rit-actividad-center';
+      centro.innerHTML =
+        '<div class="rit-act-central">'+(act.emoji||'✨')+'</div>'+
+        '<div class="rit-act-central-nombre">'+act.nombre+'</div>';
+
+      var slotDesp = document.createElement('div');
+      slotDesp.className = 'rit-slot'+(tieneDespues?' rit-slot-filled':'');
+      slotDesp.innerHTML =
+        '<div class="rit-slot-label">🟣 Después</div>'+
+        (tieneDespues
+          ? '<div class="rit-slot-desc">'+act.despues.desc+'</div>'
+          : '<div class="rit-slot-add">＋ Añadir ritual posterior</div>');
+
+      /* Clicks en slots vacíos abren modal */
+      [slotAntes, slotDesp].forEach(function(sl) {
+        var addEl = sl.querySelector('.rit-slot-add');
+        if (addEl) addEl.onclick = function(e){ e.stopPropagation(); ritOpenModal(act.id); };
+      });
+
+      flowEl.appendChild(slotAntes);
+      flowEl.appendChild(centro);
+      flowEl.appendChild(slotDesp);
+      body.appendChild(flowEl);
+
+      /* Barra progreso */
+      if (total > 0) {
+        var prog = document.createElement('div');
+        prog.className = 'rit-prog-bar';
+        prog.innerHTML = '<div class="rit-prog-fill" style="width:'+Math.round(hechos/total*100)+'%"></div>';
+        body.appendChild(prog);
+      }
+
+      /* Checks diarios */
+      if (total > 0) {
+        var chkWrap = document.createElement('div');
+        chkWrap.className = 'rit-daily-checks';
+        chkWrap.innerHTML = '<div class="rit-daily-label">✅ Hoy</div>';
+
+        var items = [];
+        if (tieneAntes)   items.push({slot:'antes',   texto:act.antes.desc,   mins:act.antes.mins});
+        if (tieneDespues) items.push({slot:'despues', texto:act.despues.desc, mins:null});
+
+        items.forEach(function(ci) {
+          var ck   = act.id+'|'+dk+'|'+ci.slot;
+          var done = !!chk[ck];
+          var row  = document.createElement('div');
+          row.className = 'rit-check-row rit-tipo-'+ci.slot+(done?' rit-checked':'');
+          row.innerHTML =
+            '<div class="rit-check-box">'+(done?'✓':'')+'</div>'+
+            '<span class="rit-check-tipo">'+(ci.slot==='antes'?'antes':'después')+'</span>'+
+            '<span class="rit-check-texto">'+ci.texto+(ci.mins&&ci.slot==='antes'?' <span style="color:var(--muted2);font-size:.65rem">('+ci.mins+' min antes)</span>':'')+'</span>';
+          row.onclick = function(e){
+            e.stopPropagation();
+            var c2 = ritLoadChk();
+            c2[ck] = !done;
+            if (!c2[ck]) delete c2[ck];
+            ritSaveChk(c2); ritRender();
+          };
+          chkWrap.appendChild(row);
+        });
+        body.appendChild(chkWrap);
+      }
+
+      hdr.querySelector('.rit-edit-btn').onclick = function(e){ e.stopPropagation(); ritOpenModal(act.id); };
+      hdr.onclick = function(e){
+        if (e.target.closest('.rit-actividad-actions')) return;
+        card.classList.toggle('rit-open');
+      };
+
+      card.appendChild(hdr);
+      card.appendChild(body);
+      list.appendChild(card);
+    });
+  }
+
+  /* Modal crear / editar */
+  function ritOpenModal(editId) {
+    var acts = ritLoad();
+    var act  = editId ? acts.find(function(a){ return a.id===editId; }) : null;
+    var selEmoji = act ? (act.emoji||'✨') : '☀️';
+
+    var old = document.getElementById('ritModalBd'); if(old) old.remove();
+    var bd = document.createElement('div');
+    bd.className = 'rit-modal-bd'; bd.id = 'ritModalBd';
+
+    var modal = document.createElement('div');
+    modal.className = 'rit-modal';
+    modal.innerHTML =
+      '<div class="rit-modal-title">'+(editId?'✏️ Editar actividad':'🕯️ Nueva actividad')+'</div>'+
+      '<div class="rit-emoji-row" id="ritEmojiRow">'+
+        RIT_EMOJIS.map(function(em){
+          return '<button class="rit-emoji-btn'+(em===selEmoji?' sel':'')+'" data-em="'+em+'">'+em+'</button>';
+        }).join('')+
+      '</div>'+
+      '<div class="rit-field">'+
+        '<label class="rit-label">Nombre de la actividad</label>'+
+        '<input class="rit-input" id="ritInNombre" placeholder="ej. Desayuno, Ejercicio, Trabajo..." value="'+(act?act.nombre||'':'')+'">'+
+      '</div>'+
+      '<div class="rit-modal-section rit-sec-antes">'+
+        '<div class="rit-modal-section-title">🔵 Ritual ANTES de la actividad</div>'+
+        '<div class="rit-field">'+
+          '<label class="rit-label">¿Qué haces antes?</label>'+
+          '<input class="rit-input" id="ritInAntes" placeholder="ej. Tomo un vaso de agua" value="'+(act&&act.antes?act.antes.desc||'':'')+'">'+
+        '</div>'+
+        '<div class="rit-mini-row">'+
+          '<label class="rit-mini-label">Con</label>'+
+          '<input class="rit-input" id="ritInMins" type="number" min="0" max="240" placeholder="0" style="max-width:70px;text-align:center" value="'+(act&&act.antes&&act.antes.mins?act.antes.mins:'')+'">'+
+          '<label class="rit-mini-label">minutos de anticipación</label>'+
+        '</div>'+
+      '</div>'+
+      '<div class="rit-modal-section rit-sec-despues">'+
+        '<div class="rit-modal-section-title">🟣 Ritual DESPUÉS de la actividad</div>'+
+        '<div class="rit-field">'+
+          '<label class="rit-label">¿Qué haces después?</label>'+
+          '<input class="rit-input" id="ritInDespues" placeholder="ej. Lavo los trastes y limpio la cocina" value="'+(act&&act.despues?act.despues.desc||'':'')+'">'+
+        '</div>'+
+      '</div>'+
+      '<div class="rit-modal-btns">'+
+        (editId?'<button class="rit-modal-del" id="ritDelBtn">🗑️</button>':'')+
+        '<button class="rit-modal-cancel" id="ritCancelBtn">Cancelar</button>'+
+        '<button class="rit-modal-save" id="ritSaveBtn">💾 Guardar</button>'+
+      '</div>';
+
+    bd.appendChild(modal);
+    document.body.appendChild(bd);
+
+    modal.querySelectorAll('.rit-emoji-btn').forEach(function(btn){
+      btn.onclick = function(){
+        modal.querySelectorAll('.rit-emoji-btn').forEach(function(b){b.classList.remove('sel');});
+        btn.classList.add('sel'); selEmoji = btn.dataset.em;
+      };
+    });
+
+    document.getElementById('ritCancelBtn').onclick = function(){ bd.remove(); };
+    bd.onclick = function(e){ if(e.target===bd) bd.remove(); };
+
+    if (editId) {
+      document.getElementById('ritDelBtn').onclick = function(){
+        if (!confirm('¿Eliminar esta actividad y sus rituales?')) return;
+        var arr = ritLoad().filter(function(a){ return a.id!==editId; });
+        ritSave(arr); ritRender(); bd.remove();
+      };
+    }
+
+    document.getElementById('ritSaveBtn').onclick = function(){
+      var nombre = (document.getElementById('ritInNombre').value||'').trim();
+      if (!nombre) { document.getElementById('ritInNombre').focus(); return; }
+      var antesDesc   = (document.getElementById('ritInAntes').value||'').trim();
+      var antesMins   = parseInt(document.getElementById('ritInMins').value)||0;
+      var despuesDesc = (document.getElementById('ritInDespues').value||'').trim();
+
+      var obj = {
+        id:      editId || ('rit_'+Date.now()),
+        emoji:   selEmoji,
+        nombre:  nombre,
+        antes:   antesDesc   ? {desc:antesDesc,   mins:antesMins||null} : null,
+        despues: despuesDesc ? {desc:despuesDesc} : null
+      };
+
+      var arr = ritLoad();
+      if (editId) {
+        var idx = arr.findIndex(function(a){ return a.id===editId; });
+        if (idx!==-1) arr[idx]=obj; else arr.push(obj);
+      } else {
+        arr.push(obj);
+      }
+      ritSave(arr); ritRender(); bd.remove();
+    };
+  }
+
+  /* Init */
+  document.addEventListener('DOMContentLoaded', function(){
+    var addBtn = document.getElementById('ritAddBtn');
+    if (addBtn) addBtn.onclick = function(){ ritOpenModal(null); };
+    ritRender();
+  });
+
+  var _origShowRit = window.showPage;
+  window.showPage = function(p){
+    if (_origShowRit) _origShowRit(p);
+    if (p==='page-rutinas') setTimeout(ritRender, 200);
+  };
+
+  window.ritRender = ritRender;
 })();
 </script>
 
@@ -14970,10 +15430,11 @@ window.calmaShowTab = function(idx) {
 <div class="salud-tabs" style="margin-bottom:0">
   <button class="salud-tab active" id="rutTab0" onclick="rutShowTab(0)">🌅 Bloques del día</button>
   <button class="salud-tab" id="rutTab1" onclick="rutShowTab(1)">📋 Orden y rutinas</button>
+  <button class="salud-tab" id="rutTab2" onclick="rutShowTab(2)">🕯️ Rituales</button>
 </div>
 <script>
 window.rutShowTab = function(idx) {
-  for (var i=0; i<2; i++) {
+  for (var i=0; i<3; i++) {
     var btn = document.getElementById('rutTab'+i);
     var el  = document.getElementById('rutTabContent'+i);
     if (btn) btn.classList.toggle('active', i===idx);
@@ -15049,6 +15510,22 @@ window.rutShowTab = function(idx) {
 
 </section>
 </div><!-- end rutTabContent1 -->
+
+<!-- TAB 2: Rituales -->
+<div id="rutTabContent2" style="display:none">
+<section class="rutinas-section" id="sec-rituales">
+  <p style="font-size:.75rem;color:var(--muted);margin-bottom:1.2rem;font-weight:600;margin-top:.8rem">
+    Crea un ritual antes y después de cada actividad — aunque el orden cambie, tus rituales siguen contigo 🕯️
+  </p>
+  <div class="rutina-templates-wrap" style="margin-bottom:1rem">
+    <div class="rutina-templates-header">
+      <span class="rutina-templates-title">✨ Mis actividades</span>
+      <button class="rutina-new-btn" id="ritAddBtn">＋ Nueva actividad</button>
+    </div>
+    <div id="ritList"></div>
+  </div>
+</section>
+</div><!-- end rutTabContent2 -->
 
 </div><!-- end page-rutinas -->
 <!-- ══════════════════════════════════════════
@@ -19378,11 +19855,6 @@ function render() {
   var progEl = document.getElementById('agendaProgress');
   if (progEl) progEl.style.display = '';
 
-  if (todayBlock && agendaVista !== 'semana') {
-    setTimeout(function() {
-      todayBlock.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 120);
-  }
 }
 
 // ── Render a single cell
@@ -27875,13 +28347,6 @@ function renderMealPlanner() {
     dayBlock.appendChild(slotsBody);
     root.appendChild(dayBlock);
   });
-
-  // Autoscroll to today
-  if (todayBlock) {
-    setTimeout(function() {
-      todayBlock.scrollIntoView({ behavior:'smooth', block:'start' });
-    }, 120);
-  }
 }
 
 // ── Picker modal ─────────────────────────────────────────────
@@ -43326,6 +43791,729 @@ setTimeout(function() {
   renderEnergiaBar();
   addSugerirBtn();
 }, 600);
+
+})();
+
+// ══════════════════════════════════════════
+// PATCH · TIEMPO VISIBLE ⏳
+// Muestra una barra de progreso horizontal debajo del título de cada franja,
+// indicando cuánto del bloque horario actual ha transcurrido.
+// Solo aparece en la franja activa (hoy). Se actualiza cada minuto.
+// Aplica tanto en page-rutinas (rutina-franja) como en page-horario (horario-bloque).
+// ══════════════════════════════════════════
+(function() {
+
+  // Rangos de cada franja en minutos desde medianoche
+  var FRANJA_RANGES = {
+    mad: { start:  0*60,  end:  6*60  },
+    m:   { start:  6*60,  end: 12*60  },
+    med: { start: 12*60,  end: 14*60  },
+    t:   { start: 14*60,  end: 18*60  },
+    at:  { start: 18*60,  end: 20*60  },
+    n:   { start: 20*60,  end: 24*60  },
+  };
+
+  // Colores por franja (usando las CSS vars existentes)
+  var FRANJA_COLOR = {
+    mad: 'var(--mad-border,#7c6ea0)',
+    m:   'var(--manana-border,#f4a261)',
+    med: 'var(--med-border,#f9c74f)',
+    t:   'var(--tarde-border,#90be6d)',
+    at:  'var(--at-border,#f77f00)',
+    n:   'var(--noche-border,#4361ee)',
+  };
+
+  function ahoraEnMinutos() {
+    var now = new Date();
+    return now.getHours() * 60 + now.getMinutes();
+  }
+
+  function franjaActivaAhora() {
+    var min = ahoraEnMinutos();
+    for (var id in FRANJA_RANGES) {
+      var r = FRANJA_RANGES[id];
+      if (min >= r.start && min < r.end) return id;
+    }
+    return null;
+  }
+
+  function calcPct(franjaId) {
+    var r = FRANJA_RANGES[franjaId];
+    if (!r) return 0;
+    var min = ahoraEnMinutos();
+    var pct = (min - r.start) / (r.end - r.start) * 100;
+    return Math.min(100, Math.max(0, pct));
+  }
+
+  function minutosRestantes(franjaId) {
+    var r = FRANJA_RANGES[franjaId];
+    if (!r) return 0;
+    return Math.max(0, r.end - ahoraEnMinutos());
+  }
+
+  function formatMin(min) {
+    if (min <= 0) return 'terminando';
+    if (min < 60) return min + ' min';
+    var h = Math.floor(min / 60);
+    var m = min % 60;
+    return h + 'h' + (m > 0 ? ' ' + m + 'min' : '');
+  }
+
+  // CSS
+  var style = document.createElement('style');
+  style.textContent = `
+    .tv-barra-wrap {
+      margin: .3rem 0 .5rem;
+      padding: 0 .1rem;
+    }
+    .tv-barra-track {
+      height: 5px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .tv-barra-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 1s linear;
+    }
+    .tv-barra-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: .6rem;
+      font-weight: 700;
+      color: var(--muted2);
+      margin-top: .2rem;
+      letter-spacing: .01em;
+    }
+    /* En horario el wrap va debajo del header */
+    .horario-bloque-hdr .tv-barra-wrap {
+      margin: .35rem 0 0;
+    }
+  `;
+  document.head.appendChild(style);
+
+  // Crear elemento barra
+  function crearBarra(franjaId) {
+    var pct = calcPct(franjaId);
+    var rest = minutosRestantes(franjaId);
+    var color = FRANJA_COLOR[franjaId] || 'var(--rosa)';
+
+    var wrap = document.createElement('div');
+    wrap.className = 'tv-barra-wrap';
+    wrap.dataset.franjaId = franjaId;
+
+    var track = document.createElement('div');
+    track.className = 'tv-barra-track';
+
+    var fill = document.createElement('div');
+    fill.className = 'tv-barra-fill';
+    fill.style.width = pct + '%';
+    fill.style.background = color;
+
+    track.appendChild(fill);
+    wrap.appendChild(track);
+
+    var label = document.createElement('div');
+    label.className = 'tv-barra-label';
+    label.innerHTML =
+      '<span>' + Math.round(pct) + '%</span>' +
+      '<span>⏳ ' + formatMin(rest) + ' restantes</span>';
+    wrap.appendChild(label);
+
+    return wrap;
+  }
+
+  // Actualizar todas las barras existentes en el DOM
+  function actualizarBarras() {
+    var activa = franjaActivaAhora();
+    document.querySelectorAll('.tv-barra-wrap').forEach(function(wrap) {
+      var fid = wrap.dataset.franjaId;
+      if (!fid || fid !== activa) return;
+      var pct = calcPct(fid);
+      var rest = minutosRestantes(fid);
+      var fill = wrap.querySelector('.tv-barra-fill');
+      var label = wrap.querySelector('.tv-barra-label');
+      if (fill) fill.style.width = pct + '%';
+      if (label) label.innerHTML =
+        '<span>' + Math.round(pct) + '%</span>' +
+        '<span>⏳ ' + formatMin(rest) + ' restantes</span>';
+    });
+  }
+
+  // ── Inyectar en page-rutinas (rutina-franja) ─────────────────────────────
+  function inyectarEnRutinas() {
+    var activa = franjaActivaAhora();
+    if (!activa) return;
+
+    // Solo inyectamos si estamos viendo hoy (rutinaDateOffset === 0)
+    if (typeof window.rutinaDateOffset !== 'undefined' && window.rutinaDateOffset !== 0) return;
+
+    var dayView = document.getElementById('rutDayView');
+    if (!dayView) return;
+
+    // Buscar la franja activa por clase
+    var franjaEl = dayView.querySelector('.franja-' + activa);
+    if (!franjaEl) return;
+
+    // No duplicar
+    if (franjaEl.querySelector('.tv-barra-wrap')) return;
+
+    var titleEl = franjaEl.querySelector('.rutina-franja-title');
+    if (!titleEl) return;
+
+    var barra = crearBarra(activa);
+    // Insertar justo después del título
+    titleEl.parentNode.insertBefore(barra, titleEl.nextSibling);
+  }
+
+  // ── Inyectar en page-horario (horario-bloque) ─────────────────────────────
+  function inyectarEnHorario() {
+    var activa = franjaActivaAhora();
+    if (!activa) return;
+
+    // Solo si offset es 0 (hoy)
+    if (typeof window.horarioOffset !== 'undefined' && window.horarioOffset !== 0) return;
+
+    var cont = document.getElementById('horarioContenido');
+    if (!cont) return;
+
+    var bloqueEl = cont.querySelector('.hbloque-' + activa);
+    if (!bloqueEl) return;
+
+    // No duplicar
+    if (bloqueEl.querySelector('.tv-barra-wrap')) return;
+
+    var hdr = bloqueEl.querySelector('.horario-bloque-hdr');
+    if (!hdr) return;
+
+    var barra = crearBarra(activa);
+    // Insertar al final del header (debajo del título/badge)
+    hdr.appendChild(barra);
+  }
+
+  // ── Patch renderRutinas para re-inyectar ─────────────────────────────────
+  function tryPatchForTiempo() {
+    // Patch renderRutinas
+    var rrFn = window.renderRutinas;
+    if (rrFn && !rrFn._tiempoPatched) {
+      var orig = rrFn;
+      window.renderRutinas = function() {
+        orig.apply(this, arguments);
+        setTimeout(inyectarEnRutinas, 50);
+      };
+      window.renderRutinas._anclaPatched = rrFn._anclaPatched; // preservar flag
+      window.renderRutinas._tiempoPatched = true;
+      try { if (typeof renderRutinas !== 'undefined') renderRutinas = window.renderRutinas; } catch(e){}
+    }
+
+    // Patch hRender
+    var hFn = window.hRender;
+    if (hFn && !hFn._tiempoPatched) {
+      var origH = hFn;
+      window.hRender = function() {
+        origH.apply(this, arguments);
+        setTimeout(inyectarEnHorario, 50);
+      };
+      window.hRender._tiempoPatched = true;
+      try { if (typeof hRender !== 'undefined') hRender = window.hRender; } catch(e){}
+    }
+  }
+
+  setTimeout(tryPatchForTiempo, 900);
+
+  // Actualizar barras cada minuto
+  setInterval(function() {
+    actualizarBarras();
+    // Si la franja cambió, re-renderizar para mover la barra a la nueva franja
+    inyectarEnRutinas();
+    inyectarEnHorario();
+  }, 60000);
+
+})();
+
+// ══════════════════════════════════════════
+// PATCH · ANCLA DEL DÍA ⚓
+// Permite marcar un paso de plantilla como "ancla fija" del día.
+// - En el editor de plantilla: botón ⚓ por cada paso.
+// - En la vista del día (rutDayView): el paso ancla se destaca con borde rosa y badge.
+// - Override por día: en openRutinaSessionModal se puede cambiar el ancla para ese día.
+// Storage: rutina_ancla_override = { "dk|templateId": "franjaId|idx" }
+// ══════════════════════════════════════════
+(function() {
+
+  // ── Helpers ──────────────────────────────
+  function getAnclaOverrides() {
+    try { return JSON.parse(localStorage.getItem('rutina_ancla_override') || '{}'); } catch(e) { return {}; }
+  }
+  function saveAnclaOverrides(obj) {
+    localStorage.setItem('rutina_ancla_override', JSON.stringify(obj));
+    if (window.cloudSave) window.cloudSave('rutina_ancla_override', obj);
+  }
+
+  // Devuelve {franjaId, idx} del ancla activa para un template en un día dado.
+  // Primero mira override de día; si no hay, busca el paso con .ancla===true en la plantilla.
+  function getAnclaActiva(tpl, dk) {
+    var ov = getAnclaOverrides();
+    var key = dk + '|' + tpl.id;
+    if (ov[key]) {
+      var parts = ov[key].split('|');
+      return { franjaId: parts[0], idx: parseInt(parts[1]) };
+    }
+    // Buscar en plantilla
+    if (!tpl.pasos) return null;
+    for (var fid in tpl.pasos) {
+      var arr = tpl.pasos[fid];
+      for (var i = 0; i < arr.length; i++) {
+        var p = arr[i];
+        if (p && typeof p === 'object' && p.ancla) return { franjaId: fid, idx: i };
+      }
+    }
+    return null;
+  }
+
+  // ── CSS extra ────────────────────────────
+  var style = document.createElement('style');
+  style.textContent = `
+    /* Paso ancla en vista del día */
+    .rutina-paso.paso-ancla {
+      border: 2px solid var(--rosa) !important;
+      background: var(--rosa-soft, #fce4ec) !important;
+      position: relative;
+    }
+    .paso-ancla-badge {
+      font-size: .6rem;
+      font-weight: 800;
+      color: var(--rosa);
+      background: white;
+      border: 1.5px solid var(--rosa);
+      border-radius: 20px;
+      padding: .08rem .4rem;
+      margin-left: auto;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    /* Botón ancla en editor */
+    .paso-ancla-btn {
+      background: none;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: .78rem;
+      padding: .2rem .35rem;
+      color: var(--muted2);
+      transition: all .15s;
+      flex-shrink: 0;
+    }
+    .paso-ancla-btn:hover { border-color: var(--rosa); color: var(--rosa); }
+    .paso-ancla-btn.ancla-on {
+      border-color: var(--rosa);
+      color: var(--rosa);
+      background: var(--rosa-soft, #fce4ec);
+    }
+    /* Paso ancla en session modal */
+    .session-paso-ancla {
+      border: 2px solid var(--rosa) !important;
+      background: var(--rosa-soft, #fce4ec) !important;
+    }
+  `;
+  document.head.appendChild(style);
+
+  // ── Patch: renderPasos en el editor de plantilla ──────────────────────────
+  // Esperamos a que openRutinaModal esté disponible y lo interceptamos via MutationObserver
+  // sobre el DOM — cuando aparece #rutinaEditModal, le inyectamos los botones ⚓.
+
+  var editorObserver = new MutationObserver(function(mutations) {
+    mutations.forEach(function(m) {
+      m.addedNodes.forEach(function(node) {
+        if (node.id === 'rutinaEditModal') {
+          patchEditorModal(node);
+        }
+      });
+    });
+  });
+  editorObserver.observe(document.body, { childList: true });
+
+  function patchEditorModal(backdrop) {
+    // Solo actúa en plantillas de tipo texto
+    // Esperamos un tick para que renderPasos haya corrido
+    setTimeout(function() {
+      injectAnclaButtons(backdrop);
+
+      // Re-inyectar cuando se agregue un paso nuevo (MutationObserver interno)
+      var innerObs = new MutationObserver(function() {
+        injectAnclaButtons(backdrop);
+      });
+      var pasoLists = backdrop.querySelectorAll('[id^="pasosList_"]');
+      pasoLists.forEach(function(list) {
+        innerObs.observe(list, { childList: true });
+      });
+    }, 80);
+  }
+
+  function injectAnclaButtons(backdrop) {
+    var rows = backdrop.querySelectorAll('.rutina-paso-edit-row');
+    rows.forEach(function(row) {
+      if (row.querySelector('.paso-ancla-btn')) return; // ya tiene botón
+
+      // Determinar franja e índice del row
+      var delBtn = row.querySelector('.rutina-paso-del');
+      if (!delBtn) return;
+      var franjaId = delBtn.dataset.franja;
+      var idx = parseInt(delBtn.dataset.idx);
+      if (!franjaId || isNaN(idx)) return;
+
+      // Leer estado ancla actual de los pasos en memoria
+      var tplId = getEditingTemplateId(backdrop);
+      var isAncla = false;
+      if (tplId) {
+        var tpl = (window.rutinaTemplates || []).find(function(t){ return t.id === tplId; });
+        if (tpl && tpl.pasos && tpl.pasos[franjaId] && tpl.pasos[franjaId][idx]) {
+          var p = tpl.pasos[franjaId][idx];
+          isAncla = !!(p && typeof p === 'object' && p.ancla);
+        }
+      }
+
+      var btn = document.createElement('button');
+      btn.className = 'paso-ancla-btn' + (isAncla ? ' ancla-on' : '');
+      btn.title = isAncla ? 'Quitar como ancla del día' : 'Marcar como ancla del día';
+      btn.textContent = '⚓';
+      btn.type = 'button';
+
+      btn.onclick = function() {
+        toggleAnclaEnEditor(backdrop, franjaId, idx, btn);
+      };
+
+      // Insertar antes del botón de eliminar
+      row.insertBefore(btn, delBtn);
+    });
+  }
+
+  function getEditingTemplateId(backdrop) {
+    // El título del modal dice "Editar" si hay templateId
+    // Pero es más fiable buscar el botón de delete que lleva el id
+    var delBtn = backdrop.querySelector('#rutDelBtn');
+    if (!delBtn) return null;
+    // Buscar por nombre: comparar el valor del input #rutNombre con los templates
+    var nombreInput = backdrop.querySelector('#rutNombre');
+    if (!nombreInput) return null;
+    var nombre = nombreInput.value.trim();
+    var found = (window.rutinaTemplates || []).find(function(t){ return t.name === nombre; });
+    return found ? found.id : null;
+  }
+
+  function toggleAnclaEnEditor(backdrop, franjaId, idx, btn) {
+    // Leer pasos de la variable local del modal — están en el closure de openRutinaModal.
+    // Como no podemos acceder a esa variable, los leemos de los inputs del DOM.
+    // El estado ancla lo guardamos en un data attribute del backdrop para no perderlo.
+    var anclaData = JSON.parse(backdrop.dataset.anclaData || '{}');
+    var key = franjaId + '|' + idx;
+
+    if (anclaData[key]) {
+      // Quitar ancla de este paso
+      delete anclaData[key];
+      btn.classList.remove('ancla-on');
+      btn.title = 'Marcar como ancla del día';
+    } else {
+      // Solo puede haber 1 ancla por plantilla — limpiar todas las demás
+      Object.keys(anclaData).forEach(function(k) { delete anclaData[k]; });
+      // Quitar clase ancla-on de todos los otros botones
+      backdrop.querySelectorAll('.paso-ancla-btn.ancla-on').forEach(function(b) {
+        b.classList.remove('ancla-on');
+        b.title = 'Marcar como ancla del día';
+      });
+      anclaData[key] = true;
+      btn.classList.add('ancla-on');
+      btn.title = 'Quitar como ancla del día';
+    }
+    backdrop.dataset.anclaData = JSON.stringify(anclaData);
+  }
+
+  // Interceptar el guardado del modal para persistir los datos de ancla en el template
+  // Lo hacemos interceptando el click del botón #rutSaveBtn
+  var saveObserver = new MutationObserver(function(mutations) {
+    mutations.forEach(function(m) {
+      m.addedNodes.forEach(function(node) {
+        if (node.id === 'rutinaEditModal') {
+          setTimeout(function() {
+            var saveBtn = node.querySelector('#rutSaveBtn');
+            if (!saveBtn) return;
+            var origClick = saveBtn.onclick;
+            saveBtn.addEventListener('click', function() {
+              // Dar tiempo a que el guardado original corra
+              setTimeout(function() {
+                persistAnclaFromModal(node);
+              }, 50);
+            });
+          }, 80);
+        }
+      });
+    });
+  });
+  saveObserver.observe(document.body, { childList: true });
+
+  function persistAnclaFromModal(backdrop) {
+    var anclaData = JSON.parse(backdrop.dataset.anclaData || '{}');
+    if (Object.keys(anclaData).length === 0) return;
+
+    // Obtener el template recién guardado (por nombre del input)
+    var nombreInput = backdrop.querySelector('#rutNombre');
+    if (!nombreInput) return;
+    var nombre = nombreInput.value.trim();
+    if (!nombre) return;
+
+    var tpl = (window.rutinaTemplates || []).find(function(t){ return t.name === nombre; });
+    if (!tpl || !tpl.pasos) return;
+
+    // Limpiar anclas previas en todos los pasos
+    Object.keys(tpl.pasos).forEach(function(fid) {
+      tpl.pasos[fid] = tpl.pasos[fid].map(function(p) {
+        if (p && typeof p === 'object') { delete p.ancla; return p; }
+        return p; // string — no tiene ancla, ok
+      });
+    });
+
+    // Aplicar la nueva ancla
+    Object.keys(anclaData).forEach(function(key) {
+      var parts = key.split('|');
+      var fid = parts[0];
+      var idx = parseInt(parts[1]);
+      if (!tpl.pasos[fid] || tpl.pasos[fid][idx] === undefined) return;
+
+      var paso = tpl.pasos[fid][idx];
+      // Convertir string a objeto si hace falta
+      if (typeof paso === 'string') {
+        tpl.pasos[fid][idx] = { texto: paso, ancla: true };
+      } else {
+        tpl.pasos[fid][idx] = Object.assign({}, paso, { ancla: true });
+      }
+    });
+
+    if (window.saveRutinas) window.saveRutinas();
+  }
+
+  // ── Patch: renderRutinas — destacar ancla en la vista del día ──────────────
+  var _origRenderRutinas2 = null;
+  function tryPatchRenderRutinas() {
+    var fn = window.renderRutinas;
+    if (!fn || fn._anclaPatched) return;
+    _origRenderRutinas2 = fn;
+    window.renderRutinas = function() {
+      _origRenderRutinas2.apply(this, arguments);
+      highlightAnclaEnDayView();
+    };
+    window.renderRutinas._anclaPatched = true;
+    try { if (typeof renderRutinas !== 'undefined') renderRutinas = window.renderRutinas; } catch(e) {}
+  }
+  setTimeout(tryPatchRenderRutinas, 800);
+
+  function highlightAnclaEnDayView() {
+    var dayView = document.getElementById('rutDayView');
+    if (!dayView) return;
+
+    // Necesitamos saber qué template está asignado y el dk actual
+    var dateLabel = document.getElementById('rutDateLabel');
+    if (!dateLabel) return;
+
+    var rutinaTemplates = window.rutinaTemplates || [];
+    var rutinaAsignaciones = window.rutinaAsignaciones || {};
+
+    // Calcular dk del día actual mostrado (mismo offset que renderRutinas)
+    var offset = (typeof window.rutinaDateOffset !== 'undefined') ? window.rutinaDateOffset : 0;
+    var d = new Date(); d.setDate(d.getDate() + offset);
+    var dk = d.toISOString().slice(0, 10);
+
+    var assignedRaw = rutinaAsignaciones[dk];
+    var assignedIds = Array.isArray(assignedRaw) ? assignedRaw : (assignedRaw ? [assignedRaw] : []);
+    var assignedId = assignedIds[0] || null;
+    if (!assignedId) return;
+
+    var tpl = rutinaTemplates.find(function(t) { return t.id === assignedId; });
+    if (!tpl) return;
+
+    var ancla = getAnclaActiva(tpl, dk);
+    if (!ancla) return;
+
+    // Encontrar el paso en el DOM: los pasos se renderizan en orden dentro de cada franja
+    // La estructura es: rutDayView > .rutina-franja > .rutina-paso (en orden)
+    var FRANJA_ORDEN = ['mad', 'm', 'med', 't', 'at', 'n'];
+    var franjas = dayView.querySelectorAll('.rutina-franja');
+    var franjaIdx = FRANJA_ORDEN.indexOf(ancla.franjaId);
+    if (franjaIdx === -1 || !franjas[franjaIdx]) return;
+
+    var pasoRows = franjas[franjaIdx].querySelectorAll('.rutina-paso');
+    var targetRow = pasoRows[ancla.idx];
+    if (!targetRow) return;
+
+    // Aplicar estilo ancla
+    targetRow.classList.add('paso-ancla');
+
+    // Agregar badge si no existe
+    if (!targetRow.querySelector('.paso-ancla-badge')) {
+      var badge = document.createElement('span');
+      badge.className = 'paso-ancla-badge';
+      badge.textContent = '⚓ ancla';
+      targetRow.appendChild(badge);
+    }
+  }
+
+  // ── Patch: openRutinaSessionModal — override de ancla por día ──────────────
+  // Observamos cuando aparece #rutinaSessionModal y le añadimos UI de override
+  var sessionObserver = new MutationObserver(function(mutations) {
+    mutations.forEach(function(m) {
+      m.addedNodes.forEach(function(node) {
+        if (node.id === 'rutinaSessionModal') {
+          setTimeout(function() { injectAnclaOverrideUI(node); }, 80);
+        }
+      });
+    });
+  });
+  sessionObserver.observe(document.body, { childList: true });
+
+  function injectAnclaOverrideUI(backdrop) {
+    var box = backdrop.querySelector('.rutina-modal-box');
+    if (!box) return;
+
+    // Extraer templateId y dk desde el contexto
+    // El título tiene el nombre de la plantilla — buscamos por nombre
+    var titleEl = box.querySelector('.rutina-modal-title');
+    if (!titleEl) return;
+
+    // Buscar todas las filas de paso en el modal para identificar el template
+    // Usamos data del sessionModal — el template id está en el chip del assigned area
+    // Obtenemos el dk del rutinaDateOffset
+    var offset = (typeof window.rutinaDateOffset !== 'undefined') ? window.rutinaDateOffset : 0;
+    var d = new Date(); d.setDate(d.getDate() + offset);
+    var dk = d.toISOString().slice(0, 10);
+
+    var rutinaTemplates = window.rutinaTemplates || [];
+    var rutinaAsignaciones = window.rutinaAsignaciones || {};
+    var assignedRaw = rutinaAsignaciones[dk];
+    var assignedIds = Array.isArray(assignedRaw) ? assignedRaw : (assignedRaw ? [assignedRaw] : []);
+    var assignedId = assignedIds[0] || null;
+    if (!assignedId) return;
+
+    var tpl = rutinaTemplates.find(function(t){ return t.id === assignedId; });
+    if (!tpl || !tpl.pasos) return;
+
+    // Recopilar todos los pasos disponibles
+    var FRANJA_ORDEN = ['mad', 'm', 'med', 't', 'at', 'n'];
+    var FRANJA_NAMES = { mad:'🌙 Madrugada', m:'🌅 Mañana', med:'☀️ Mediodía', t:'🌤 Tarde', at:'🌇 Atardecer', n:'🌙 Noche' };
+    var opciones = [];
+    FRANJA_ORDEN.forEach(function(fid) {
+      var arr = tpl.pasos[fid] || [];
+      arr.forEach(function(p, idx) {
+        var txt = (p && typeof p === 'object') ? (p.texto || p.nombre || '') : String(p);
+        if (txt.trim()) opciones.push({ franjaId: fid, idx: idx, label: FRANJA_NAMES[fid] + ' · ' + txt });
+      });
+    });
+    if (opciones.length === 0) return;
+
+    var anclaActiva = getAnclaActiva(tpl, dk);
+
+    // Construir sección de override
+    var section = document.createElement('div');
+    section.style.cssText = 'margin-top:1rem;padding-top:.8rem;border-top:1.5px solid var(--border);';
+
+    var sectionTitle = document.createElement('div');
+    sectionTitle.style.cssText = 'font-size:.65rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.5rem;';
+    sectionTitle.textContent = '⚓ Ancla del día (solo hoy)';
+    section.appendChild(sectionTitle);
+
+    var hint = document.createElement('div');
+    hint.style.cssText = 'font-size:.7rem;color:var(--muted2);margin-bottom:.55rem;font-style:italic;';
+    hint.textContent = 'El ancla es la actividad fija que no cambia. Pon las tareas difíciles justo después 💡';
+    section.appendChild(hint);
+
+    var select = document.createElement('select');
+    select.style.cssText = 'width:100%;padding:.4rem .6rem;border:1.5px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:.78rem;font-weight:600;outline:none;cursor:pointer;';
+
+    var optNone = document.createElement('option');
+    optNone.value = '';
+    optNone.textContent = '— Sin ancla asignada —';
+    select.appendChild(optNone);
+
+    opciones.forEach(function(op) {
+      var opt = document.createElement('option');
+      opt.value = op.franjaId + '|' + op.idx;
+      opt.textContent = op.label;
+      if (anclaActiva && anclaActiva.franjaId === op.franjaId && anclaActiva.idx === op.idx) {
+        opt.selected = true;
+      }
+      select.appendChild(opt);
+    });
+
+    select.onchange = function() {
+      var ov = getAnclaOverrides();
+      var key = dk + '|' + tpl.id;
+      if (select.value) {
+        ov[key] = select.value;
+      } else {
+        delete ov[key];
+      }
+      saveAnclaOverrides(ov);
+      // Re-highlight en el day view
+      if (window.renderRutinas) window.renderRutinas();
+    };
+
+    section.appendChild(select);
+
+    // Insertar antes de los botones del modal
+    var btnsEl = box.querySelector('.modal-btns');
+    if (btnsEl) {
+      box.insertBefore(section, btnsEl);
+    } else {
+      box.appendChild(section);
+    }
+
+    // Destacar visualmente los pasos ancla en el modal (si ya están renderizados)
+    highlightAnclaEnSessionModal(backdrop, tpl, dk);
+  }
+
+  function highlightAnclaEnSessionModal(backdrop, tpl, dk) {
+    var ancla = getAnclaActiva(tpl, dk);
+    if (!ancla) return;
+
+    // Las filas de paso en el session modal tienen border dinámico
+    // Las identificamos por su posición dentro de cada franja
+    var FRANJA_ORDEN = ['mad', 'm', 'med', 't', 'at', 'n'];
+    var FRANJA_NAMES_SHORT = { mad:'🌙', m:'🌅', med:'☀️', t:'🌤', at:'🌇', n:'🌙' };
+
+    // El modal renderiza franjas como divs con título "icon name"
+    // Buscamos los divs de franja (tienen marginBottom .8rem) y dentro los rows de paso
+    var bodyEl = backdrop.querySelector('.rutina-modal-box > div:not(.rutina-modal-title):not(.modal-btns)');
+    if (!bodyEl) return;
+
+    // Encontrar franja divs iterando
+    var franjaDivs = bodyEl.querySelectorAll('div[style*="margin-bottom:.8rem"], div[style*="margin-bottom: .8rem"]');
+    if (!franjaDivs.length) return;
+
+    var fidIdx = FRANJA_ORDEN.indexOf(ancla.franjaId);
+    if (fidIdx === -1) return;
+
+    var franjaDiv = null;
+    var count = 0;
+    for (var i = 0; i < franjaDivs.length; i++) {
+      var fText = (franjaDivs[i].querySelector('div') || {}).textContent || '';
+      // Verificar que esta franja tiene pasos del templateId
+      var arr = (tpl.pasos[FRANJA_ORDEN[count]] || []);
+      if (arr.length > 0) {
+        if (FRANJA_ORDEN[count] === ancla.franjaId) { franjaDiv = franjaDivs[i]; break; }
+        count++;
+      }
+    }
+
+    if (!franjaDiv) return;
+    var pasoRows = franjaDiv.querySelectorAll('div[style*="display:flex"]');
+    var targetRow = pasoRows[ancla.idx];
+    if (!targetRow) return;
+
+    targetRow.classList.add('session-paso-ancla');
+    var badge = document.createElement('span');
+    badge.style.cssText = 'font-size:.58rem;font-weight:800;color:var(--rosa);border:1.5px solid var(--rosa);border-radius:20px;padding:.05rem .35rem;margin-left:auto;flex-shrink:0;white-space:nowrap;background:white;';
+    badge.textContent = '⚓ ancla';
+    targetRow.appendChild(badge);
+  }
 
 })();
 </script>
