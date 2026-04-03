@@ -15431,15 +15431,17 @@ window.calmaShowTab = function(idx) {
   <button class="salud-tab active" id="rutTab0" onclick="rutShowTab(0)">🌅 Bloques del día</button>
   <button class="salud-tab" id="rutTab1" onclick="rutShowTab(1)">📋 Orden y rutinas</button>
   <button class="salud-tab" id="rutTab2" onclick="rutShowTab(2)">🕯️ Rituales</button>
+  <button class="salud-tab" id="rutTab3" onclick="rutShowTab(3)">⚓ Anclas</button>
 </div>
 <script>
 window.rutShowTab = function(idx) {
-  for (var i=0; i<3; i++) {
+  for (var i=0; i<4; i++) {
     var btn = document.getElementById('rutTab'+i);
     var el  = document.getElementById('rutTabContent'+i);
     if (btn) btn.classList.toggle('active', i===idx);
     if (el)  el.style.display = (i===idx) ? '' : 'none';
   }
+  if (idx === 3 && window.anclasRender) window.anclasRender();
 };
 </script>
 
@@ -15526,6 +15528,22 @@ window.rutShowTab = function(idx) {
   </div>
 </section>
 </div><!-- end rutTabContent2 -->
+
+<!-- TAB 3: Anclas -->
+<div id="rutTabContent3" style="display:none">
+<section class="rutinas-section" id="sec-anclas">
+  <p style="font-size:.75rem;color:var(--muted);margin-bottom:1.2rem;font-weight:600;margin-top:.8rem">
+    Ancla tu día con una actividad fija — agrega lo que va antes y después, sin horarios rígidos ⚓
+  </p>
+  <div class="rutina-templates-wrap" style="margin-bottom:1rem">
+    <div class="rutina-templates-header">
+      <span class="rutina-templates-title">⚓ Mis anclas</span>
+      <button class="rutina-new-btn" id="anclasAddBtn">＋ Nueva ancla</button>
+    </div>
+    <div id="anclasList"></div>
+  </div>
+</section>
+</div><!-- end rutTabContent3 -->
 
 </div><!-- end page-rutinas -->
 <!-- ══════════════════════════════════════════
@@ -43791,6 +43809,782 @@ setTimeout(function() {
   renderEnergiaBar();
   addSugerirBtn();
 }, 600);
+
+})();
+
+// ══════════════════════════════════════════
+// SISTEMA · ANCLAS (Tab en Rutinas) ⚓
+// Anclas libres, sin horario. Cada ancla tiene:
+//   - nombre + emoji
+//   - antes: [{texto, mins}] ilimitados
+//   - despues: [{texto}] ilimitados
+// Storage:
+//   yuki_anclas       — array de anclas [{id,emoji,nombre,antes,despues}]
+//   yuki_anclas_chk   — checks del día { "id|dk|tipo|idx": true }
+// ══════════════════════════════════════════
+(function() {
+
+  var ANCLAS_KEY = 'yuki_anclas';
+  var ANCLAS_CHK = 'yuki_anclas_chk';
+  var ANCLAS_EMOJIS = ['⚓','🎯','📚','💪','🧘','🍵','🚿','🖥️','🎨','🏃','🌿','✍️','🎵','🧠','💤','🌸','⭐','🔥','🌙','☀️'];
+
+  function aLoad()    { try { return JSON.parse(localStorage.getItem(ANCLAS_KEY)||'[]');  } catch(e){return[];} }
+  function aLoadChk() { try { return JSON.parse(localStorage.getItem(ANCLAS_CHK)||'{}'); } catch(e){return{};} }
+  function aSave(d)    { localStorage.setItem(ANCLAS_KEY, JSON.stringify(d)); if(window.cloudSave) window.cloudSave(ANCLAS_KEY, d); }
+  function aSaveChk(d) { localStorage.setItem(ANCLAS_CHK, JSON.stringify(d)); if(window.cloudSave) window.cloudSave(ANCLAS_CHK, d); }
+
+  function aDKey() {
+    var d = new Date();
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+
+  // ── CSS ────────────────────────────────────────────────────────────────
+  var style = document.createElement('style');
+  style.textContent = `
+    .ancla-card {
+      background: var(--card);
+      border: 1.5px solid var(--border);
+      border-radius: 16px;
+      margin-bottom: .7rem;
+      overflow: hidden;
+      transition: border-color .15s;
+    }
+    .ancla-card:hover { border-color: var(--rosa); }
+    .ancla-card-hdr {
+      display: flex; align-items: center; gap: .55rem;
+      padding: .7rem .9rem;
+      cursor: pointer; user-select: none;
+    }
+    .ancla-card-emoji { font-size: 1.3rem; flex-shrink: 0; }
+    .ancla-card-info { flex: 1; min-width: 0; }
+    .ancla-card-nombre {
+      font-size: .82rem; font-weight: 800; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .ancla-card-meta {
+      font-size: .65rem; font-weight: 600; color: var(--muted); margin-top: .1rem;
+    }
+    .ancla-card-prog {
+      font-size: .65rem; font-weight: 700; color: var(--muted2); white-space: nowrap;
+    }
+    .ancla-card-actions { display: flex; gap: .3rem; }
+    .ancla-act-btn {
+      background: none; border: none; cursor: pointer;
+      font-size: .85rem; padding: .15rem .3rem; color: var(--muted2);
+      transition: color .15s;
+    }
+    .ancla-act-btn:hover { color: var(--rosa); }
+    .ancla-card-chevron {
+      font-size: .7rem; color: var(--muted2);
+      transition: transform .2s; display: inline-block;
+    }
+    .ancla-card.ancla-open .ancla-card-chevron { transform: rotate(180deg); }
+
+    .ancla-card-body {
+      display: none;
+      padding: .2rem .9rem .8rem;
+    }
+    .ancla-card.ancla-open .ancla-card-body { display: block; }
+
+    /* Flow */
+    .ancla-flow { display: flex; flex-direction: column; }
+    .ancla-antes-item, .ancla-despues-item {
+      display: flex; align-items: center; gap: .5rem;
+      padding: .38rem .5rem; border-radius: 9px;
+      border: 1.5px solid var(--border); margin-bottom: .25rem;
+      background: var(--surface); cursor: pointer; transition: all .15s;
+    }
+    .ancla-despues-item { margin-bottom: 0; margin-top: .25rem; }
+    .ancla-item-done { opacity: .5; }
+    .ancla-item-done .ancla-item-texto { text-decoration: line-through; }
+    .ancla-chk {
+      width: 17px; height: 17px; min-width: 17px; border-radius: 50%;
+      border: 2px solid var(--muted2); display: flex; align-items: center;
+      justify-content: center; font-size: .58rem; color: white; flex-shrink: 0;
+      transition: all .15s;
+    }
+    .ancla-item-done .ancla-chk { background: var(--rosa); border-color: var(--rosa); }
+    .ancla-item-texto { font-size: .78rem; font-weight: 600; color: var(--text); flex: 1; }
+    .ancla-item-mins {
+      font-size: .62rem; font-weight: 700; color: var(--rosa);
+      background: var(--rosa-soft, #fce4ec); border-radius: 20px;
+      padding: .07rem .38rem; white-space: nowrap; flex-shrink: 0;
+    }
+    .ancla-central {
+      display: flex; align-items: center; gap: .5rem;
+      padding: .55rem .65rem; border-radius: 12px;
+      border: 2.5px solid var(--rosa);
+      background: var(--rosa-soft, #fce4ec);
+      margin: .2rem 0;
+    }
+    .ancla-central-emoji { font-size: 1.15rem; flex-shrink: 0; }
+    .ancla-central-texto { font-size: .85rem; font-weight: 800; color: var(--rosa); flex: 1; }
+    .ancla-central-badge {
+      font-size: .58rem; font-weight: 800; color: var(--rosa);
+      border: 1.5px solid var(--rosa); border-radius: 20px;
+      padding: .05rem .38rem; background: white; white-space: nowrap;
+    }
+    .ancla-connector { width: 2px; height: 10px; background: var(--border); margin: 0 auto; }
+
+    /* Progreso */
+    .ancla-prog-bar {
+      height: 4px; background: var(--border); border-radius: 99px;
+      overflow: hidden; margin: .6rem 0 .2rem;
+    }
+    .ancla-prog-fill { height: 100%; background: var(--rosa); border-radius: 99px; transition: width .3s; }
+
+    /* Estado vacío */
+    .anclas-empty {
+      font-size: .75rem; color: var(--muted2); font-style: italic;
+      text-align: center; padding: 1.5rem 1rem;
+    }
+
+    /* Modal */
+    .am-bd {
+      position: fixed; inset: 0; z-index: 9500;
+      background: rgba(0,0,0,.5);
+      display: flex; align-items: center; justify-content: center;
+      padding: 1rem;
+    }
+    .am-modal {
+      background: var(--card); border-radius: 20px;
+      padding: 1.3rem 1.2rem 2.4rem;
+      width: 100%; max-width: 500px;
+      max-height: 88vh; overflow-y: auto;
+    }
+    .am-title {
+      font-family: var(--font-title); font-style: italic;
+      font-size: 1rem; font-weight: 700; color: var(--rosa);
+      margin-bottom: .9rem;
+    }
+    .am-emoji-row {
+      display: flex; flex-wrap: wrap; gap: .3rem; margin-bottom: .9rem;
+    }
+    .am-emoji-btn {
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 8px; font-size: 1.1rem; width: 36px; height: 36px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
+    }
+    .am-emoji-btn.sel { border-color: var(--rosa); background: var(--rosa-soft, #fce4ec); }
+    .am-label {
+      font-size: .65rem; font-weight: 800; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .06em; margin-bottom: .3rem; display: block;
+    }
+    .am-section-title {
+      font-size: .65rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--muted); margin: .85rem 0 .4rem;
+    }
+    .am-input {
+      width: 100%; box-sizing: border-box;
+      padding: .45rem .7rem; border: 1.5px solid var(--border);
+      border-radius: 10px; background: var(--bg); color: var(--text);
+      font-family: var(--font-body); font-size: .82rem; font-weight: 600;
+      outline: none; margin-bottom: .35rem;
+    }
+    .am-input:focus { border-color: var(--rosa); }
+    .am-row { display: flex; gap: .4rem; align-items: center; margin-bottom: .3rem; }
+    .am-row input[type=text] { flex: 1; margin-bottom: 0; }
+    .am-row input[type=number] { width: 64px; text-align: center; flex-shrink: 0; margin-bottom: 0; }
+    .am-mins-lbl { font-size: .68rem; font-weight: 600; color: var(--muted); white-space: nowrap; }
+    .am-del { background: none; border: none; color: var(--muted2); cursor: pointer; font-size: .85rem; padding: .1rem .3rem; flex-shrink: 0; }
+    .am-del:hover { color: var(--rosa); }
+    .am-add-btn {
+      width: 100%; background: transparent; border: 1.5px dashed var(--muted2);
+      border-radius: 8px; color: var(--muted2); font-family: var(--font-body);
+      font-size: .72rem; font-weight: 700; padding: .25rem .7rem;
+      cursor: pointer; margin-top: .1rem; transition: all .15s;
+    }
+    .am-add-btn:hover { border-color: var(--rosa); color: var(--rosa); }
+    .am-btns { display: flex; gap: .6rem; margin-top: 1.2rem; }
+    .am-save {
+      flex: 1; padding: .6rem; border-radius: 12px; border: none;
+      background: var(--rosa); color: white; font-family: var(--font-body);
+      font-size: .84rem; font-weight: 800; cursor: pointer;
+    }
+    .am-cancel {
+      padding: .6rem 1rem; border-radius: 12px;
+      border: 1.5px solid var(--border); background: none; color: var(--muted);
+      font-family: var(--font-body); font-size: .84rem; font-weight: 700; cursor: pointer;
+    }
+    .am-del-big {
+      width: 100%; padding: .5rem; border-radius: 12px;
+      border: 1.5px solid var(--border); background: none; color: var(--muted2);
+      font-family: var(--font-body); font-size: .78rem; font-weight: 700;
+      cursor: pointer; margin-top: .5rem; transition: all .15s;
+    }
+    .am-del-big:hover { border-color: var(--rosa); color: var(--rosa); }
+  `;
+  document.head.appendChild(style);
+
+  // ── Render principal ────────────────────────────────────────────────────
+  function anclasRender() {
+    var list = document.getElementById('anclasList');
+    if (!list) return;
+    var anclas = aLoad();
+    var chk    = aLoadChk();
+    var dk     = aDKey();
+
+    if (anclas.length === 0) {
+      list.innerHTML = '<div class="anclas-empty">Aún no tienes anclas.<br>¡Crea tu primera! ⚓</div>';
+      return;
+    }
+
+    list.innerHTML = '';
+    anclas.forEach(function(ancla) {
+      var antes   = ancla.antes   || [];
+      var despues = ancla.despues || [];
+      var total   = antes.length + despues.length;
+      var hechos  = 0;
+      antes.forEach(function(_,i)   { if(chk[ancla.id+'|'+dk+'|antes|'+i])   hechos++; });
+      despues.forEach(function(_,i) { if(chk[ancla.id+'|'+dk+'|despues|'+i]) hechos++; });
+
+      var card = document.createElement('div');
+      card.className = 'ancla-card';
+
+      // Header
+      var hdr = document.createElement('div');
+      hdr.className = 'ancla-card-hdr';
+
+      var metaParts = [];
+      if (antes.length)   metaParts.push(antes.length + ' antes');
+      if (despues.length) metaParts.push(despues.length + ' después');
+
+      hdr.innerHTML =
+        '<span class="ancla-card-emoji">'+(ancla.emoji||'⚓')+'</span>'+
+        '<div class="ancla-card-info">'+
+          '<div class="ancla-card-nombre">'+ancla.nombre+'</div>'+
+          (metaParts.length ? '<div class="ancla-card-meta">'+metaParts.join(' · ')+'</div>' : '')+
+        '</div>'+
+        (total > 0 ? '<span class="ancla-card-prog">'+hechos+'/'+total+'</span>' : '')+
+        '<div class="ancla-card-actions">'+
+          '<button class="ancla-act-btn am-edit-btn" title="Editar">✏️</button>'+
+        '</div>'+
+        '<span class="ancla-card-chevron">▼</span>';
+
+      hdr.querySelector('.am-edit-btn').onclick = function(e) {
+        e.stopPropagation();
+        amOpenModal(ancla.id);
+      };
+      hdr.onclick = function(e) {
+        if (e.target.closest('.ancla-card-actions')) return;
+        card.classList.toggle('ancla-open');
+      };
+
+      // Body
+      var body = document.createElement('div');
+      body.className = 'ancla-card-body';
+
+      var flow = document.createElement('div');
+      flow.className = 'ancla-flow';
+
+      // Antes
+      antes.forEach(function(item, idx) {
+        var ck   = ancla.id+'|'+dk+'|antes|'+idx;
+        var done = !!chk[ck];
+        var el   = document.createElement('div');
+        el.className = 'ancla-antes-item' + (done ? ' ancla-item-done' : '');
+        var chkEl = document.createElement('div'); chkEl.className='ancla-chk'; chkEl.textContent=done?'✓':'';
+        var txt   = document.createElement('span'); txt.className='ancla-item-texto'; txt.textContent=item.texto;
+        el.appendChild(chkEl); el.appendChild(txt);
+        if (item.mins) {
+          var mEl = document.createElement('span'); mEl.className='ancla-item-mins'; mEl.textContent=item.mins+' min antes';
+          el.appendChild(mEl);
+        }
+        el.onclick = function(e) {
+          e.stopPropagation();
+          var c=aLoadChk(); c[ck]=!done; if(!c[ck]) delete c[ck];
+          aSaveChk(c); anclasRender();
+        };
+        flow.appendChild(el);
+      });
+
+      if (antes.length > 0) { var c1=document.createElement('div'); c1.className='ancla-connector'; flow.appendChild(c1); }
+
+      // Ancla central
+      var central = document.createElement('div');
+      central.className = 'ancla-central';
+      central.innerHTML =
+        '<span class="ancla-central-emoji">'+(ancla.emoji||'⚓')+'</span>'+
+        '<span class="ancla-central-texto">'+ancla.nombre+'</span>'+
+        '<span class="ancla-central-badge">ancla</span>';
+      flow.appendChild(central);
+
+      if (despues.length > 0) { var c2=document.createElement('div'); c2.className='ancla-connector'; flow.appendChild(c2); }
+
+      // Después
+      despues.forEach(function(item, idx) {
+        var ck   = ancla.id+'|'+dk+'|despues|'+idx;
+        var done = !!chk[ck];
+        var el   = document.createElement('div');
+        el.className = 'ancla-despues-item' + (done ? ' ancla-item-done' : '');
+        var chkEl = document.createElement('div'); chkEl.className='ancla-chk'; chkEl.textContent=done?'✓':'';
+        var txt   = document.createElement('span'); txt.className='ancla-item-texto'; txt.textContent=item.texto;
+        el.appendChild(chkEl); el.appendChild(txt);
+        el.onclick = function(e) {
+          e.stopPropagation();
+          var c=aLoadChk(); c[ck]=!done; if(!c[ck]) delete c[ck];
+          aSaveChk(c); anclasRender();
+        };
+        flow.appendChild(el);
+      });
+
+      body.appendChild(flow);
+
+      // Barra de progreso
+      if (total > 0) {
+        var prog = document.createElement('div');
+        prog.className = 'ancla-prog-bar';
+        prog.innerHTML = '<div class="ancla-prog-fill" style="width:'+Math.round(hechos/total*100)+'%"></div>';
+        body.appendChild(prog);
+      }
+
+      card.appendChild(hdr);
+      card.appendChild(body);
+      list.appendChild(card);
+    });
+  }
+
+  // ── Modal crear / editar ────────────────────────────────────────────────
+  function amOpenModal(editId) {
+    var anclas  = aLoad();
+    var ancla   = editId ? anclas.find(function(a){ return a.id===editId; }) : null;
+    var selEmoji = ancla ? (ancla.emoji||'⚓') : '⚓';
+    var editAntes   = ancla ? JSON.parse(JSON.stringify(ancla.antes||[])) : [];
+    var editDespues = ancla ? JSON.parse(JSON.stringify(ancla.despues||[])) : [];
+
+    var old=document.getElementById('amBd'); if(old) old.remove();
+    var bd=document.createElement('div'); bd.className='am-bd'; bd.id='amBd';
+    bd.onclick=function(e){ if(e.target===bd) bd.remove(); };
+
+    var modal=document.createElement('div'); modal.className='am-modal';
+
+    function build() {
+      modal.innerHTML='';
+
+      var title=document.createElement('div'); title.className='am-title';
+      title.textContent=editId?'✏️ Editar ancla':'⚓ Nueva ancla'; modal.appendChild(title);
+
+      // Emoji picker
+      var emojiRow=document.createElement('div'); emojiRow.className='am-emoji-row';
+      ANCLAS_EMOJIS.forEach(function(em){
+        var btn=document.createElement('button'); btn.className='am-emoji-btn'+(em===selEmoji?' sel':'');
+        btn.textContent=em; btn.type='button';
+        btn.onclick=function(){
+          emojiRow.querySelectorAll('.am-emoji-btn').forEach(function(b){b.classList.remove('sel');});
+          btn.classList.add('sel'); selEmoji=em;
+        };
+        emojiRow.appendChild(btn);
+      });
+      modal.appendChild(emojiRow);
+
+      // Nombre (= la actividad ancla)
+      var lbl=document.createElement('label'); lbl.className='am-label'; lbl.textContent='⚓ Actividad ancla (inamovible)';
+      modal.appendChild(lbl);
+      var nombreInput=document.createElement('input'); nombreInput.type='text'; nombreInput.className='am-input';
+      nombreInput.placeholder='ej. Estudiar, Trabajar, Ejercicio, Meditar…';
+      nombreInput.value=ancla?ancla.nombre||'':'';
+      modal.appendChild(nombreInput);
+
+      // Sección ANTES
+      var at=document.createElement('div'); at.className='am-section-title'; at.textContent='🔵 Antes del ancla'; modal.appendChild(at);
+      var antesContainer=document.createElement('div');
+
+      function renderAntes(){
+        antesContainer.innerHTML='';
+        editAntes.forEach(function(item,idx){
+          var row=document.createElement('div'); row.className='am-row';
+          var inp=document.createElement('input'); inp.type='text'; inp.className='am-input'; inp.style.marginBottom='0';
+          inp.placeholder='ej. Bañarse, Preparar materiales, Calentar…'; inp.value=item.texto||'';
+          inp.oninput=function(){editAntes[idx].texto=inp.value;};
+          var mins=document.createElement('input'); mins.type='number'; mins.className='am-input';
+          mins.style.cssText='width:64px;text-align:center;flex-shrink:0;margin-bottom:0;';
+          mins.min=0; mins.max=240; mins.placeholder='0'; mins.value=item.mins||''; mins.title='Minutos de anticipación';
+          mins.oninput=function(){editAntes[idx].mins=parseInt(mins.value)||null;};
+          var lbl2=document.createElement('span'); lbl2.className='am-mins-lbl'; lbl2.textContent='min';
+          var del=document.createElement('button'); del.type='button'; del.className='am-del'; del.textContent='✕';
+          del.onclick=function(){editAntes.splice(idx,1);renderAntes();};
+          row.appendChild(inp); row.appendChild(mins); row.appendChild(lbl2); row.appendChild(del);
+          antesContainer.appendChild(row);
+        });
+      }
+      renderAntes(); modal.appendChild(antesContainer);
+
+      var addA=document.createElement('button'); addA.type='button'; addA.className='am-add-btn'; addA.textContent='＋ Agregar actividad antes';
+      addA.onclick=function(){
+        editAntes.push({texto:'',mins:null}); renderAntes();
+        var ins=antesContainer.querySelectorAll('input[type=text]'); if(ins.length) ins[ins.length-1].focus();
+      };
+      modal.appendChild(addA);
+
+      // Sección DESPUÉS
+      var dt=document.createElement('div'); dt.className='am-section-title'; dt.textContent='🟣 Después del ancla'; modal.appendChild(dt);
+      var despContainer=document.createElement('div');
+
+      function renderDesp(){
+        despContainer.innerHTML='';
+        editDespues.forEach(function(item,idx){
+          var row=document.createElement('div'); row.className='am-row';
+          var inp=document.createElement('input'); inp.type='text'; inp.className='am-input'; inp.style.marginBottom='0';
+          inp.placeholder='ej. Skincare, Leer, Caminar, Revisar notas…'; inp.value=item.texto||'';
+          inp.oninput=function(){editDespues[idx].texto=inp.value;};
+          var del=document.createElement('button'); del.type='button'; del.className='am-del'; del.textContent='✕';
+          del.onclick=function(){editDespues.splice(idx,1);renderDesp();};
+          row.appendChild(inp); row.appendChild(del); despContainer.appendChild(row);
+        });
+      }
+      renderDesp(); modal.appendChild(despContainer);
+
+      var addD=document.createElement('button'); addD.type='button'; addD.className='am-add-btn'; addD.textContent='＋ Agregar actividad después';
+      addD.onclick=function(){
+        editDespues.push({texto:''}); renderDesp();
+        var ins=despContainer.querySelectorAll('input[type=text]'); if(ins.length) ins[ins.length-1].focus();
+      };
+      modal.appendChild(addD);
+
+      // Botones
+      var btns=document.createElement('div'); btns.className='am-btns';
+      var cancelBtn=document.createElement('button'); cancelBtn.className='am-cancel'; cancelBtn.textContent='Cancelar';
+      cancelBtn.onclick=function(){bd.remove();};
+      var saveBtn=document.createElement('button'); saveBtn.className='am-save'; saveBtn.textContent='💾 Guardar';
+      saveBtn.onclick=function(){
+        var nombre=(nombreInput.value||'').trim();
+        if(!nombre){ nombreInput.focus(); return; }
+        var clean={
+          id:      editId||('ancla_'+Date.now()),
+          emoji:   selEmoji,
+          nombre:  nombre,
+          antes:   editAntes.filter(function(i){return (i.texto||'').trim();}).map(function(i){return{texto:i.texto.trim(),mins:i.mins||null};}),
+          despues: editDespues.filter(function(i){return (i.texto||'').trim();}).map(function(i){return{texto:i.texto.trim()};})
+        };
+        var arr=aLoad();
+        if(editId){
+          var ix=arr.findIndex(function(a){return a.id===editId;});
+          if(ix!==-1) arr[ix]=clean; else arr.push(clean);
+        } else {
+          arr.push(clean);
+        }
+        aSave(arr); bd.remove(); anclasRender();
+      };
+      btns.appendChild(cancelBtn); btns.appendChild(saveBtn); modal.appendChild(btns);
+
+      // Eliminar (solo en edición)
+      if (editId) {
+        var delBig=document.createElement('button'); delBig.className='am-del-big'; delBig.textContent='🗑️ Eliminar esta ancla';
+        delBig.onclick=function(){
+          if(!confirm('¿Eliminar esta ancla?')) return;
+          var arr=aLoad().filter(function(a){return a.id!==editId;});
+          aSave(arr); bd.remove(); anclasRender();
+        };
+        modal.appendChild(delBig);
+      }
+    }
+
+    build();
+    bd.appendChild(modal);
+    document.body.appendChild(bd);
+    setTimeout(function(){ var f=modal.querySelector('.am-input'); if(f) f.focus(); }, 80);
+  }
+
+  // ── Init ────────────────────────────────────────────────────────────────
+  window.anclasRender = anclasRender;
+
+  document.addEventListener('DOMContentLoaded', function() {
+    var addBtn=document.getElementById('anclasAddBtn');
+    if(addBtn) addBtn.onclick=function(){ amOpenModal(null); };
+  });
+
+  // Fallback si DOMContentLoaded ya pasó
+  setTimeout(function(){
+    var addBtn=document.getElementById('anclasAddBtn');
+    if(addBtn && !addBtn._amBound) { addBtn._amBound=true; addBtn.onclick=function(){ amOpenModal(null); }; }
+  }, 800);
+
+})();
+
+// ══════════════════════════════════════════
+// PATCH · ANCLA DE BLOQUE (Horario) ⚓
+// Sistema de ancla + rituales ilimitados por bloque en page-horario.
+// Estructura: { ancla:'texto', antes:[{texto,mins}], despues:[{texto}] }
+// Storage:
+//   yuki_bloque_ancla    — plantilla fija por franjaId
+//   yuki_bloque_ancla_ov — override por día: clave "dk|franjaId"
+//   yuki_bloque_ancla_chk — checks del día: clave "dk|franjaId|tipo|idx"
+// ══════════════════════════════════════════
+(function() {
+
+  var BA_KEY    = 'yuki_bloque_ancla';
+  var BA_OV_KEY = 'yuki_bloque_ancla_ov';
+  var BA_CHK    = 'yuki_bloque_ancla_chk';
+
+  function baLoad()    { try { return JSON.parse(localStorage.getItem(BA_KEY)||'{}');    } catch(e){return{};} }
+  function baLoadOv()  { try { return JSON.parse(localStorage.getItem(BA_OV_KEY)||'{}'); } catch(e){return{};} }
+  function baLoadChk() { try { return JSON.parse(localStorage.getItem(BA_CHK)||'{}');   } catch(e){return{};} }
+  function baSave(d)    { localStorage.setItem(BA_KEY,    JSON.stringify(d)); if(window.cloudSave) window.cloudSave(BA_KEY, d); }
+  function baSaveOv(d)  { localStorage.setItem(BA_OV_KEY, JSON.stringify(d)); if(window.cloudSave) window.cloudSave(BA_OV_KEY, d); }
+  function baSaveChk(d) { localStorage.setItem(BA_CHK,    JSON.stringify(d)); if(window.cloudSave) window.cloudSave(BA_CHK, d); }
+
+  function baGetActivo(dk, franjaId) {
+    var ov = baLoadOv();
+    var key = dk + '|' + franjaId;
+    if (ov[key]) return ov[key];
+    var base = baLoad();
+    return base[franjaId] || null;
+  }
+
+  function dkHoy() {
+    var d = new Date();
+    d.setDate(d.getDate() + (window.horarioOffset || 0));
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+
+  var style = document.createElement('style');
+  style.textContent = `
+    .ba-section { margin:.5rem 0 .3rem; border-top:1.5px solid var(--border); padding-top:.5rem; }
+    .ba-section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:.45rem; }
+    .ba-section-title { font-size:.62rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+    .ba-edit-btn { background:none; border:1.5px solid var(--border); border-radius:20px; font-size:.62rem; font-weight:700; color:var(--muted); padding:.12rem .5rem; cursor:pointer; transition:all .15s; }
+    .ba-edit-btn:hover { border-color:var(--rosa); color:var(--rosa); }
+    .ba-flow { display:flex; flex-direction:column; gap:0; }
+    .ba-antes-item, .ba-despues-item { display:flex; align-items:center; gap:.5rem; padding:.35rem .5rem; border-radius:8px; border:1.5px solid var(--border); margin-bottom:.25rem; background:var(--surface); cursor:pointer; transition:all .15s; }
+    .ba-despues-item { margin-bottom:0; margin-top:.25rem; }
+    .ba-antes-item.ba-done, .ba-despues-item.ba-done { opacity:.55; }
+    .ba-antes-item.ba-done .ba-item-texto, .ba-despues-item.ba-done .ba-item-texto { text-decoration:line-through; }
+    .ba-chk { width:16px; height:16px; min-width:16px; border-radius:50%; border:2px solid var(--muted2); display:flex; align-items:center; justify-content:center; font-size:.55rem; color:white; flex-shrink:0; transition:all .15s; }
+    .ba-done .ba-chk { background:var(--rosa); border-color:var(--rosa); }
+    .ba-item-texto { font-size:.78rem; font-weight:600; color:var(--text); flex:1; }
+    .ba-item-mins { font-size:.62rem; font-weight:700; color:var(--rosa); white-space:nowrap; background:var(--rosa-soft,#fce4ec); border-radius:20px; padding:.08rem .38rem; }
+    .ba-ancla-row { display:flex; align-items:center; gap:.5rem; padding:.5rem .6rem; border-radius:10px; border:2px solid var(--rosa); background:var(--rosa-soft,#fce4ec); margin:.2rem 0; }
+    .ba-ancla-icon { font-size:.9rem; flex-shrink:0; }
+    .ba-ancla-texto { font-size:.82rem; font-weight:800; color:var(--rosa); flex:1; }
+    .ba-ancla-badge { font-size:.58rem; font-weight:800; color:var(--rosa); border:1.5px solid var(--rosa); border-radius:20px; padding:.05rem .35rem; background:white; white-space:nowrap; }
+    .ba-connector { width:2px; height:10px; background:var(--border); margin:0 auto; }
+    .ba-empty { font-size:.7rem; color:var(--muted2); font-style:italic; text-align:center; padding:.4rem 0; }
+    .ba-modal-bd { position:fixed; inset:0; z-index:9500; background:rgba(0,0,0,.5); display:flex; align-items:flex-end; justify-content:center; }
+    .ba-modal { background:var(--card); border-radius:20px 20px 0 0; padding:1.3rem 1.2rem 2.2rem; width:100%; max-width:500px; max-height:85vh; overflow-y:auto; }
+    .ba-modal-title { font-family:var(--font-title); font-style:italic; font-size:1rem; font-weight:700; color:var(--rosa); margin-bottom:1rem; }
+    .ba-modal-section-title { font-size:.65rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:.8rem 0 .4rem; }
+    .ba-modal-input { width:100%; box-sizing:border-box; padding:.45rem .7rem; border:1.5px solid var(--border); border-radius:10px; background:var(--bg); color:var(--text); font-family:var(--font-body); font-size:.82rem; font-weight:600; outline:none; margin-bottom:.35rem; }
+    .ba-modal-input:focus { border-color:var(--rosa); }
+    .ba-modal-input-row { display:flex; gap:.4rem; align-items:center; margin-bottom:.3rem; }
+    .ba-modal-input-row input[type=text] { flex:1; margin-bottom:0; }
+    .ba-modal-input-row input[type=number] { width:64px; text-align:center; flex-shrink:0; margin-bottom:0; }
+    .ba-mins-label { font-size:.68rem; font-weight:600; color:var(--muted); white-space:nowrap; }
+    .ba-modal-del-item { background:none; border:none; color:var(--muted2); cursor:pointer; font-size:.85rem; padding:.1rem .3rem; flex-shrink:0; }
+    .ba-modal-del-item:hover { color:var(--rosa); }
+    .ba-modal-add-btn { background:transparent; border:1.5px dashed var(--muted2); border-radius:8px; color:var(--muted2); font-family:var(--font-body); font-size:.72rem; font-weight:700; padding:.25rem .7rem; cursor:pointer; width:100%; margin-top:.1rem; transition:all .15s; }
+    .ba-modal-add-btn:hover { border-color:var(--rosa); color:var(--rosa); }
+    .ba-modal-btns { display:flex; gap:.6rem; margin-top:1.2rem; }
+    .ba-modal-save { flex:1; padding:.6rem; border-radius:12px; border:none; background:var(--rosa); color:white; font-family:var(--font-body); font-size:.84rem; font-weight:800; cursor:pointer; }
+    .ba-modal-cancel { padding:.6rem 1rem; border-radius:12px; border:1.5px solid var(--border); background:none; color:var(--muted); font-family:var(--font-body); font-size:.84rem; font-weight:700; cursor:pointer; }
+    .ba-modal-override-note { font-size:.68rem; color:var(--muted2); font-style:italic; margin-bottom:.6rem; line-height:1.5; }
+    .ba-modal-tabs { display:flex; gap:.3rem; margin-bottom:.8rem; }
+    .ba-modal-tab { flex:1; padding:.3rem .5rem; border-radius:20px; border:1.5px solid var(--border); background:var(--surface); font-family:var(--font-body); font-size:.7rem; font-weight:700; color:var(--muted); cursor:pointer; transition:all .15s; text-align:center; }
+    .ba-modal-tab.active { background:var(--rosa); border-color:var(--rosa); color:white; }
+  `;
+  document.head.appendChild(style);
+
+  function baRenderSeccion(body, dk, franjaId) {
+    var old = body.querySelector('.ba-section');
+    if (old) old.remove();
+    var data = baGetActivo(dk, franjaId);
+    var chk  = baLoadChk();
+    var sec  = document.createElement('div');
+    sec.className = 'ba-section';
+    var hdr = document.createElement('div');
+    hdr.className = 'ba-section-header';
+    var title = document.createElement('span');
+    title.className = 'ba-section-title';
+    title.textContent = '⚓ Ancla del bloque';
+    hdr.appendChild(title);
+    var editBtn = document.createElement('button');
+    editBtn.className = 'ba-edit-btn';
+    editBtn.textContent = data ? '✏️ Editar' : '＋ Configurar';
+    editBtn.onclick = function(e) { e.stopPropagation(); baOpenModal(dk, franjaId, body); };
+    hdr.appendChild(editBtn);
+    sec.appendChild(hdr);
+    if (!data || !data.ancla) {
+      var empty = document.createElement('div');
+      empty.className = 'ba-empty';
+      empty.textContent = 'Sin ancla configurada para este bloque';
+      sec.appendChild(empty);
+      body.insertBefore(sec, body.firstChild);
+      return;
+    }
+    var flow = document.createElement('div');
+    flow.className = 'ba-flow';
+    (data.antes || []).forEach(function(item, idx) {
+      var ck = dk+'|'+franjaId+'|antes|'+idx;
+      var done = !!chk[ck];
+      var el = document.createElement('div');
+      el.className = 'ba-antes-item'+(done?' ba-done':'');
+      var chkEl = document.createElement('div'); chkEl.className='ba-chk'; chkEl.textContent=done?'✓':'';
+      var txt = document.createElement('span'); txt.className='ba-item-texto'; txt.textContent=item.texto;
+      el.appendChild(chkEl); el.appendChild(txt);
+      if (item.mins) {
+        var mEl = document.createElement('span'); mEl.className='ba-item-mins'; mEl.textContent=item.mins+' min antes';
+        el.appendChild(mEl);
+      }
+      el.onclick = function(e) {
+        e.stopPropagation();
+        var c=baLoadChk(); c[ck]=!done; if(!c[ck]) delete c[ck];
+        baSaveChk(c); baRenderSeccion(body,dk,franjaId);
+      };
+      flow.appendChild(el);
+    });
+    if ((data.antes||[]).length>0) { var c1=document.createElement('div'); c1.className='ba-connector'; flow.appendChild(c1); }
+    var aRow=document.createElement('div'); aRow.className='ba-ancla-row';
+    aRow.innerHTML='<span class="ba-ancla-icon">⚓</span><span class="ba-ancla-texto">'+data.ancla+'</span><span class="ba-ancla-badge">ancla</span>';
+    flow.appendChild(aRow);
+    if ((data.despues||[]).length>0) { var c2=document.createElement('div'); c2.className='ba-connector'; flow.appendChild(c2); }
+    (data.despues||[]).forEach(function(item,idx) {
+      var ck=dk+'|'+franjaId+'|despues|'+idx;
+      var done=!!chk[ck];
+      var el=document.createElement('div'); el.className='ba-despues-item'+(done?' ba-done':'');
+      var chkEl=document.createElement('div'); chkEl.className='ba-chk'; chkEl.textContent=done?'✓':'';
+      var txt=document.createElement('span'); txt.className='ba-item-texto'; txt.textContent=item.texto;
+      el.appendChild(chkEl); el.appendChild(txt);
+      el.onclick=function(e) {
+        e.stopPropagation();
+        var c=baLoadChk(); c[ck]=!done; if(!c[ck]) delete c[ck];
+        baSaveChk(c); baRenderSeccion(body,dk,franjaId);
+      };
+      flow.appendChild(el);
+    });
+    sec.appendChild(flow);
+    body.insertBefore(sec, body.firstChild);
+  }
+
+  function baOpenModal(dk, franjaId, body) {
+    var old=document.getElementById('baModalBd'); if(old) old.remove();
+    var base=baLoad(); var ovAll=baLoadOv(); var ovKey=dk+'|'+franjaId;
+    var dataTpl=base[franjaId]||{ancla:'',antes:[],despues:[]};
+    var dataOv=ovAll[ovKey]||null;
+    var tabActivo=0;
+    var editing=JSON.parse(JSON.stringify(dataTpl));
+    var H_NAMES={mad:'Madrugada',m:'Mañana',med:'Mediodía',t:'Tarde',at:'Atardecer',n:'Noche'};
+    var bd=document.createElement('div'); bd.className='ba-modal-bd'; bd.id='baModalBd';
+    bd.onclick=function(e){if(e.target===bd) bd.remove();};
+    var modal=document.createElement('div'); modal.className='ba-modal';
+
+    function buildModal() {
+      modal.innerHTML='';
+      var title=document.createElement('div'); title.className='ba-modal-title';
+      title.textContent='⚓ Ancla · '+(H_NAMES[franjaId]||franjaId); modal.appendChild(title);
+      var tabs=document.createElement('div'); tabs.className='ba-modal-tabs';
+      ['📋 Plantilla fija','📅 Solo hoy'].forEach(function(label,i){
+        var tab=document.createElement('button'); tab.className='ba-modal-tab'+(tabActivo===i?' active':'');
+        tab.textContent=label;
+        tab.onclick=function(){ tabActivo=i; editing=JSON.parse(JSON.stringify(i===0?dataTpl:(dataOv||dataTpl))); buildModal(); };
+        tabs.appendChild(tab);
+      });
+      modal.appendChild(tabs);
+      var note=document.createElement('div'); note.className='ba-modal-override-note';
+      note.textContent=tabActivo===0?'Esta configuración es la plantilla base del bloque, siempre visible.':'Este override aplica solo para hoy. Si está vacío, usa la plantilla fija.';
+      modal.appendChild(note);
+
+      var at=document.createElement('div'); at.className='ba-modal-section-title'; at.textContent='⚓ Actividad ancla (inamovible)'; modal.appendChild(at);
+      var anclaInput=document.createElement('input'); anclaInput.type='text'; anclaInput.className='ba-modal-input';
+      anclaInput.placeholder='ej. Estudiar, Trabajar, Ejercicio…'; anclaInput.value=editing.ancla||'';
+      anclaInput.oninput=function(){editing.ancla=anclaInput.value;}; modal.appendChild(anclaInput);
+
+      var bt=document.createElement('div'); bt.className='ba-modal-section-title'; bt.textContent='🔵 Antes del ancla'; modal.appendChild(bt);
+      if(!editing.antes) editing.antes=[];
+      var antesContainer=document.createElement('div');
+      function renderAntes(){
+        antesContainer.innerHTML='';
+        editing.antes.forEach(function(item,idx){
+          var row=document.createElement('div'); row.className='ba-modal-input-row';
+          var inp=document.createElement('input'); inp.type='text'; inp.className='ba-modal-input'; inp.style.marginBottom='0';
+          inp.placeholder='ej. Bañarse, Preparar materiales…'; inp.value=item.texto||'';
+          inp.oninput=function(){editing.antes[idx].texto=inp.value;};
+          var mins=document.createElement('input'); mins.type='number'; mins.className='ba-modal-input'; mins.style.cssText='width:64px;text-align:center;flex-shrink:0;margin-bottom:0;';
+          mins.min=0; mins.max=240; mins.placeholder='0'; mins.value=item.mins||''; mins.title='Minutos de anticipación';
+          mins.oninput=function(){editing.antes[idx].mins=parseInt(mins.value)||null;};
+          var lbl=document.createElement('span'); lbl.className='ba-mins-label'; lbl.textContent='min';
+          var del=document.createElement('button'); del.className='ba-modal-del-item'; del.textContent='✕'; del.type='button';
+          del.onclick=function(){editing.antes.splice(idx,1);renderAntes();};
+          row.appendChild(inp); row.appendChild(mins); row.appendChild(lbl); row.appendChild(del);
+          antesContainer.appendChild(row);
+        });
+      }
+      renderAntes(); modal.appendChild(antesContainer);
+      var addA=document.createElement('button'); addA.className='ba-modal-add-btn'; addA.textContent='＋ Agregar actividad antes'; addA.type='button';
+      addA.onclick=function(){ editing.antes.push({texto:'',mins:null}); renderAntes(); var ins=antesContainer.querySelectorAll('input[type=text]'); if(ins.length) ins[ins.length-1].focus(); };
+      modal.appendChild(addA);
+
+      var dt=document.createElement('div'); dt.className='ba-modal-section-title'; dt.textContent='🟣 Después del ancla'; modal.appendChild(dt);
+      if(!editing.despues) editing.despues=[];
+      var despContainer=document.createElement('div');
+      function renderDesp(){
+        despContainer.innerHTML='';
+        editing.despues.forEach(function(item,idx){
+          var row=document.createElement('div'); row.className='ba-modal-input-row';
+          var inp=document.createElement('input'); inp.type='text'; inp.className='ba-modal-input'; inp.style.marginBottom='0';
+          inp.placeholder='ej. Skincare, Leer, Revisar notas…'; inp.value=item.texto||'';
+          inp.oninput=function(){editing.despues[idx].texto=inp.value;};
+          var del=document.createElement('button'); del.className='ba-modal-del-item'; del.textContent='✕'; del.type='button';
+          del.onclick=function(){editing.despues.splice(idx,1);renderDesp();};
+          row.appendChild(inp); row.appendChild(del); despContainer.appendChild(row);
+        });
+      }
+      renderDesp(); modal.appendChild(despContainer);
+      var addD=document.createElement('button'); addD.className='ba-modal-add-btn'; addD.textContent='＋ Agregar actividad después'; addD.type='button';
+      addD.onclick=function(){ editing.despues.push({texto:''}); renderDesp(); var ins=despContainer.querySelectorAll('input[type=text]'); if(ins.length) ins[ins.length-1].focus(); };
+      modal.appendChild(addD);
+
+      var btns=document.createElement('div'); btns.className='ba-modal-btns';
+      var cancelBtn=document.createElement('button'); cancelBtn.className='ba-modal-cancel'; cancelBtn.textContent='Cancelar';
+      cancelBtn.onclick=function(){bd.remove();};
+      var saveBtn=document.createElement('button'); saveBtn.className='ba-modal-save'; saveBtn.textContent='💾 Guardar';
+      saveBtn.onclick=function(){
+        var clean={
+          ancla:(editing.ancla||'').trim(),
+          antes:(editing.antes||[]).filter(function(i){return (i.texto||'').trim();}).map(function(i){return{texto:i.texto.trim(),mins:i.mins||null};}),
+          despues:(editing.despues||[]).filter(function(i){return (i.texto||'').trim();}).map(function(i){return{texto:i.texto.trim()};})
+        };
+        if(tabActivo===0){
+          var b2=baLoad(); b2[franjaId]=clean; baSave(b2); dataTpl=clean;
+        } else {
+          var o2=baLoadOv();
+          if(clean.ancla||clean.antes.length||clean.despues.length){ o2[ovKey]=clean; } else { delete o2[ovKey]; }
+          baSaveOv(o2); dataOv=clean.ancla?clean:null;
+        }
+        bd.remove(); baRenderSeccion(body,dk,franjaId);
+      };
+      btns.appendChild(cancelBtn); btns.appendChild(saveBtn); modal.appendChild(btns);
+    }
+
+    buildModal();
+    bd.appendChild(modal);
+    document.body.appendChild(bd);
+    setTimeout(function(){ var f=modal.querySelector('.ba-modal-input'); if(f) f.focus(); },80);
+  }
+
+  function baInyectarEnHorario() {
+    var cont=document.getElementById('horarioContenido'); if(!cont) return;
+    var dk=dkHoy();
+    var franjas=window.H_FRANJAS||[];
+    franjas.forEach(function(franja){
+      var bloqueEl=cont.querySelector('.hbloque-'+franja.id); if(!bloqueEl) return;
+      var bodyEl=bloqueEl.querySelector('.horario-bloque-body'); if(!bodyEl) return;
+      if(bodyEl.querySelector('.ba-section')) return;
+      baRenderSeccion(bodyEl,dk,franja.id);
+    });
+  }
+
+  function tryPatchHRender() {
+    var fn=window.hRender; if(!fn||fn._baPatched) return;
+    var orig=fn;
+    window.hRender=function(){ orig.apply(this,arguments); setTimeout(baInyectarEnHorario,60); };
+    window.hRender._baPatched=true;
+    window.hRender._tiempoPatched=fn._tiempoPatched;
+    try { if(typeof hRender!=='undefined') hRender=window.hRender; } catch(e){}
+  }
+  setTimeout(tryPatchHRender, 950);
+
+  var _baOrig=window.showPage;
+  window.showPage=function(p){ if(_baOrig) _baOrig(p); if(p==='page-horario') setTimeout(baInyectarEnHorario,200); };
 
 })();
 
