@@ -6165,33 +6165,7 @@ function todayKey() { return dateKey(new Date()); }
     if (!YUKI_LANGS[lang]) return;
     currentLang = lang;
     localStorage.setItem(LANG_KEY, lang);
-    // Update html lang attribute
     document.documentElement.lang = lang;
-    // Re-render elements with data-i18n attribute
-    document.querySelectorAll('[data-i18n]').forEach(function(el) {
-      var key = el.getAttribute('data-i18n');
-      el.textContent = window.yukiT(key);
-    });
-    // Update salud tabs
-    var tabMap = {
-      saludTabRegistros: 'registros', saludTabEjercicio: 'ejercicio',
-      saludTabRutina: 'mis_horas', saludTabEstadisticas: 'progreso',
-      saludTabSuenos: 'suenos', saludTabAyuno: 'ayuno'
-    };
-    Object.keys(tabMap).forEach(function(id) {
-      var el = document.getElementById(id);
-      if (el) {
-        var emoji = el.textContent.match(/^[\u{1F300}-\u{1FFFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}📋💪⏰📈🌙🍽️]/u);
-        var emojiStr = emoji ? emoji[0] + ' ' : '';
-        el.textContent = emojiStr + window.yukiT(tabMap[id]);
-      }
-    });
-    // Update language buttons
-    document.querySelectorAll('.yuki-lang-btn').forEach(function(btn) {
-      btn.classList.toggle('active', btn.dataset.lang === currentLang);
-    });
-    // Dispatch event for other modules
-    window.dispatchEvent(new CustomEvent('yukiLangChanged', { detail: { lang: currentLang } }));
   };
 
   window.yukiGetLang = function() { return currentLang; };
@@ -19232,9 +19206,10 @@ window.scShowTab = function(idx) {
     mkData.inspos.forEach(function(item){
       var card=document.createElement('div'); card.className='groom-inspo-card';
       card.innerHTML='<div class="groom-inspo-title">'+esc(item.title)+'</div>'
-        +(item.link?'<div class="groom-inspo-link" onclick="event.stopPropagation();window.open(\''+esc(item.link)+'\',\'_blank\')">🔗 '+esc(item.link)+'</div>':'')
+        +(item.link?'<div class="groom-inspo-link">🔗 '+esc(item.link)+'</div>':'')
         +(item.note?'<div class="groom-inspo-note">'+esc(item.note)+'</div>':'')
-        +'<button style="float:right;background:none;border:none;cursor:pointer;color:var(--muted);font-size:.8rem;margin-top:.2rem" onclick="openGroomModal(\'mk_inspo\',\''+item.id+'\')">✏️</button>';
+        +'<button style="float:right;background:none;border:none;cursor:pointer;color:var(--muted);font-size:.8rem;margin-top:.2rem" onclick="event.stopPropagation();openGroomModal(\'mk_inspo\',\''+item.id+'\')">✏️</button>';
+      card.onclick=function(){ openInspoDetail(item); };
       list.appendChild(card);
     });
   }
@@ -19249,7 +19224,7 @@ window.scShowTab = function(idx) {
       var bd=document.createElement('div'); bd.className='meta-modal-backdrop'; bd.id='groomDetailModal';
       bd.onclick=function(e){if(e.target===bd) bd.remove();};
       var box=document.createElement('div'); box.className='meta-modal-box'; box.style.maxWidth='420px';
-      box.innerHTML=(item.img?'<img src="'+esc(item.img)+'" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-bottom:.8rem;border:1.5px solid var(--border);" onerror="this.style.display=\'none\'">':'')
+      box.innerHTML=(item.img?'<img src="'+esc(item.img)+'" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-bottom:.8rem;border:1.5px solid var(--border);cursor:zoom-in;" onclick="openGroomLightbox(\''+esc(item.img)+'\')" onerror="this.style.display=\'none\'">':'')
         +'<div class="mood-modal-title">'+esc(item.title)+'</div>'
         +(item.desc?'<div style="font-size:.8rem;color:var(--muted);font-weight:600;line-height:1.6;white-space:pre-wrap;margin-bottom:.8rem">'+esc(item.desc)+'</div>':'')
         +'<div class="modal-btns"><button class="modal-btn-cancel" onclick="document.getElementById(\'groomDetailModal\').remove()">Cerrar</button>'
@@ -19262,13 +19237,30 @@ window.scShowTab = function(idx) {
       var bd=document.createElement('div'); bd.className='meta-modal-backdrop'; bd.id='groomDetailModal';
       bd.onclick=function(e){if(e.target===bd) bd.remove();};
       var box=document.createElement('div'); box.className='meta-modal-box'; box.style.maxWidth='420px';
-      box.innerHTML=(item.img?'<img src="'+esc(item.img)+'" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-bottom:.8rem;border:1.5px solid var(--border);" onerror="this.style.display=\'none\'">':'')
+      box.innerHTML=(item.img?'<img src="'+esc(item.img)+'" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-bottom:.8rem;border:1.5px solid var(--border);cursor:zoom-in;" onclick="openGroomLightbox(\''+esc(item.img)+'\')" onerror="this.style.display=\'none\'">':'')
         +'<div class="mood-modal-title">'+esc(item.title)+'</div>'
         +(item.desc?'<div style="font-size:.8rem;color:var(--muted);font-weight:600;line-height:1.6;white-space:pre-wrap;margin-bottom:.8rem">'+esc(item.desc)+'</div>':'')
         +'<div class="modal-btns"><button class="modal-btn-cancel" onclick="document.getElementById(\'groomDetailModal\').remove()">Cerrar</button>'
         +'<button class="modal-btn-save" onclick="document.getElementById(\'groomDetailModal\').remove();openGroomModal(\'hs_look\',\''+id+'\')">✏️ Editar</button></div>';
       bd.appendChild(box); document.body.appendChild(bd);
     }
+  };
+  window.openGroomLightbox = function(src){
+    var old=document.getElementById('groomLightbox'); if(old) old.remove();
+    var lb=document.createElement('div');
+    lb.id='groomLightbox';
+    lb.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;cursor:zoom-out;';
+    lb.onclick=function(){ lb.remove(); };
+    var img=document.createElement('img');
+    img.src=src;
+    img.style.cssText='max-width:100vw;max-height:100vh;object-fit:contain;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.6);';
+    img.onclick=function(e){ e.stopPropagation(); lb.remove(); };
+    var closeBtn=document.createElement('button');
+    closeBtn.textContent='✕';
+    closeBtn.style.cssText='position:fixed;top:1rem;right:1rem;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:1.4rem;width:2.2rem;height:2.2rem;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+    closeBtn.onclick=function(e){ e.stopPropagation(); lb.remove(); };
+    lb.appendChild(img); lb.appendChild(closeBtn);
+    document.body.appendChild(lb);
   };
 
   // ── Generic modal de crear/editar ──
@@ -19514,6 +19506,52 @@ window.scShowTab = function(idx) {
     });
   }
 
+  window.openInspoDetail = function(item){
+    var old=document.getElementById('inspoDetailModal'); if(old) old.remove();
+    var bd=document.createElement('div'); bd.className='meta-modal-backdrop'; bd.id='inspoDetailModal';
+    bd.onclick=function(e){if(e.target===bd) bd.remove();};
+    var box=document.createElement('div'); box.className='meta-modal-box'; box.style.maxWidth='420px';
+    var imgHtml='';
+    if(item.link){
+      imgHtml='<div id="inspoImgWrap" style="width:100%;height:180px;border-radius:12px;overflow:hidden;margin-bottom:.8rem;background:var(--surface);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;">'
+        +'<span id="inspoImgLoader" style="font-size:1.8rem">⏳</span>'
+        +'<img id="inspoOgImg" src="" style="display:none;width:100%;height:100%;object-fit:cover;" onerror="document.getElementById(\'inspoImgLoader\').textContent=\'🔗\';this.style.display=\'none\';">'
+        +'</div>';
+    }
+    var isYt=item.link&&(item.link.includes('youtube.com')||item.link.includes('youtu.be'));
+    box.innerHTML=imgHtml
+      +'<div class="mood-modal-title">'+esc(item.title)+'</div>'
+      +(item.note?'<div style="font-size:.8rem;color:var(--muted);font-weight:600;line-height:1.6;white-space:pre-wrap;margin-bottom:.8rem">'+esc(item.note)+'</div>':'')
+      +(item.link?'<div class="modal-btns" style="margin-bottom:.5rem"><button class="modal-btn-save" onclick="window.open(\''+esc(item.link)+'\',\'_blank\')">🔗 Abrir link</button></div>':'')
+      +'<div class="modal-btns"><button class="modal-btn-cancel" onclick="document.getElementById(\'inspoDetailModal\').remove()">Cerrar</button></div>';
+    bd.appendChild(box); document.body.appendChild(bd);
+    if(item.link){
+      if(isYt){
+        var m=item.link.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+        if(m){
+          var imgEl=document.getElementById('inspoOgImg');
+          var loader=document.getElementById('inspoImgLoader');
+          imgEl.onload=function(){ loader.style.display='none'; imgEl.style.display='block'; };
+          imgEl.src='https://img.youtube.com/vi/'+m[1]+'/hqdefault.jpg';
+        } else { var l=document.getElementById('inspoImgLoader'); if(l) l.textContent='🔗'; }
+      } else {
+        var proxyUrl='https://api.allorigins.win/get?url='+encodeURIComponent(item.link);
+        fetch(proxyUrl).then(function(r){return r.json();}).then(function(data){
+          var html=data.contents||'';
+          var m=html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+            ||html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+          var imgSrc=m?m[1]:null;
+          var imgEl=document.getElementById('inspoOgImg');
+          var loader=document.getElementById('inspoImgLoader');
+          if(imgSrc&&imgEl){
+            imgEl.onload=function(){ if(loader) loader.style.display='none'; imgEl.style.display='block'; };
+            imgEl.src=imgSrc;
+          } else { if(loader) loader.textContent='🔗'; }
+        }).catch(function(){ var l=document.getElementById('inspoImgLoader'); if(l) l.textContent='🔗'; });
+      }
+    }
+  };
+
   function renderHsInspo(){
     var list=document.getElementById('hsInspoList'); if(!list) return;
     list.innerHTML='';
@@ -19521,9 +19559,10 @@ window.scShowTab = function(idx) {
     hsData.inspos.forEach(function(item){
       var card=document.createElement('div'); card.className='groom-inspo-card';
       card.innerHTML='<div class="groom-inspo-title">'+esc(item.title)+'</div>'
-        +(item.link?'<div class="groom-inspo-link" onclick="event.stopPropagation();window.open(\''+esc(item.link)+'\',\'_blank\')">🔗 '+esc(item.link)+'</div>':'')
+        +(item.link?'<div class="groom-inspo-link">🔗 '+esc(item.link)+'</div>':'')
         +(item.note?'<div class="groom-inspo-note">'+esc(item.note)+'</div>':'')
-        +'<button style="float:right;background:none;border:none;cursor:pointer;color:var(--muted);font-size:.8rem;margin-top:.2rem" onclick="openGroomModal(\'hs_inspo\',\''+item.id+'\')">✏️</button>';
+        +'<button style="float:right;background:none;border:none;cursor:pointer;color:var(--muted);font-size:.8rem;margin-top:.2rem" onclick="event.stopPropagation();openGroomModal(\'hs_inspo\',\''+item.id+'\')">✏️</button>';
+      card.onclick=function(){ openInspoDetail(item); };
       list.appendChild(card);
     });
   }
@@ -20062,6 +20101,8 @@ function loadData() {
   window.SLOTS          = SLOTS;
   window.recurringTasks = recurringTasks;
   window.taskVisibleOnDate = taskVisibleOnDate;
+  // Refrescar timeline en inicio si ya está visible
+  setTimeout(function(){ if (typeof renderTimeline === 'function') renderTimeline(); }, 50);
 }
 
 function resetWeek() {
@@ -31540,6 +31581,31 @@ const TL_SLOTS = [
   { id:'n', icon:'🌙', name:'Noche',  time:'18-22h', chipCls:'tl-chip-n' },
 ];
 
+function _tlCompletionKey(taskId, date) {
+  const dk = date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0');
+  return taskId + '|' + dk;
+}
+
+function _tlTaskVisible(task, date) {
+  if (window.taskVisibleOnDate) return window.taskVisibleOnDate(task, date);
+  const jsDay = date.getDay();
+  const dayIdx = jsDay === 0 ? 6 : jsDay - 1;
+  if (task.recurrence === 'daily') return true;
+  if (task.recurrence === 'weekly') return (task.days || []).includes(dayIdx);
+  if (task.recurrence === 'once') {
+    const dk = date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0');
+    return task.onceDate === dk;
+  }
+  if (task.recurrence === 'custom') {
+    const created = new Date(task.createdAt);
+    const createdMid = Date.UTC(created.getFullYear(), created.getMonth(), created.getDate());
+    const dateMid    = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+    const diff = Math.round((dateMid - createdMid) / 86400000);
+    return diff >= 0 && diff % (task.interval || 1) === 0;
+  }
+  return false;
+}
+
 function renderTimeline() {
   const today = new Date(); today.setHours(0,0,0,0);
 
@@ -31552,20 +31618,27 @@ function renderTimeline() {
   if (!track) return;
   track.innerHTML = '';
 
-  const isToday = true;
   const nowHour = new Date().getHours();
   const date = today;
+
+  // Leer datos desde window (expuestos por agenda tras loadData) o directo de localStorage
+  const tlTasks = window.recurringTasks && window.recurringTasks.length > 0
+    ? window.recurringTasks
+    : (function(){ try { return JSON.parse(localStorage.getItem('recurring_tasks') || '[]'); } catch(e){ return []; } })();
+  const tlCompletions = window.completions && Object.keys(window.completions).length > 0
+    ? window.completions
+    : (function(){ try { return JSON.parse(localStorage.getItem('completions') || '{}'); } catch(e){ return {}; } })();
 
   let totalTasks = 0, doneTasks = 0;
 
   TL_SLOTS.forEach(slot => {
-    const allTasks = recurringTasks.filter(t => t.slotId === slot.id && taskVisibleOnDate(t, date));
+    const allTasks = tlTasks.filter(t => t.slotId === slot.id && _tlTaskVisible(t, date));
 
     const slotHour = slot.id === 'm' ? 8 : slot.id === 't' ? 14 : 20;
     const isCurrent = Math.abs(nowHour - slotHour) < 4;
     const isPast    = nowHour > slotHour + 3;
 
-    const slotDone = allTasks.length > 0 && allTasks.every(t => !!completions[completionKey(t.id, date)]);
+    const slotDone = allTasks.length > 0 && allTasks.every(t => !!tlCompletions[_tlCompletionKey(t.id, date)]);
 
     totalTasks += allTasks.length;
 
@@ -31581,16 +31654,23 @@ function renderTimeline() {
     const chipsRow = document.createElement('div');
     chipsRow.className = 'tl-tasks-mini';
     allTasks.forEach(task => {
-      const cKey = completionKey(task.id, date);
-      const done = !!completions[cKey];
+      const cKey = _tlCompletionKey(task.id, date);
+      const done = !!tlCompletions[cKey];
       if (done) doneTasks++;
       const chip = document.createElement('div');
       chip.className = `tl-task-chip ${slot.chipCls}` + (done ? ' chip-done' : '');
       chip.innerHTML = `${done ? '✓' : '○'} ${task.text}`;
       chip.style.cursor = 'pointer';
       chip.onclick = () => {
-        completions[cKey] = !done;
-        saveData(); updateProgress(); renderTimeline();
+        // Actualizar en window.completions y localStorage
+        const comp = window.completions || tlCompletions;
+        comp[cKey] = !done;
+        window.completions = comp;
+        try { localStorage.setItem('completions', JSON.stringify(comp)); } catch(e){}
+        if (window.cloudSave) window.cloudSave('completions', comp);
+        if (window.updateProgress) window.updateProgress();
+        if (window.render) window.render();
+        renderTimeline();
       };
       chipsRow.appendChild(chip);
     });
@@ -31668,7 +31748,6 @@ const DRAWER_STRUCTURE = {
       { icon:'♡', label:'Horario',         page:'page-horario'      },
       { icon:'♡', label:'Rutinas',         page:'page-rutinas'      },
       { icon:'♡', label:'Hábitos',         page:'page-habitos'      },
-      { icon:'♡', label:'Historial',       page:'page-historial'    },
     ]},
     { id:'mente', icon:'⭐', label:'Mi Mente', items: [
       { icon:'♡', label:'Calma',           page:'page-calma'        },
@@ -31678,9 +31757,10 @@ const DRAWER_STRUCTURE = {
       { icon:'♡', label:'Diario',          page:'page-diario'       },
       { icon:'♡', label:'Braindump',       page:'page-braindump'    },
     ]},
-    { id:'yo', icon:'🪞', label:'Yo', items: [
+    { id:'yo', icon:'☁️', label:'Yo', items: [
       { icon:'♡', label:'Selfcare',        page:'page-selfcare'     },
       { icon:'♡', label:'Salud',           page:'page-salud'        },
+      { icon:'♡', label:'Mi Nutrición',    page:'page-recetario'    },
       { icon:'♡', label:'Logros',          page:'page-logros'       },
       { icon:'♡', label:'Fe',              page:'page-fe'           },
       { icon:'♡', label:'Personas',        page:'page-personas'     },
@@ -31692,7 +31772,6 @@ const DRAWER_STRUCTURE = {
     ]},
     { id:'mundo', icon:'💌', label:'Mi Mundo', items: [
       { icon:'♡', label:'Armario',         page:'page-armario'      },
-      { icon:'♡', label:'Mi Nutrición',    page:'page-recetario'    },
       { icon:'♡', label:'Despensa',        page:'page-despensa'     },
       { icon:'♡', label:'Limpieza',        page:'page-limpieza'     },
       { icon:'♡', label:'Mascotas',        page:'page-mascotas'     },
@@ -36896,6 +36975,11 @@ document.addEventListener('DOMContentLoaded', function() {
 <section class="buscar-section">
   <span class="section-sub">búsqueda</span>
   <h2 class="section-title" style="margin-bottom:1rem"><em>Buscar</em> en la app</h2>
+  <button onclick="showPage('page-historial')" style="display:flex;align-items:center;gap:.55rem;width:100%;background:var(--pink-light,rgba(220,130,158,.08));border:1.5px solid var(--border);border-radius:14px;padding:.65rem 1rem;margin-bottom:1.1rem;cursor:pointer;font-family:var(--font-body);text-align:left;transition:border-color .2s;" onmouseover="this.style.borderColor='var(--rosa)'" onmouseout="this.style.borderColor='var(--border)'">
+    <span style="font-size:1.1rem">📅</span>
+    <span style="font-size:.82rem;font-weight:700;color:var(--muted)">Historial de mi día</span>
+    <span style="margin-left:auto;font-size:.7rem;color:var(--muted2)">›</span>
+  </button>
   <div class="buscar-input-wrap">
     <span class="buscar-input-icon">🔍</span>
     <input class="buscar-input" id="buscarInput" placeholder="Busca tareas, recetas, notas, listas…" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false">
@@ -37493,7 +37577,9 @@ document.addEventListener('DOMContentLoaded', function() {
   <div class="config-block">
     <div class="config-block-title">👤 Perfil</div>
     <div class="config-profile-preview">
-      <div class="config-avatar-big" id="configAvatarBig" onclick="document.getElementById('configAvatarFileInput').click()" title="Cambiar foto de perfil">🌸
+      <div class="config-avatar-big" id="configAvatarBig" onclick="document.getElementById('configAvatarFileInput').click()" title="Cambiar foto de perfil">
+        <img id="configAvatarImg" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%;">
+        <span id="configAvatarEmoji">🌸</span>
         <div class="config-avatar-overlay">📷</div>
       </div>
       <input type="file" id="configAvatarFileInput" accept="image/*" style="display:none" onchange="configHandleAvatarUpload(this)">
@@ -37510,21 +37596,12 @@ document.addEventListener('DOMContentLoaded', function() {
     <span class="config-save-ok" id="configProfileOk">✓ Guardado</span>
   </div>
 
-  <!-- Idioma -->
-  <div class="config-block">
-    <div class="config-block-title">🌐 <span data-i18n="idioma">Idioma</span></div>
-    <p style="font-size:.72rem;color:var(--muted);font-weight:600;margin-bottom:1rem;line-height:1.5" data-i18n="idioma_desc">Elige el idioma de la interfaz</p>
-    <div class="config-option-row" id="yukiLangRow">
-      <button class="config-option-btn yuki-lang-btn active" data-lang="es" onclick="yukiSetLang('es')">🇪🇸 Español</button>
-      <button class="config-option-btn yuki-lang-btn" data-lang="en" onclick="yukiSetLang('en')">🇬🇧 English</button>
-      <button class="config-option-btn yuki-lang-btn" data-lang="fr" onclick="yukiSetLang('fr')">🇫🇷 Français</button>
-      <button class="config-option-btn yuki-lang-btn" data-lang="de" onclick="yukiSetLang('de')">🇩🇪 Deutsch</button>
-    </div>
-  </div>
+
 
   <!-- Personalizar experiencia -->
-  <div class="config-block">
-    <div class="config-block-title">✨ Personalizar experiencia</div>
+  <div class="config-block config-block-collapsible collapsed" id="configPersoBlock">
+    <div class="config-block-title" onclick="(function(){ var b=document.getElementById('configPersoBlock'); b.classList.toggle('collapsed'); })()">✨ Personalizar experiencia</div>
+    <div class="theme-collapse-body">
     <p style="font-size:.72rem;color:var(--muted);font-weight:600;margin-bottom:1rem;line-height:1.5">Personaliza la app para que se adapte a ti 💙</p>
 
     <div class="config-field">
@@ -37585,6 +37662,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
       </div>
     </div>
+    </div>
   </div>
 
   <!-- Ciudad para clima del armario -->
@@ -37628,7 +37706,7 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 
   <!-- Tema de color -->
-  <div class="config-block config-block-collapsible" id="themeConfigBlock">
+  <div class="config-block config-block-collapsible collapsed" id="themeConfigBlock">
     <div class="config-block-title" onclick="(function(){ var b=document.getElementById('themeConfigBlock'); b.classList.toggle('collapsed'); })()">🎨 Tema de color</div>
     <div class="theme-collapse-body">
       <div class="theme-section-header">Color único</div>
@@ -38097,8 +38175,15 @@ document.addEventListener('DOMContentLoaded', function() {
     if (bigEmail) bigEmail.textContent = user ? (user.email||'') : '';
     if (bigAvatar) {
       var src = customAvatar || (user ? user.photoURL : '');
-      if (src) bigAvatar.innerHTML = '<img src="'+src+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%"><div class="config-avatar-overlay">📷</div>';
-      else bigAvatar.innerHTML = '🌸<div class="config-avatar-overlay">📷</div>';
+      var imgEl = document.getElementById('configAvatarImg');
+      var emojiEl = document.getElementById('configAvatarEmoji');
+      if (src) {
+        if (imgEl) { imgEl.src = src; imgEl.style.display = ''; }
+        if (emojiEl) emojiEl.style.display = 'none';
+      } else {
+        if (imgEl) { imgEl.src = ''; imgEl.style.display = 'none'; }
+        if (emojiEl) emojiEl.style.display = '';
+      }
     }
   }
 
@@ -38112,7 +38197,12 @@ document.addEventListener('DOMContentLoaded', function() {
       if (window.cloudSave) window.cloudSave('config_avatar_url', base64);
       // Update avatar preview
       var bigAvatar = document.getElementById('configAvatarBig');
-      if (bigAvatar) bigAvatar.innerHTML = '<img src="'+base64+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%"><div class="config-avatar-overlay">📷</div>';
+      if (bigAvatar) {
+        var imgEl = document.getElementById('configAvatarImg');
+        var emojiEl = document.getElementById('configAvatarEmoji');
+        if (imgEl) { imgEl.src = base64; imgEl.style.display = ''; }
+        if (emojiEl) emojiEl.style.display = 'none';
+      }
       // Update drawer and header
       var dai = document.getElementById('drawerAvatarImg');
       var dap = document.getElementById('drawerAvatarPlaceholder');
