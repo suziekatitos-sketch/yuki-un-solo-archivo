@@ -6157,7 +6157,7 @@ function todayKey() { return dateKey(new Date()); }
   };
 
   var LANG_KEY = 'yuki_lang';
-  var currentLang = localStorage.getItem(LANG_KEY) || 'es';
+  var currentLang = 'es'; // idioma fijo español
 
   window.yukiT = function(key) {
     var d = YUKI_LANGS[currentLang] || YUKI_LANGS['es'];
@@ -37423,17 +37423,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <span class="config-save-ok" id="configProfileOk">✓ Guardado</span>
   </div>
 
-  <!-- Idioma -->
-  <div class="config-block">
-    <div class="config-block-title">🌐 <span data-i18n="idioma">Idioma</span></div>
-    <p style="font-size:.72rem;color:var(--muted);font-weight:600;margin-bottom:1rem;line-height:1.5" data-i18n="idioma_desc">Elige el idioma de la interfaz</p>
-    <div class="config-option-row" id="yukiLangRow">
-      <button class="config-option-btn yuki-lang-btn active" data-lang="es" onclick="yukiSetLang('es')">🇪🇸 Español</button>
-      <button class="config-option-btn yuki-lang-btn" data-lang="en" onclick="yukiSetLang('en')">🇬🇧 English</button>
-      <button class="config-option-btn yuki-lang-btn" data-lang="fr" onclick="yukiSetLang('fr')">🇫🇷 Français</button>
-      <button class="config-option-btn yuki-lang-btn" data-lang="de" onclick="yukiSetLang('de')">🇩🇪 Deutsch</button>
-    </div>
-  </div>
+
 
   <!-- Personalizar experiencia -->
   <div class="config-block">
