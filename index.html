@@ -153,7 +153,7 @@ window.kittyConfirm = function(msg, onYes, onNo) {
           'univ_links','univ_proyectos','spark_pins','spark_historial','spark_total_minutes',
           'trans_data','custom_notifs','eventos_prep','recuper_registros',
           'notas_intereses_data','notas_intereses_cats',
-          'yuki_mascotas','yuki_plantas','yuki_biblioteca_playlists','yuki_biblioteca_dopamina','yuki_diario',
+          'yuki_mascotas','yuki_plantas','yuki_biblioteca_playlists','yuki_biblioteca_dopamina','yuki_biblioteca_libros','yuki_diario',
           'yuki_decisions','yuki_rutina_horarios',
           'yuki_xp','yuki_xp_streak','yuki_xp_last_date','yuki_task_timers',
           'yuki_sakura','yuki_tienda_recompensas','yuki_compras_historial','yuki_study_minutes',
@@ -9627,10 +9627,15 @@ function todayKey() { return dateKey(new Date()); }
   };
 
   // ── Racha diaria: llamar una vez al día cuando se completa algo
-  window.yukiCheckStreak = function() {
+  // fromAction=true → viene de una tarea/hábito real → sí da EXP+flores
+  // fromAction=false/undefined → viene del init de la app → solo actualiza racha, sin recompensa
+  var _streakCheckedThisSession = false;
+  window.yukiCheckStreak = function(fromAction) {
     var today = todayStr();
     var last  = localStorage.getItem(LAST_KEY) || '';
-    if (last === today) return; // ya se contó hoy
+    if (last === today) { _streakCheckedThisSession = true; return; } // ya se contó hoy
+    if (_streakCheckedThisSession) return; // ya se ejecutó en esta sesión (evita doble cómputo)
+    _streakCheckedThisSession = true;
     var streak = getStreak();
     // ¿Fue ayer?
     var yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
@@ -9644,8 +9649,10 @@ function todayKey() { return dateKey(new Date()); }
     localStorage.setItem(LAST_KEY, today);
     if(window.cloudSave) window.cloudSave(LAST_KEY, today);
     if(window.cloudSave) window.cloudSave(STREAK_KEY, streak);
-    // EXP por racha
-    window.yukiAddXP(15 * streak, 'Racha día '+streak);
+    // EXP por racha — SOLO si viene de una acción real (tarea, hábito, etc.)
+    if (fromAction) {
+      window.yukiAddXP(15 * streak, 'Racha día '+streak);
+    }
   };
 
   function renderLogrosPage() {
@@ -9722,7 +9729,7 @@ function todayKey() { return dateKey(new Date()); }
       // Solo sumar si se acaba de marcar (no desmarcar)
       if (completions[key]) {
         window.yukiAddXP(5, 'Tarea');
-        window.yukiCheckStreak();
+        window.yukiCheckStreak(true);
       }
     } catch(e){}
   };
@@ -9736,7 +9743,7 @@ function todayKey() { return dateKey(new Date()); }
       var h = habitos.find(function(x){ return x.id===id; });
       if (h && h.log && h.log.indexOf(dk) > -1) {
         window.yukiAddXP(8, 'Hábito');
-        window.yukiCheckStreak();
+        window.yukiCheckStreak(true);
       }
     } catch(e){}
   };
@@ -14181,7 +14188,7 @@ function renderEjPasos(card, tpl, reg, regIdx, dk) {
       if (allDone && idx === -1) {
         if (window.yukiAddXP) window.yukiAddXP(20, 'Ejercicio');
         if (window.yukiAddSakura) window.yukiAddSakura(5);
-        if (window.yukiCheckStreak) window.yukiCheckStreak();
+        if (window.yukiCheckStreak) window.yukiCheckStreak(true);
       }
     };
 
@@ -18192,6 +18199,57 @@ window.journalShowTab = function(tab) {
   }
   .diario-textarea:focus { border-color: var(--rosa); }
 
+  /* ── Mis Libros ── */
+  .bib-filter-row { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
+  .bib-filter-select {
+    background:var(--surface); border:1.5px solid var(--border); border-radius:20px;
+    padding:.35rem .8rem; font-family:var(--font-body); font-size:.74rem; font-weight:700;
+    color:var(--muted); cursor:pointer; outline:none; transition:border-color .2s;
+    appearance:none; -webkit-appearance:none; padding-right:1.5rem;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23b0a0b0'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right .55rem center;
+  }
+  .bib-filter-select:focus { border-color:var(--rosa); color:var(--text); }
+
+  /* Estantería libros */
+  .bib-libros-shelf { padding:.2rem 0 2rem; }
+  .bib-libros-shelf-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:.9rem; }
+  .bib-libros-shelf-title { font-size:.7rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; }
+  .bib-libros-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:1rem; }
+  .bib-libro-card {
+    border-radius:12px; overflow:hidden; cursor:pointer;
+    border:2px solid var(--border); transition:transform .2s, box-shadow .2s;
+    aspect-ratio:2/3; position:relative; background:var(--card);
+  }
+  .bib-libro-card:hover { transform:translateY(-4px); box-shadow:0 8px 24px rgba(212,116,138,.2); border-color:var(--rosa); }
+  .bib-libro-cover-img { width:100%; height:100%; object-fit:cover; display:block; }
+  .bib-libro-cover-label {
+    position:absolute; bottom:0; left:0; right:0;
+    background:linear-gradient(transparent,rgba(0,0,0,.65));
+    color:#fff; padding:.6rem .6rem .5rem; line-height:1.3;
+  }
+  .bib-libro-cover-name { font-size:.72rem; font-weight:800; display:block; }
+  .bib-libro-cover-autor { font-size:.62rem; opacity:.85; display:block; font-style:italic; }
+  .bib-libro-cover-empty {
+    width:100%; height:100%; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:.4rem; padding:.5rem;
+    box-sizing:border-box;
+  }
+  .bib-libro-cover-emoji { font-size:2rem; }
+  .bib-libro-cover-name2 { font-size:.7rem; font-weight:800; color:var(--text); text-align:center; }
+  .bib-libro-cover-autor2 { font-size:.6rem; color:var(--muted); text-align:center; font-style:italic; }
+  .bib-libro-genero-badge {
+    position:absolute; top:.4rem; left:.4rem;
+    background:rgba(0,0,0,.45); color:#fff; font-size:.55rem; font-weight:800;
+    padding:.15rem .45rem; border-radius:20px; letter-spacing:.04em; text-transform:uppercase;
+    backdrop-filter:blur(4px);
+  }
+
+  /* Modal nuevo libro */
+  .bib-libro-modal-back { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:3200; display:flex; align-items:center; justify-content:center; padding:1rem; }
+  .bib-libro-modal-box { background:var(--card); border-radius:20px; padding:1.5rem; width:min(92vw,440px); max-height:92vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,.2); }
+  .bib-libro-modal-title { font-size:.95rem; font-weight:800; font-family:var(--font-title); font-style:italic; color:var(--text); margin-bottom:1.2rem; }
+
   /* Mood picker */
   .diario-mood-row { display: flex; flex-wrap: wrap; gap: .4rem; }
   .diario-mood-opt { font-size: 1.5rem; cursor: pointer; padding: .2rem .3rem; border-radius: 10px; border: 2px solid transparent; transition: all .15s; }
@@ -19018,6 +19076,25 @@ window.scShowTab = function(idx) {
   .groom-cards-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.8rem;margin-top:.6rem; }
   .groom-card { background:var(--card);border:1.5px solid var(--border);border-radius:16px;overflow:hidden;cursor:pointer;transition:box-shadow .2s;position:relative; }
   .groom-card:hover { box-shadow:0 4px 18px rgba(0,0,0,.09); }
+  /* ── Lightbox imagen full ── */
+  .groom-lightbox {
+    position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:9999;
+    display:flex; align-items:center; justify-content:center;
+    cursor:zoom-out; animation:fadeIn .18s ease;
+  }
+  .groom-lightbox img {
+    max-width:96vw; max-height:96vh; object-fit:contain;
+    border-radius:8px; box-shadow:0 8px 40px rgba(0,0,0,.5);
+  }
+  .groom-lightbox-close {
+    position:absolute; top:1rem; right:1rem;
+    background:rgba(255,255,255,.15); border:none; color:#fff;
+    font-size:1.4rem; width:40px; height:40px; border-radius:50%;
+    cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition:background .2s;
+  }
+  .groom-lightbox-close:hover { background:rgba(255,255,255,.3); }
+
   .groom-card-img { width:100%;height:130px;object-fit:cover;display:block; }
   .groom-card-placeholder { width:100%;height:130px;display:flex;align-items:center;justify-content:center;font-size:2.2rem;background:var(--pink-light); }
   .groom-card-body { padding:.75rem .9rem .85rem; }
@@ -19162,6 +19239,19 @@ window.scShowTab = function(idx) {
   function mkRenderAll(){ renderMkLooks(); renderMkRutina(); renderMkProducts(); renderMkInspo(); }
 
   // ── Detail modal (Looks) ──
+
+  // ── Lightbox imagen full ──────────────────────────────────
+  function openGroomLightbox(src) {
+    var old = document.getElementById('groomLightbox');
+    if (old) old.remove();
+    var lb = document.createElement('div');
+    lb.className = 'groom-lightbox';
+    lb.id = 'groomLightbox';
+    lb.innerHTML = '<img src="'+src+'" alt=""><button class="groom-lightbox-close" onclick="event.stopPropagation();document.getElementById(\'groomLightbox\').remove()">✕</button>';
+    lb.onclick = function(e){ if(e.target===lb||e.target.tagName==='IMG') lb.remove(); };
+    document.body.appendChild(lb);
+  }
+
   window.openGroomDetail = function(type, id){
     if(type==='mk_look'){
       var item=mkData.looks.find(function(x){return x.id===id;}); if(!item) return;
@@ -19169,7 +19259,7 @@ window.scShowTab = function(idx) {
       var bd=document.createElement('div'); bd.className='meta-modal-backdrop'; bd.id='groomDetailModal';
       bd.onclick=function(e){if(e.target===bd) bd.remove();};
       var box=document.createElement('div'); box.className='meta-modal-box'; box.style.maxWidth='420px';
-      box.innerHTML=(item.img?'<img src="'+esc(item.img)+'" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-bottom:.8rem;border:1.5px solid var(--border);" onerror="this.style.display=\'none\'">':'')
+      box.innerHTML=(item.img?'<img src="'+esc(item.img)+'" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-bottom:.8rem;border:1.5px solid var(--border);cursor:zoom-in" onclick="openGroomLightbox(this.src)" onerror="this.style.display=\'none\'">':'')
         +'<div class="mood-modal-title">'+esc(item.title)+'</div>'
         +(item.desc?'<div style="font-size:.8rem;color:var(--muted);font-weight:600;line-height:1.6;white-space:pre-wrap;margin-bottom:.8rem">'+esc(item.desc)+'</div>':'')
         +'<div class="modal-btns"><button class="modal-btn-cancel" onclick="document.getElementById(\'groomDetailModal\').remove()">Cerrar</button>'
@@ -19182,7 +19272,7 @@ window.scShowTab = function(idx) {
       var bd=document.createElement('div'); bd.className='meta-modal-backdrop'; bd.id='groomDetailModal';
       bd.onclick=function(e){if(e.target===bd) bd.remove();};
       var box=document.createElement('div'); box.className='meta-modal-box'; box.style.maxWidth='420px';
-      box.innerHTML=(item.img?'<img src="'+esc(item.img)+'" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-bottom:.8rem;border:1.5px solid var(--border);" onerror="this.style.display=\'none\'">':'')
+      box.innerHTML=(item.img?'<img src="'+esc(item.img)+'" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-bottom:.8rem;border:1.5px solid var(--border);cursor:zoom-in" onclick="openGroomLightbox(this.src)" onerror="this.style.display=\'none\'">':'')
         +'<div class="mood-modal-title">'+esc(item.title)+'</div>'
         +(item.desc?'<div style="font-size:.8rem;color:var(--muted);font-weight:600;line-height:1.6;white-space:pre-wrap;margin-bottom:.8rem">'+esc(item.desc)+'</div>':'')
         +'<div class="modal-btns"><button class="modal-btn-cancel" onclick="document.getElementById(\'groomDetailModal\').remove()">Cerrar</button>'
@@ -28496,40 +28586,97 @@ window.showPage = function(pageId) {
   /* ── HÁBITOS ── */
   .habitos-section { margin: 0 auto 2rem; max-width: 680px; }
   .habitos-toolbar { display:flex; justify-content:flex-start; margin-bottom:1rem; }
+  /* ── HÁBITOS REDISEÑO ─────────────────────────── */
   .habito-card {
     background: var(--card); border: 1.5px solid var(--border);
-    border-radius: var(--radius); padding: .9rem 1rem;
-    margin-bottom: .7rem; position: relative;
+    border-radius: 18px; padding: .85rem 1rem .85rem .85rem;
+    margin-bottom: .65rem; position: relative;
+    display:flex; align-items:center; gap:.85rem;
+    transition: box-shadow .2s, border-color .2s;
   }
-  .habito-card-top { display:flex; align-items:center; gap:.7rem; margin-bottom:.6rem; }
+  .habito-card.done-card { border-color: var(--rosa); background: var(--rosa-soft); }
+  .habito-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,.07); }
+
+  /* Icono izquierda */
+  .habito-icon-wrap {
+    width:52px; height:52px; min-width:52px; border-radius:14px;
+    background:var(--surface); border:1.5px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0; overflow:hidden; transition:background .2s;
+  }
+  .habito-card.done-card .habito-icon-wrap { background:var(--rosa); border-color:var(--rosa); }
+  .habito-icon-wrap svg { width:28px; height:28px; }
+  .habito-card.done-card .habito-icon-wrap svg { filter: brightness(0) invert(1); }
+  .habito-icon-emoji { font-size:1.5rem; line-height:1; }
+
+  /* Contenido central */
+  .habito-info { flex:1; min-width:0; }
+  .habito-name {
+    font-size:.875rem; font-weight:800; color:var(--text);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    margin-bottom:.18rem;
+  }
+  .habito-card.done-card .habito-name { color:var(--rosa); }
+  .habito-desc {
+    font-size:.72rem; color:var(--muted); font-weight:600;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    margin-bottom:.35rem;
+  }
+  .habito-stats { display:flex; gap:.35rem; flex-wrap:wrap; }
+  .habito-stat {
+    font-size:.64rem; font-weight:700; color:var(--muted);
+    background:var(--surface); border-radius:20px; padding:.12rem .5rem;
+    display:flex; align-items:center; gap:.15rem;
+  }
+  .habito-stat.racha { color:var(--alerta); background:transparent; padding-left:0; }
+  .habito-stat.pct { color:var(--rosa); }
+
+  /* Lado derecho: counter + barra */
+  .habito-right {
+    display:flex; flex-direction:column; align-items:flex-end; gap:.35rem; flex-shrink:0;
+  }
+  .habito-counter {
+    font-size:.8rem; font-weight:800; color:var(--muted2);
+    white-space:nowrap;
+  }
+  .habito-card.done-card .habito-counter { color:var(--rosa); }
   .habito-check-btn {
-    width:36px; height:36px; min-width:36px; border-radius:50%;
-    border:2.5px solid var(--border); background:var(--card);
+    width:32px; height:32px; min-width:32px; border-radius:50%;
+    border:2px solid var(--border); background:var(--card);
     cursor:pointer; display:flex; align-items:center; justify-content:center;
-    font-size:1rem; transition:all .2s; flex-shrink:0;
+    font-size:.9rem; transition:all .2s; flex-shrink:0;
   }
   .habito-check-btn.done { background:var(--rosa); border-color:var(--rosa); color:#fff; }
-  .habito-info { flex:1; }
-  .habito-name { font-size:.85rem; font-weight:800; color:var(--text); }
-  .habito-stats { display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.4rem; }
-  .habito-stat {
-    font-size:.68rem; font-weight:700; color:var(--muted);
-    background:var(--surface); border-radius:20px; padding:.15rem .55rem;
-    display:flex; align-items:center; gap:.2rem;
+  .habito-mini-bar {
+    width:52px; height:4px; border-radius:4px; background:var(--border); overflow:hidden;
   }
-  .habito-stat.racha { color:var(--alerta); }
-  .habito-stat.pct { color:var(--rosa); }
-  .habito-progress-bar {
-    height:4px; background:var(--surface); border-radius:4px;
-    margin-top:.6rem; overflow:hidden;
-  }
-  .habito-progress-fill { height:100%; background:var(--rosa); border-radius:4px; transition:width .4s; }
+  .habito-mini-fill { height:100%; border-radius:4px; background:var(--rosa); transition:width .4s; }
+
   .habito-del-btn {
-    position:absolute; top:.6rem; right:.6rem; background:none; border:none;
-    color:var(--muted2); font-size:.8rem; cursor:pointer; opacity:0; transition:opacity .15s;
+    position:absolute; top:.5rem; right:.5rem; background:none; border:none;
+    color:var(--muted2); font-size:.72rem; cursor:pointer; opacity:0; transition:opacity .15s;
+    padding:.1rem .25rem; border-radius:6px;
   }
   .habito-card:hover .habito-del-btn { opacity:1; }
   .habito-empty { text-align:center; color:var(--muted2); font-size:.8rem; font-weight:600; padding:2rem 1rem; }
+
+  /* ── ICON PICKER ────────────────────────────────── */
+  .hicon-picker-grid {
+    display:grid; grid-template-columns:repeat(5,1fr); gap:.5rem;
+    max-height:200px; overflow-y:auto; padding:.25rem .1rem;
+  }
+  .hicon-btn {
+    aspect-ratio:1; border-radius:12px; border:1.5px solid var(--border);
+    background:var(--surface); cursor:pointer; display:flex;
+    align-items:center; justify-content:center; transition:all .15s;
+    padding:.4rem;
+  }
+  .hicon-btn:hover { border-color:var(--rosa); background:var(--rosa-soft); }
+  .hicon-btn.selected { border-color:var(--rosa); background:var(--rosa); }
+  .hicon-btn.selected svg { filter: brightness(0) invert(1); }
+  .hicon-btn svg { width:22px; height:22px; }
+
+  /* Modal hábito */
   .habito-modal-overlay {
     position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:1000;
     display:flex; align-items:flex-end; justify-content:center; padding:1rem;
@@ -29114,7 +29261,7 @@ function renderSueno() {
         savesueno();
         if (window.yukiAddXP) window.yukiAddXP(20, 'Sueño');
         if (window.yukiAddSakura) window.yukiAddSakura(5);
-        if (window.yukiCheckStreak) window.yukiCheckStreak();
+        if (window.yukiCheckStreak) window.yukiCheckStreak(true);
       }
     };
     fDormir.appendChild(inDormir);
@@ -29140,7 +29287,7 @@ function renderSueno() {
         savesueno();
         if (window.yukiAddXP) window.yukiAddXP(20, 'Sueño');
         if (window.yukiAddSakura) window.yukiAddSakura(5);
-        if (window.yukiCheckStreak) window.yukiCheckStreak();
+        if (window.yukiCheckStreak) window.yukiCheckStreak(true);
       }
     };
     fDespertar.appendChild(inDespertar);
@@ -30823,6 +30970,40 @@ function habitoGetPctMes(h) {
   return Math.round((done / now.getDate()) * 100);
 }
 
+// ── Biblioteca de iconos para hábitos
+var HABITO_ICONS = [
+  { id:'moon',    svg:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>' },
+  { id:'drop',    svg:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6 9 4 13 4 16a8 8 0 0 0 16 0c0-3-2-7-8-14z"/></svg>' },
+  { id:'leaf',    svg:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 0 0 8 20C19 20 22 3 22 3c-1 2-8 2-5-5z"/></svg>' },
+  { id:'heart',   svg:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' },
+  { id:'star',    svg:'<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>' },
+  { id:'sun',     svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>' },
+  { id:'book',    svg:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" fill="currentColor"/></svg>' },
+  { id:'pen',     svg:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>' },
+  { id:'run',     svg:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="4" r="2"/><path d="M14.5 9l-2.5 4-2.5-2L7 15M17 9l-5 2"/><path d="M8 22l2-5 4 2 2-5"/></svg>' },
+  { id:'lotus',   svg:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c0 0-8-4-8-11a8 8 0 0 1 8-3 8 8 0 0 1 8 3c0 7-8 11-8 11z"/><path d="M12 8c0 0-3 2-3 5s3 5 3 5 3-2 3-5-3-5-3-5z" fill="white"/></svg>' },
+  { id:'cup',     svg:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>' },
+  { id:'bell',    svg:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' },
+  { id:'flame',   svg:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>' },
+  { id:'music',   svg:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>' },
+  { id:'paint',   svg:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 12c2.2-1.2 3.4-3 4-5"/><circle cx="22" cy="12" r="1"/></svg>' },
+  { id:'dumbbell',svg:'<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width=".5"><rect x="2" y="10" width="4" height="4" rx="1"/><rect x="18" y="10" width="4" height="4" rx="1"/><rect x="6" y="8" width="3" height="8" rx="1"/><rect x="15" y="8" width="3" height="8" rx="1"/><rect x="9" y="11" width="6" height="2" rx="1"/></svg>' },
+  { id:'sleep',   svg:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/><text x="14" y="10" font-size="6" fill="currentColor">z</text><text x="16" y="7" font-size="5" fill="currentColor">z</text></svg>' },
+  { id:'apple',   svg:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c.5-1 1.5-2 3-2-1 2-1 3 0 4-1.5 0-2.5-1-3-2z"/><path d="M18 8c-1-1.5-3-2-5-1.5-1 .3-2 .5-3 0-2-1-4 0-5 2-1.5 2.5-1 6 1 9 1 1.5 2 3 3.5 3s2-1 3.5-1 2.5 1 3.5 1 2.5-1.5 3.5-3c.6-1 1-2 1-3-1.5-.5-3-2-3-4 0-.5 0-1.5.5-2.5z"/></svg>' },
+  { id:'stretch', svg:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="4" r="2"/><path d="M15 9l-3 3-3-3M12 12v8M9 17l3 3 3-3"/></svg>' },
+  { id:'journal', svg:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="8" y1="9" x2="10" y2="9"/></svg>' },
+  { id:'pill',    svg:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M10.5 20H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v6.5"/><path d="M15 20a5 5 0 0 0 5-5"/><path d="M15 20v-5h5"/></svg>' },
+  { id:'walk',    svg:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="13" cy="4" r="2"/><path d="M8 22l1-5 3 3 2-8 2 2 3-2M9 9l2 1 1-3 4 1"/></svg>' },
+  { id:'flower',  svg:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="3"/><path d="M12 2a3 3 0 0 1 3 3c0 1-.4 2-1 2.7A3 3 0 0 1 12 9a3 3 0 0 1-2-1.3A3 3 0 0 1 9 5a3 3 0 0 1 3-3zM12 15a3 3 0 0 1 2 1.3A3 3 0 0 1 15 19a3 3 0 0 1-6 0 3 3 0 0 1 1-2.7A3 3 0 0 1 12 15zM2 12a3 3 0 0 1 3-3c1 0 2 .4 2.7 1A3 3 0 0 1 9 12a3 3 0 0 1-1.3 2A3 3 0 0 1 5 15a3 3 0 0 1-3-3zM15 12a3 3 0 0 1 1.3-2A3 3 0 0 1 19 9a3 3 0 0 1 0 6 3 3 0 0 1-2.7-1A3 3 0 0 1 15 12z"/></svg>' },
+  { id:'eye',     svg:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3" fill="white"/></svg>' },
+  { id:'smile',   svg:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="white" stroke-width="1.5" fill="none"/><line x1="9" y1="9" x2="9.01" y2="9" stroke="white" stroke-width="2.5" stroke-linecap="round"/><line x1="15" y1="9" x2="15.01" y2="9" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>' },
+];
+
+function getHabitoIconSvg(iconId) {
+  var ic = HABITO_ICONS.find(function(x){ return x.id === iconId; });
+  return ic ? ic.svg : HABITO_ICONS[4].svg; // default: star
+}
+
 function renderHabitos() {
   var list = document.getElementById('habitosList');
   if (!list) return;
@@ -30842,21 +31023,53 @@ function renderHabitos() {
     var hasCounter = meta > 1;
 
     var card = document.createElement('div');
-    card.className = 'habito-card';
+    card.className = 'habito-card' + (done ? ' done-card' : '');
 
-    var top = document.createElement('div');
-    top.className = 'habito-card-top';
+    // ── Icono izquierda ────────────────────────────
+    var iconWrap = document.createElement('div');
+    iconWrap.className = 'habito-icon-wrap';
+    iconWrap.innerHTML = getHabitoIconSvg(h.iconId || 'star');
 
-    // ── Botón / counter ────────────────────────────────────────
-    var chkWrap = document.createElement('div');
-    chkWrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:.25rem;flex-shrink:0';
+    // ── Info central ───────────────────────────────
+    var info = document.createElement('div');
+    info.className = 'habito-info';
 
+    var nameEl = document.createElement('div');
+    nameEl.className = 'habito-name';
+    nameEl.textContent = h.nombre;
+
+    var descEl = document.createElement('div');
+    descEl.className = 'habito-desc';
+    descEl.textContent = h.desc || (h.emoji || '') + (hasCounter ? ' · ' + count + '/' + meta + ' hoy' : '');
+
+    var stats = document.createElement('div');
+    stats.className = 'habito-stats';
+    var rachaText = racha > 0 ? '🔥 ' + racha + ' día' + (racha !== 1 ? 's' : '') : '';
+    stats.innerHTML =
+      (rachaText ? '<span class="habito-stat racha">' + rachaText + '</span>' : '') +
+      '<span class="habito-stat">mejor: ' + best + 'd</span>' +
+      '<span class="habito-stat pct">' + pct + '% mes</span>';
+
+    info.appendChild(nameEl);
+    info.appendChild(descEl);
+    info.appendChild(stats);
+
+    // ── Lado derecho ───────────────────────────────
+    var right = document.createElement('div');
+    right.className = 'habito-right';
+
+    // Counter label
+    var counterEl = document.createElement('div');
+    counterEl.className = 'habito-counter';
+    counterEl.textContent = hasCounter ? count + '/' + meta : (done ? '✓' : '');
+
+    // Check / tap button
     var chk = document.createElement('button');
     chk.className = 'habito-check-btn' + (done ? ' done' : '');
+    chk.textContent = done ? '✓' : '○';
+    chk.title = hasCounter ? 'Registrar una vez más (' + count + '/' + meta + ')' : (done ? 'Desmarcar' : 'Marcar como hecho');
 
     if (!hasCounter) {
-      // Comportamiento original: toggle simple
-      chk.textContent = done ? '✓' : (h.emoji || '⭐');
       chk.onclick = function() {
         var _was = habitoIsDone(habitosData[idx], todayKey);
         if (_was) {
@@ -30869,17 +31082,10 @@ function renderHabitos() {
         saveHabitos(); renderHabitos();
       };
     } else {
-      // Counter: muestra emoji + progreso, cada tap suma 1
-      chk.style.cssText += ';flex-direction:column;gap:1px;line-height:1.1;font-size:.75rem;padding:.35rem .4rem;min-width:44px';
-      chk.innerHTML =
-        '<span style="font-size:1rem">' + (done ? '✓' : (h.emoji || '⭐')) + '</span>' +
-        '<span style="font-size:.65rem;font-weight:800;opacity:.85">' + count + '/' + meta + '</span>';
-      chk.title = 'Toca para registrar una vez más (' + count + '/' + meta + ')';
       chk.onclick = function() {
         var cur = habitoGetCount(habitosData[idx], todayKey);
         var m   = habitoGetMeta(habitosData[idx]);
         if (cur >= m) {
-          // Ya completado: resetear
           delete habitosData[idx].completions[todayKey];
         } else {
           habitosData[idx].completions[todayKey] = cur + 1;
@@ -30890,48 +31096,35 @@ function renderHabitos() {
         }
         saveHabitos(); renderHabitos();
       };
-
-      // Mini barra de progreso debajo del botón
-      if (count > 0 && !done) {
-        var miniBar = document.createElement('div');
-        miniBar.style.cssText = 'width:44px;height:4px;border-radius:4px;background:var(--border);overflow:hidden;margin-top:1px';
-        var miniFill = document.createElement('div');
-        miniFill.style.cssText = 'height:100%;border-radius:4px;background:var(--rosa);width:' + Math.round((count/meta)*100) + '%';
-        miniBar.appendChild(miniFill);
-        chkWrap.appendChild(miniBar);
-      }
     }
 
-    chkWrap.insertBefore(chk, chkWrap.firstChild);
-
-    var info = document.createElement('div');
-    info.className = 'habito-info';
-    var nameEl = document.createElement('div');
-    nameEl.className = 'habito-name';
-    nameEl.textContent = (h.emoji ? h.emoji + ' ' : '') + h.nombre;
-    if (hasCounter) {
-      var metaBadge = document.createElement('span');
-      metaBadge.style.cssText = 'font-size:.6rem;font-weight:800;color:var(--muted2);margin-left:.4rem;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:.1rem .45rem';
-      metaBadge.textContent = '×' + meta + ' al día';
-      nameEl.appendChild(metaBadge);
+    // Mini barra progreso
+    if (hasCounter && count > 0) {
+      var miniBar = document.createElement('div');
+      miniBar.className = 'habito-mini-bar';
+      var miniFill = document.createElement('div');
+      miniFill.className = 'habito-mini-fill';
+      miniFill.style.width = Math.min(100, Math.round((count/meta)*100)) + '%';
+      miniBar.appendChild(miniFill);
+      right.appendChild(counterEl);
+      right.appendChild(chk);
+      right.appendChild(miniBar);
+    } else {
+      right.appendChild(chk);
     }
-    info.appendChild(nameEl);
 
-    var stats = document.createElement('div');
-    stats.className = 'habito-stats';
-    stats.innerHTML =
-      '<span class="habito-stat racha">🔥 ' + racha + ' día' + (racha !== 1 ? 's' : '') + '</span>' +
-      '<span class="habito-stat">🏆 mejor: ' + best + '</span>' +
-      '<span class="habito-stat pct">📅 ' + pct + '% este mes</span>';
-    info.appendChild(stats);
+    // Timer btn
+    var timerBtn = document.createElement('button');
+    timerBtn.title = 'Temporizador';
+    timerBtn.style.cssText = 'background:none;border:none;font-size:.8rem;cursor:pointer;color:var(--muted2);padding:.1rem;line-height:1';
+    timerBtn.textContent = '⏱';
+    timerBtn.onclick = function(e) {
+      e.stopPropagation();
+      if (window.openTaskTimer) window.openTaskTimer('habito_' + h.id, h.nombre);
+    };
+    right.appendChild(timerBtn);
 
-    var bar = document.createElement('div');
-    bar.className = 'habito-progress-bar';
-    var fill = document.createElement('div');
-    fill.className = 'habito-progress-fill';
-    fill.style.width = pct + '%';
-    bar.appendChild(fill);
-
+    // Delete btn
     var del = document.createElement('button');
     del.className = 'habito-del-btn';
     del.textContent = '✕';
@@ -30943,46 +31136,43 @@ function renderHabitos() {
       }
     };
 
-    var timerBtn = document.createElement('button');
-    timerBtn.title = 'Abrir temporizador';
-    timerBtn.style.cssText = 'background:none;border:1.5px solid var(--border);border-radius:50%;width:28px;height:28px;font-size:.78rem;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;margin-left:auto';
-    timerBtn.textContent = '⏱';
-    timerBtn.onclick = function(e) {
-      e.stopPropagation();
-      if (window.openTaskTimer) window.openTaskTimer('habito_' + h.id, (h.emoji ? h.emoji + ' ' : '') + h.nombre);
-    };
-    timerBtn.onmouseenter = function(){ this.style.borderColor='var(--rosa)'; this.style.color='var(--rosa)'; };
-    timerBtn.onmouseleave = function(){ this.style.borderColor='var(--border)'; this.style.color='var(--muted)'; };
-
-    top.appendChild(chkWrap);
-    top.appendChild(info);
-    top.appendChild(timerBtn);
-    card.appendChild(top);
-    card.appendChild(bar);
+    card.appendChild(iconWrap);
+    card.appendChild(info);
+    card.appendChild(right);
     card.appendChild(del);
     list.appendChild(card);
   });
 }
 
 window.openHabitoModal = function() {
+  var selectedIcon = 'star';
   var ov = document.createElement('div');
   ov.className = 'habito-modal-overlay';
+
+  var iconsHtml = HABITO_ICONS.map(function(ic) {
+    return '<button class="hicon-btn' + (ic.id === 'star' ? ' selected' : '') + '" data-icon="' + ic.id + '" type="button">' + ic.svg + '</button>';
+  }).join('');
+
   ov.innerHTML =
     '<div class="habito-modal">' +
       '<div class="habito-modal-title">✦ Nuevo hábito</div>' +
       '<div class="habito-modal-field">' +
-        '<label class="habito-modal-label">Emoji</label>' +
-        '<input class="habito-modal-input" id="hModalEmoji" placeholder="🌟" maxlength="4" style="width:70px">' +
+        '<label class="habito-modal-label">Ícono</label>' +
+        '<div class="hicon-picker-grid" id="hIconGrid">' + iconsHtml + '</div>' +
       '</div>' +
       '<div class="habito-modal-field">' +
         '<label class="habito-modal-label">Nombre del hábito</label>' +
         '<input class="habito-modal-input" id="hModalNombre" placeholder="Ej: Beber 2L de agua">' +
       '</div>' +
       '<div class="habito-modal-field">' +
+        '<label class="habito-modal-label">Descripción corta <span style="font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>' +
+        '<input class="habito-modal-input" id="hModalDesc" placeholder="Ej: drink water, breakfast & tea ♡">' +
+      '</div>' +
+      '<div class="habito-modal-field">' +
         '<label class="habito-modal-label">¿Cuántas veces al día?</label>' +
         '<div style="display:flex;align-items:center;gap:.6rem">' +
           '<input class="habito-modal-input" id="hModalMeta" type="number" min="1" max="20" value="1" style="width:70px;text-align:center">' +
-          '<span style="font-size:.75rem;color:var(--muted);font-weight:600">veces para que cuente el hábito</span>' +
+          '<span style="font-size:.75rem;color:var(--muted);font-weight:600">veces para que cuente</span>' +
         '</div>' +
         '<div style="font-size:.65rem;color:var(--muted2);font-weight:600;margin-top:.3rem">Si pones 1, funciona como un check normal 🌸</div>' +
       '</div>' +
@@ -30993,17 +31183,30 @@ window.openHabitoModal = function() {
   document.body.appendChild(ov);
 
   setTimeout(function() {
+    // Icon picker logic
+    var grid = document.getElementById('hIconGrid');
+    if (grid) {
+      grid.addEventListener('click', function(e) {
+        var btn = e.target.closest('.hicon-btn');
+        if (!btn) return;
+        grid.querySelectorAll('.hicon-btn').forEach(function(b){ b.classList.remove('selected'); });
+        btn.classList.add('selected');
+        selectedIcon = btn.dataset.icon;
+      });
+    }
+
     var saveBtn = document.getElementById('hModalSave');
     if (saveBtn) saveBtn.onclick = function() {
       var nombre = (document.getElementById('hModalNombre').value || '').trim();
-      var emoji  = (document.getElementById('hModalEmoji').value || '').trim();
+      var desc   = (document.getElementById('hModalDesc').value || '').trim();
       var meta   = parseInt(document.getElementById('hModalMeta').value) || 1;
       if (!nombre) { document.getElementById('hModalNombre').focus(); return; }
       habitosData.push({
         id: 'h_' + Date.now(),
         nombre: nombre,
-        emoji: emoji,
-        meta: meta > 1 ? meta : undefined, // solo guardar si > 1
+        desc: desc || undefined,
+        iconId: selectedIcon,
+        meta: meta > 1 ? meta : undefined,
         completions: {}
       });
       saveHabitos(); renderHabitos();
@@ -31548,7 +31751,6 @@ const NAV_PAGES = [
   { icon:'🗓️', label:'Horario',         page:'page-horario'      },
   { icon:'🌸', label:'Rutinas',         page:'page-rutinas'      },
   { icon:'✅', label:'Hábitos',         page:'page-habitos'      },
-  { icon:'📅', label:'Historial',       page:'page-historial'    },
   { icon:'💙', label:'Calma',           page:'page-calma'        },
   { icon:'📓', label:'Journal',         page:'page-journal'      },
   { icon:'📖', label:'Diario',          page:'page-diario'       },
@@ -31585,7 +31787,6 @@ const DRAWER_STRUCTURE = {
       { icon:'♡', label:'Horario',         page:'page-horario'      },
       { icon:'♡', label:'Rutinas',         page:'page-rutinas'      },
       { icon:'♡', label:'Hábitos',         page:'page-habitos'      },
-      { icon:'♡', label:'Historial',       page:'page-historial'    },
     ]},
     { id:'mente', icon:'⭐', label:'Mi Mente', items: [
       { icon:'♡', label:'Calma',           page:'page-calma'        },
@@ -31593,7 +31794,7 @@ const DRAWER_STRUCTURE = {
       { icon:'♡', label:'Diario',          page:'page-diario'       },
       { icon:'♡', label:'Braindump',       page:'page-braindump'    },
     ]},
-    { id:'yo', icon:'🪞', label:'Yo', items: [
+    { id:'yo', icon:'☁️', label:'Yo', items: [
       { icon:'♡', label:'Selfcare',        page:'page-selfcare'     },
       { icon:'♡', label:'Salud',           page:'page-salud'        },
       { icon:'♡', label:'Logros',          page:'page-logros'       },
@@ -34382,12 +34583,34 @@ document.addEventListener('DOMContentLoaded', function() {
   </div><!-- end page-univ -->
 <div id="page-intereses" class="page-section">
 <div id="sec-intereses-nav" style="scroll-margin-top:60px"></div>
+
 <!-- ══════════════════════════════════════════
-     SECCIÓN 5 · ZONA DE HIPERENFOQUE
+     TABS DE INTERESES
 ══════════════════════════════════════════ -->
+<style>
+  .intereses-tabs-wrap { max-width:780px; margin:0 auto; padding:1rem 1rem .2rem; }
+  .intereses-tabs { display:flex; flex-wrap:wrap; gap:.45rem; max-width:780px; margin:0 auto .2rem; padding:0 1rem; }
+  .intereses-tab { flex:0 0 auto; padding:.45rem .9rem; border:1.5px solid var(--border); border-radius:20px; background:var(--surface); font-family:var(--font-body); font-size:.78rem; font-weight:700; color:var(--muted); cursor:pointer; transition:all .2s; white-space:nowrap; }
+  .intereses-tab.active { background:var(--rosa); color:white; border-color:var(--rosa); }
+  .intereses-tab:not(.active):hover { border-color:var(--rosa); color:var(--rosa); }
+  .intereses-tab-panel { display:none; }
+  .intereses-tab-panel.active { display:block; }
+</style>
+
+<!-- Tabs de navegación -->
+<div class="intereses-tabs-wrap">
+  <span class="section-sub" style="display:block;margin-bottom:.3rem">interés especial</span>
+  <h2 class="section-title" style="margin-bottom:.6rem"><em>Mi Zona de</em> Hiperenfoque <span style="font-style:normal;font-weight:400">🫧𓇼𓏲*ੈ✩‧₊˚🎐</span></h2>
+</div>
+<div class="intereses-tabs">
+  <button class="intereses-tab active" id="interesesTab0" onclick="interesesShowTab(0)">⭐ Principal</button>
+  <button class="intereses-tab" id="interesesTab1" onclick="interesesShowTab(1)">📝 Notas por interés</button>
+  <button class="intereses-tab" id="interesesTab2" onclick="interesesShowTab(2)">🔁 Archivados</button>
+</div>
+
+<!-- ── TAB 0: PRINCIPAL ── -->
+<div class="intereses-tab-panel active" id="interesesPanel0">
 <section class="spark-section" id="sec-spark">
-  <span class="section-sub">interés especial</span>
-  <h2 class="section-title"><em>Mi Zona de</em> Hiperenfoque <span style="font-style:normal;font-weight:400">🫧𓇼𓏲*ੈ✩‧₊˚🎐</span></h2>
   <button onclick="transNueva()" style="display:inline-flex;align-items:center;gap:.35rem;padding:.38rem .85rem;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);font-family:var(--font-body);font-size:.72rem;font-weight:700;cursor:pointer;margin-bottom:.8rem;transition:all .2s" onmouseover="this.style.borderColor='var(--rosa)';this.style.color='var(--rosa)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">🔄 Planear transición</button>
   <div class="spark-card">
     <div class="spark-header">
@@ -34450,33 +34673,18 @@ document.addEventListener('DOMContentLoaded', function() {
       <div id="sparkTimeRunning" style="font-size:.62rem;color:var(--muted2);font-weight:700;margin-top:.3rem;display:none">⏱️ Cronómetro corriendo…</div>
     </div>
 
-    <!-- 🔁 Historial de hiperfocos -->
-    <div class="spark-panel" style="margin-top:.8rem">
-      <div class="spark-panel-title" style="justify-content:space-between">
-        <span>🔁 Mis hiperfocos pasados</span>
-        <button onclick="archiveCurrentSpark()" style="background:var(--beige);color:white;border:none;border-radius:20px;padding:.15rem .6rem;font-size:.6rem;font-weight:800;cursor:pointer;font-family:var(--font-body)">Archivar actual ✦</button>
-      </div>
-      <div id="sparkHistorial" style="margin-top:.4rem"></div>
+    <!-- Botón archivar al fondo del formulario principal -->
+    <div style="margin-top:1rem;text-align:right">
+      <button onclick="archiveCurrentSpark()" style="background:var(--beige);color:white;border:none;border-radius:20px;padding:.35rem .9rem;font-size:.72rem;font-weight:800;cursor:pointer;font-family:var(--font-body)">Archivar hiperfoco actual ✦</button>
     </div>
 
   </div>
 </section>
+</div><!-- end panel 0 -->
 
-<!-- ══════════════════════════════════════════
-     SECCIÓN 6 · AGUA & COMIDAS
-══════════════════════════════════════════ -->
-
-
-<!-- ══════════════════════════════════════════
-     SECCIÓN 6 · AGUA & COMIDAS
-══════════════════════════════════════════ -->
-
-<!-- ══════════════════════════════════════════
-     NOTAS POR INTERÉS
-══════════════════════════════════════════ -->
+<!-- ── TAB 1: NOTAS POR INTERÉS ── -->
+<div class="intereses-tab-panel" id="interesesPanel1">
 <section class="ni-section" id="sec-notas-interes">
-  <span class="section-sub">mis notas</span>
-  <h2 class="section-title"><em>Notas por</em> Interés <span style="font-style:normal;font-weight:400">🫧𓇼𓏲*ੈ✩‧₊˚🎐</span></h2>
   <div class="ni-card">
 
     <!-- Fila: agregar categoría + botón nueva nota -->
@@ -34500,750 +34708,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
   </div>
 </section>
+</div><!-- end panel 1 -->
 
-</div><!-- end page-intereses -->
-<div id="page-historial" class="page-section">
-<style>
-  .historial-section {
-    max-width: 860px;
-    margin: 2rem auto 0;
-    padding: 0 1rem 4rem;
-    animation: fadeUp .5s .1s ease both;
-    opacity: 0;
-    animation-fill-mode: both;
-  }
-  .historial-header {
-    text-align: center;
-    margin-bottom: 1.6rem;
-  }
-  .historial-header .section-sub { display: block; margin-bottom: .3rem; }
-  .historial-view-toggle {
-    display: flex;
-    gap: .5rem;
-    justify-content: center;
-    margin-bottom: 1.4rem;
-  }
-  .hist-view-btn {
-    padding: .35rem .9rem;
-    border-radius: 20px;
-    border: 1.5px solid var(--border);
-    background: var(--card);
-    font-family: var(--font-body);
-    font-size: .75rem;
-    font-weight: 700;
-    color: var(--muted);
-    cursor: pointer;
-    transition: all .2s;
-  }
-  .hist-view-btn.active {
-    background: var(--rosa);
-    border-color: var(--rosa);
-    color: #fff;
-  }
-  /* ── Calendario mensual ── */
-  .hist-cal-nav {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    margin-bottom: .8rem;
-  }
-  .hist-cal-nav-btn {
-    background: var(--card);
-    border: 1.5px solid var(--border);
-    border-radius: 50%;
-    width: 30px; height: 30px;
-    font-size: 1rem;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: all .2s;
-    color: var(--muted);
-  }
-  .hist-cal-nav-btn:hover { border-color: var(--rosa); color: var(--rosa); }
-  .hist-cal-label {
-    font-family: var(--font-title);
-    font-size: 1.1rem;
-    font-style: italic;
-    color: var(--text);
-    min-width: 160px;
-    text-align: center;
-  }
-  .hist-cal-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
-    margin-bottom: 1.2rem;
-  }
-  .hist-cal-dow {
-    text-align: center;
-    font-size: .6rem;
-    font-weight: 800;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    color: var(--muted2);
-    padding: .3rem 0;
-  }
-  .hist-cal-day {
-    aspect-ratio: 1;
-    border-radius: 10px;
-    border: 1.5px solid transparent;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all .18s;
-    background: var(--card);
-    position: relative;
-    font-size: .8rem;
-    font-weight: 700;
-    color: var(--text);
-    font-family: var(--font-body);
-  }
-  .hist-cal-day:hover { border-color: var(--rosa-soft); background: var(--surface); }
-  .hist-cal-day.today { border-color: var(--rosa); color: var(--rosa); }
-  .hist-cal-day.selected { background: var(--rosa); color: #fff; border-color: var(--rosa); }
-  .hist-cal-day.has-data::after {
-    content: '';
-    width: 5px; height: 5px;
-    border-radius: 50%;
-    background: var(--rosa);
-    position: absolute;
-    bottom: 4px;
-  }
-  .hist-cal-day.selected.has-data::after { background: rgba(255,255,255,.7); }
-  .hist-cal-day.empty-cell { background: transparent; border-color: transparent; cursor: default; }
-  .hist-cal-day.other-month { opacity: .35; }
-  /* ── Vista semanal ── */
-  .hist-week-nav {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    margin-bottom: .9rem;
-  }
-  .hist-week-label {
-    font-family: var(--font-title);
-    font-size: 1rem;
-    font-style: italic;
-    color: var(--text);
-    min-width: 200px;
-    text-align: center;
-  }
-  .hist-week-strip {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 6px;
-    margin-bottom: 1.2rem;
-  }
-  .hist-week-cell {
-    border-radius: 12px;
-    border: 1.5px solid var(--border);
-    background: var(--card);
-    padding: .5rem .3rem;
-    text-align: center;
-    cursor: pointer;
-    transition: all .18s;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: .2rem;
-    position: relative;
-  }
-  .hist-week-cell:hover { border-color: var(--rosa-soft); }
-  .hist-week-cell.today { border-color: var(--rosa); }
-  .hist-week-cell.selected { background: var(--rosa); border-color: var(--rosa); }
-  .hist-week-cell-dow {
-    font-size: .58rem;
-    font-weight: 800;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    color: var(--muted2);
-  }
-  .hist-week-cell.selected .hist-week-cell-dow { color: rgba(255,255,255,.75); }
-  .hist-week-cell-num {
-    font-size: .85rem;
-    font-weight: 700;
-    color: var(--text);
-  }
-  .hist-week-cell.selected .hist-week-cell-num { color: #fff; }
-  .hist-week-cell.has-data::after {
-    content: '';
-    width: 5px; height: 5px;
-    border-radius: 50%;
-    background: var(--rosa);
-    position: absolute;
-    bottom: 4px;
-  }
-  .hist-week-cell.selected.has-data::after { background: rgba(255,255,255,.7); }
-  /* ── Panel de registros ── */
-  .hist-day-panel {
-    background: var(--card);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    padding: 1.2rem 1.4rem;
-    min-height: 120px;
-  }
-  .hist-day-panel-title {
-    font-family: var(--font-title);
-    font-size: 1rem;
-    font-style: italic;
-    color: var(--rosa);
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    gap: .5rem;
-  }
-  .hist-no-data {
-    color: var(--muted2);
-    font-size: .8rem;
-    font-weight: 600;
-    text-align: center;
-    padding: 1.5rem 0;
-  }
-  .hist-rec-section {
-    margin-bottom: 1rem;
-  }
-  .hist-rec-title {
-    font-size: .65rem;
-    font-weight: 800;
-    letter-spacing: .1em;
-    text-transform: uppercase;
-    color: var(--muted2);
-    margin-bottom: .45rem;
-    padding-bottom: .3rem;
-    border-bottom: 1px solid var(--border);
-  }
-  .hist-rec-item {
-    font-size: .8rem;
-    font-weight: 600;
-    color: var(--text);
-    padding: .3rem 0;
-    border-bottom: 1px dashed var(--border);
-    display: flex;
-    align-items: flex-start;
-    gap: .4rem;
-  }
-  .hist-rec-item:last-child { border-bottom: none; }
-  .hist-rec-item.done { color: var(--muted2); text-decoration: line-through; }
-  .hist-rec-meta {
-    font-size: .68rem;
-    color: var(--muted);
-    font-weight: 500;
-    margin-top: .1rem;
-  }
-  .hist-no-sel {
-    color: var(--muted2);
-    font-size: .82rem;
-    font-weight: 600;
-    text-align: center;
-    padding: 2rem 0;
-  }
-</style>
-
-<section class="historial-section">
-  <div class="historial-header">
-    <span class="section-sub">tu historia</span>
-    <h2 class="section-title"><em>Mi Historial</em> <span style="font-style:normal;font-weight:400">. ݁₊ ⊹ . ݁ ⟡ ݁ . ⊹ ₊ ݁.</span></h2>
-  </div>
-
-  <div class="historial-view-toggle">
-    <button class="hist-view-btn active" id="histBtnMensual" onclick="histSetView('mensual')">📅 Mensual</button>
-    <button class="hist-view-btn" id="histBtnSemanal" onclick="histSetView('semanal')">🗓️ Semanal</button>
-  </div>
-
-  <!-- Vista mensual -->
-  <div id="histViewMensual">
-    <div class="hist-cal-nav">
-      <button class="hist-cal-nav-btn" onclick="histMonthOffset--; renderHistCal()">‹</button>
-      <div class="hist-cal-label" id="histCalLabel"></div>
-      <button class="hist-cal-nav-btn" onclick="histMonthOffset++; renderHistCal()">›</button>
-    </div>
-    <div class="hist-cal-grid" id="histCalGrid"></div>
-  </div>
-
-  <!-- Vista semanal -->
-  <div id="histViewSemanal" style="display:none">
-    <div class="hist-week-nav">
-      <button class="hist-cal-nav-btn" onclick="histWeekOffset--; renderHistWeek()">‹</button>
-      <div class="hist-week-label" id="histWeekLabel"></div>
-      <button class="hist-cal-nav-btn" onclick="histWeekOffset++; renderHistWeek()">›</button>
-    </div>
-    <div class="hist-week-strip" id="histWeekStrip"></div>
-  </div>
-
-  <!-- Panel de registros del día seleccionado -->
-  <div class="hist-day-panel" id="histDayPanel">
-    <div class="hist-no-sel">Selecciona un día para ver tus registros 🌸</div>
+<!-- ── TAB 2: ARCHIVADOS ── -->
+<div class="intereses-tab-panel" id="interesesPanel2">
+<section class="spark-section" id="sec-spark-archivados" style="padding-top:.5rem">
+  <div class="spark-card">
+    <div class="spark-panel-title" style="margin-bottom:.6rem">🔁 Mis hiperfocos archivados</div>
+    <div id="sparkHistorial" style="margin-top:.4rem"></div>
   </div>
 </section>
+</div><!-- end panel 2 -->
 
 <script>
-(function(){
-  var histView = 'mensual';
-  var histMonthOffset = 0;
-  var histWeekOffset = 0;
-  var histSelectedDk = null;
-
-  window.histMonthOffset = 0;
-  window.histWeekOffset = 0;
-
-  var DIAS_CORTO = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-  var MESES_HIST = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-
-  function dkFromDate(d) {
-    var y = d.getFullYear();
-    var m = String(d.getMonth()+1).padStart(2,'0');
-    var day = String(d.getDate()).padStart(2,'0');
-    return y+'-'+m+'-'+day;
+function interesesShowTab(idx) {
+  for (var i = 0; i < 3; i++) {
+    document.getElementById('interesesTab' + i).classList.toggle('active', i === idx);
+    document.getElementById('interesesPanel' + i).classList.toggle('active', i === idx);
   }
-
-  function todayDk() { return dkFromDate(new Date()); }
-
-  function dateHasData(dk) {
-    if (typeof completions !== 'undefined' && typeof recurringTasks !== 'undefined') {
-      if (recurringTasks.some(function(t){ return completions[t.id+'|'+dk]; })) return true;
-    }
-    if (typeof ejRegistros !== 'undefined' && ejRegistros[dk] && ejRegistros[dk].length > 0) return true;
-    if (typeof bellezaRegistros !== 'undefined' && bellezaRegistros[dk] && bellezaRegistros[dk].length > 0) return true;
-    if (typeof gratitudData !== 'undefined' && gratitudData[dk] && gratitudData[dk].filter(function(g){return g&&g.trim();}).length > 0) return true;
-    if (typeof suenoData !== 'undefined' && suenoData[dk] && (suenoData[dk].dormirse || suenoData[dk].despertar)) return true;
-    if (typeof diosData !== 'undefined' && diosData[dk] && (diosData[dk].oracion || diosData[dk].intencion || diosData[dk].ore > 0)) return true;
-    if (typeof finMovimientos !== 'undefined' && finMovimientos.some(function(m){ return m.fecha === dk; })) return true;
-    if (typeof rutinaAsignaciones !== 'undefined') {
-      var keys = Object.keys(rutinaAsignaciones);
-      if (keys.some(function(k){ return k.split('|')[0] === dk; })) return true;
-    }
-    // Transiciones
-    try { var td = JSON.parse(localStorage.getItem('trans_data')||'[]'); if(td.some(function(t){return t.fecha===dk;})) return true; } catch(e){}
-    // Recuperación
-    try { var rr = JSON.parse(localStorage.getItem('recuper_registros')||'{}'); if(rr[dk] && rr[dk].length>0) return true; } catch(e){}
-    // Hábitos
-    try { var hd = JSON.parse(localStorage.getItem('habitos_data')||'[]'); if(hd.some(function(h){return h.log&&h.log.indexOf(dk)>-1;})) return true; } catch(e){}
-    return false;
-  }
-
-  window.histSetView = function(v) {
-    histView = v;
-    document.getElementById('histBtnMensual').classList.toggle('active', v==='mensual');
-    document.getElementById('histBtnSemanal').classList.toggle('active', v==='semanal');
-    document.getElementById('histViewMensual').style.display = v==='mensual' ? '' : 'none';
-    document.getElementById('histViewSemanal').style.display = v==='semanal' ? '' : 'none';
-    if (v==='mensual') renderHistCal();
-    else renderHistWeek();
-  };
-
-  window.renderHistCal = function() {
-    var mo = window.histMonthOffset;
-    var now = new Date();
-    var base = new Date(now.getFullYear(), now.getMonth() + mo, 1);
-    var year = base.getFullYear();
-    var month = base.getMonth();
-
-    document.getElementById('histCalLabel').textContent = MESES_HIST[month] + ' ' + year;
-
-    var grid = document.getElementById('histCalGrid');
-    grid.innerHTML = '';
-
-    // Day of week headers
-    DIAS_CORTO.forEach(function(d) {
-      var el = document.createElement('div');
-      el.className = 'hist-cal-dow';
-      el.textContent = d;
-      grid.appendChild(el);
-    });
-
-    var firstDay = new Date(year, month, 1).getDay();
-    var daysInMonth = new Date(year, month+1, 0).getDate();
-    var todayStr = todayDk();
-
-    // Empty cells before first day
-    for (var i = 0; i < firstDay; i++) {
-      var emp = document.createElement('div');
-      emp.className = 'hist-cal-day empty-cell';
-      grid.appendChild(emp);
-    }
-
-    for (var d = 1; d <= daysInMonth; d++) {
-      var date = new Date(year, month, d);
-      var dk = dkFromDate(date);
-      var cell = document.createElement('div');
-      var cls = 'hist-cal-day';
-      if (dk === todayStr) cls += ' today';
-      if (dk === histSelectedDk) cls += ' selected';
-      if (dateHasData(dk)) cls += ' has-data';
-      cell.className = cls;
-      cell.textContent = d;
-      cell.dataset.dk = dk;
-      cell.onclick = function() { histSelectDay(this.dataset.dk); };
-      grid.appendChild(cell);
-    }
-  };
-
-  window.renderHistWeek = function() {
-    var wo = window.histWeekOffset;
-    var now = new Date();
-    var day = now.getDay();
-    var monday = new Date(now);
-    monday.setDate(now.getDate() - day + (day===0 ? -6 : 1) + wo*7);
-
-    var dates = [];
-    for (var i = 0; i < 7; i++) {
-      var d = new Date(monday);
-      d.setDate(monday.getDate() + i);
-      dates.push(d);
-    }
-
-    var fmt = function(d) { return d.getDate() + ' ' + MESES_HIST[d.getMonth()].slice(0,3); };
-    document.getElementById('histWeekLabel').textContent = fmt(dates[0]) + ' – ' + fmt(dates[6]);
-
-    var strip = document.getElementById('histWeekStrip');
-    strip.innerHTML = '';
-    var todayStr = todayDk();
-
-    dates.forEach(function(date) {
-      var dk = dkFromDate(date);
-      var cell = document.createElement('div');
-      var cls = 'hist-week-cell';
-      if (dk === todayStr) cls += ' today';
-      if (dk === histSelectedDk) cls += ' selected';
-      if (dateHasData(dk)) cls += ' has-data';
-      cell.className = cls;
-
-      var dow = document.createElement('div');
-      dow.className = 'hist-week-cell-dow';
-      dow.textContent = DIAS_CORTO[date.getDay()];
-
-      var num = document.createElement('div');
-      num.className = 'hist-week-cell-num';
-      num.textContent = date.getDate();
-
-      cell.appendChild(dow);
-      cell.appendChild(num);
-      cell.dataset.dk = dk;
-      cell.onclick = function() { histSelectDay(this.dataset.dk); };
-      strip.appendChild(cell);
-    });
-  };
-
-  function histSelectDay(dk) {
-    histSelectedDk = dk;
-    if (histView === 'mensual') renderHistCal();
-    else renderHistWeek();
-    renderHistPanel(dk);
-  }
-
-  function renderHistPanel(dk) {
-    var panel = document.getElementById('histDayPanel');
-    panel.innerHTML = '';
-
-    var d = new Date(dk + 'T12:00:00');
-    var label = DIAS_CORTO[d.getDay()] + ' ' + d.getDate() + ' de ' + MESES_HIST[d.getMonth()] + ' ' + d.getFullYear();
-
-    var title = document.createElement('div');
-    title.className = 'hist-day-panel-title';
-    title.innerHTML = '📅 ' + label;
-    panel.appendChild(title);
-
-    var hasAnything = false;
-
-    // ── Tareas completadas
-    if (typeof completions !== 'undefined' && typeof recurringTasks !== 'undefined') {
-      var doneTasks = recurringTasks.filter(function(t){ return completions[t.id+'|'+dk]; });
-      if (doneTasks.length > 0) {
-        hasAnything = true;
-        var sec = document.createElement('div'); sec.className = 'hist-rec-section';
-        sec.innerHTML = '<div class="hist-rec-title">✅ Tareas completadas</div>';
-        doneTasks.forEach(function(t) {
-          var it = document.createElement('div'); it.className = 'hist-rec-item done';
-          it.textContent = '✓ ' + t.text; sec.appendChild(it);
-        });
-        panel.appendChild(sec);
-      }
-    }
-
-    // ── Rutinas asignadas ese día
-    if (typeof rutinaAsignaciones !== 'undefined' && typeof rutinaTemplates !== 'undefined') {
-      var rutItems = [];
-      Object.keys(rutinaAsignaciones).forEach(function(k) {
-        var parts = k.split('|');
-        if (parts[0] === dk) {
-          var tpl = rutinaTemplates.find(function(r){ return r.id === rutinaAsignaciones[k]; });
-          if (tpl) rutItems.push(tpl.emoji + ' ' + tpl.name);
-        }
-      });
-      if (rutItems.length > 0) {
-        hasAnything = true;
-        var sec = document.createElement('div'); sec.className = 'hist-rec-section';
-        sec.innerHTML = '<div class="hist-rec-title">🌸 Rutinas del día</div>';
-        rutItems.forEach(function(r) {
-          var it = document.createElement('div'); it.className = 'hist-rec-item';
-          it.textContent = r; sec.appendChild(it);
-        });
-        panel.appendChild(sec);
-      }
-    }
-
-    // ── Ejercicio
-    if (typeof ejRegistros !== 'undefined' && ejRegistros[dk] && ejRegistros[dk].length > 0) {
-      hasAnything = true;
-      var sec = document.createElement('div'); sec.className = 'hist-rec-section';
-      sec.innerHTML = '<div class="hist-rec-title">🏃 Ejercicio</div>';
-      ejRegistros[dk].forEach(function(reg) {
-        var tpl = typeof ejTemplates !== 'undefined' && ejTemplates.find(function(t){ return t.id===reg.templateId; });
-        if (!tpl) return;
-        var it = document.createElement('div'); it.className = 'hist-rec-item';
-        it.textContent = tpl.emoji + ' ' + tpl.name + ' · ' + reg.completedSteps.length + '/' + tpl.pasos.length + ' ejercicios';
-        sec.appendChild(it);
-      });
-      panel.appendChild(sec);
-    }
-
-    // ── Belleza / Selfcare
-    if (typeof bellezaRegistros !== 'undefined' && bellezaRegistros[dk] && bellezaRegistros[dk].length > 0) {
-      hasAnything = true;
-      var sec = document.createElement('div'); sec.className = 'hist-rec-section';
-      sec.innerHTML = '<div class="hist-rec-title">✨ Selfcare & Belleza</div>';
-      bellezaRegistros[dk].forEach(function(reg) {
-        var tpl = typeof bellezaTemplates !== 'undefined' && bellezaTemplates.find(function(t){ return t.id===reg.templateId; });
-        if (!tpl) return;
-        var it = document.createElement('div'); it.className = 'hist-rec-item';
-        it.textContent = tpl.emoji + ' ' + tpl.name + ' · ' + reg.completedSteps.length + '/' + tpl.pasos.length + ' pasos';
-        sec.appendChild(it);
-      });
-      panel.appendChild(sec);
-    }
-
-    // ── Fe / Espiritualidad
-    if (typeof diosData !== 'undefined' && diosData[dk]) {
-      var dd = diosData[dk];
-      if (dd.oracion || dd.intencion || dd.ore > 0) {
-        hasAnything = true;
-        var sec = document.createElement('div'); sec.className = 'hist-rec-section';
-        sec.innerHTML = '<div class="hist-rec-title">🙏 Fe & Espiritualidad</div>';
-        if (dd.ore > 0) {
-          var it = document.createElement('div'); it.className = 'hist-rec-item';
-          it.textContent = '🙏 Oré ' + dd.ore + ' vez' + (dd.ore>1?'es':'') + ' ese día';
-          sec.appendChild(it);
-        }
-        if (dd.oracion) {
-          var it = document.createElement('div'); it.className = 'hist-rec-item';
-          it.innerHTML = '<div><div class="hist-rec-meta">Oración / reflexión</div>' + dd.oracion + '</div>';
-          sec.appendChild(it);
-        }
-        if (dd.intencion) {
-          var it = document.createElement('div'); it.className = 'hist-rec-item';
-          it.innerHTML = '<div><div class="hist-rec-meta">Intención / petición</div>' + dd.intencion + '</div>';
-          sec.appendChild(it);
-        }
-        panel.appendChild(sec);
-      }
-    }
-
-    // ── Agradecimiento / Journal
-    if (typeof gratitudData !== 'undefined' && gratitudData[dk]) {
-      var gr = gratitudData[dk].filter(function(g){ return g && g.trim(); });
-      if (gr.length > 0) {
-        hasAnything = true;
-        var sec = document.createElement('div'); sec.className = 'hist-rec-section';
-        sec.innerHTML = '<div class="hist-rec-title">🌸 Agradecimiento del día</div>';
-        gr.forEach(function(g) {
-          var it = document.createElement('div'); it.className = 'hist-rec-item';
-          it.textContent = '✨ ' + g; sec.appendChild(it);
-        });
-        panel.appendChild(sec);
-      }
-    }
-
-    // ── Sueño
-    if (typeof suenoData !== 'undefined' && suenoData[dk]) {
-      var sd = suenoData[dk];
-      if (sd.dormirse || sd.despertar) {
-        hasAnything = true;
-        var sec = document.createElement('div'); sec.className = 'hist-rec-section';
-        sec.innerHTML = '<div class="hist-rec-title">🌙 Sueño</div>';
-        var it = document.createElement('div'); it.className = 'hist-rec-item';
-        var txt = '';
-        if (sd.dormirse) txt += '😴 Me dormí a las ' + sd.dormirse;
-        if (sd.despertar) txt += (txt?' · ':'') + '☀️ Desperté a las ' + sd.despertar;
-        if (sd.calidad) txt += ' · ' + sd.calidad;
-        it.textContent = txt; sec.appendChild(it);
-        panel.appendChild(sec);
-      }
-    }
-
-    // ── Finanzas
-    if (typeof finMovimientos !== 'undefined') {
-      var movs = finMovimientos.filter(function(m){ return m.fecha === dk; });
-      if (movs.length > 0) {
-        hasAnything = true;
-        var sec = document.createElement('div'); sec.className = 'hist-rec-section';
-        sec.innerHTML = '<div class="hist-rec-title">💸 Finanzas</div>';
-        movs.forEach(function(m) {
-          var cat = typeof finCategorias !== 'undefined' && finCategorias.find(function(c){ return c.id===m.categoriaId; });
-          var it = document.createElement('div'); it.className = 'hist-rec-item';
-          var signo = m.tipo === 'ingreso' ? '+' : '-';
-          var color = m.tipo === 'ingreso' ? 'var(--verde)' : 'var(--rosa)';
-          it.innerHTML = '<span style="color:'+color+';font-weight:800">'+signo+'$'+Number(m.monto).toFixed(2)+'</span>'
-            + '<span>' + (m.desc || '') + (cat ? ' <span style="color:var(--muted);font-size:.7rem">· '+cat.nombre+'</span>' : '') + '</span>';
-          sec.appendChild(it);
-        });
-        panel.appendChild(sec);
-      }
-    }
-
-    // ── Salud (logros/síntomas si los hay en mensData)
-    if (typeof mensData !== 'undefined' && mensData[dk]) {
-      var md = mensData[dk];
-      if (md.fase || (md.sintomas && md.sintomas.length > 0)) {
-        hasAnything = true;
-        var sec = document.createElement('div'); sec.className = 'hist-rec-section';
-        sec.innerHTML = '<div class="hist-rec-title">🍏 Salud</div>';
-        if (md.fase) {
-          var it = document.createElement('div'); it.className = 'hist-rec-item';
-          it.textContent = '📍 Fase: ' + md.fase; sec.appendChild(it);
-        }
-        if (md.sintomas && md.sintomas.length > 0) {
-          var it2 = document.createElement('div'); it2.className = 'hist-rec-item';
-          it2.textContent = '🩺 ' + md.sintomas.join(', '); sec.appendChild(it2);
-        }
-        panel.appendChild(sec);
-      }
-    }
-
-    // ── Transiciones del día
-    try {
-      var transData = JSON.parse(localStorage.getItem('trans_data') || '[]');
-      var transDk = transData.filter(function(t){ return t.fecha === dk; });
-      if (transDk.length > 0) {
-        hasAnything = true;
-        var sec = document.createElement('div'); sec.className = 'hist-rec-section';
-        sec.innerHTML = '<div class="hist-rec-title">🔄 Transiciones</div>';
-        transDk.forEach(function(t) {
-          var it = document.createElement('div'); it.className = 'hist-rec-item';
-          it.textContent = t.actual + ' → ' + t.siguiente + ' (' + t.hora + ')';
-          sec.appendChild(it);
-        });
-        panel.appendChild(sec);
-      }
-    } catch(e) {}
-
-    // ── Eventos preparados ese día
-    try {
-      var eventosData = JSON.parse(localStorage.getItem('eventos_prep') || '[]');
-      var eventosDk = eventosData.filter(function(e){ return e.fecha && e.fecha.slice(0,10) === dk; });
-      if (eventosDk.length > 0) {
-        hasAnything = true;
-        var sec = document.createElement('div'); sec.className = 'hist-rec-section';
-        sec.innerHTML = '<div class="hist-rec-title">📅 Eventos</div>';
-        eventosDk.forEach(function(e) {
-          var it = document.createElement('div'); it.className = 'hist-rec-item';
-          it.textContent = '📅 ' + e.nombre; sec.appendChild(it);
-        });
-        panel.appendChild(sec);
-      }
-    } catch(e) {}
-
-    // ── Modo Recuperación — registros del día
-    try {
-      var recuperRegs = JSON.parse(localStorage.getItem('recuper_registros') || '{}');
-      var regsHoy = recuperRegs[dk];
-      if (regsHoy && regsHoy.length > 0) {
-        hasAnything = true;
-        var sec = document.createElement('div'); sec.className = 'hist-rec-section';
-        sec.innerHTML = '<div class="hist-rec-title">🌿 Modo Recuperación</div>';
-        regsHoy.forEach(function(r) {
-          var it = document.createElement('div'); it.className = 'hist-rec-item';
-          var txt = '';
-          if (r.que) txt += r.que;
-          if (r.ayudo) txt += (txt ? ' · Ayudó: ' : 'Ayudó: ') + r.ayudo;
-          it.textContent = txt; sec.appendChild(it);
-        });
-        panel.appendChild(sec);
-      }
-    } catch(e) {}
-
-    // ── Hábitos completados ese día
-    try {
-      var habitosData = JSON.parse(localStorage.getItem('habitos_data') || '[]');
-      var habDone = habitosData.filter(function(h){
-        return h.log && h.log.indexOf(dk) > -1;
-      });
-      if (habDone.length > 0) {
-        hasAnything = true;
-        var sec = document.createElement('div'); sec.className = 'hist-rec-section';
-        sec.innerHTML = '<div class="hist-rec-title">🌱 Hábitos</div>';
-        habDone.forEach(function(h) {
-          var it = document.createElement('div'); it.className = 'hist-rec-item done';
-          it.textContent = '✓ ' + (h.emoji||'') + ' ' + h.nombre; sec.appendChild(it);
-        });
-        panel.appendChild(sec);
-      }
-    } catch(e) {}
-
-    // ── Comidas
-    try {
-      var fStateHist = JSON.parse(localStorage.getItem('food_state') || '{}');
-      var qualityTxt = { '1':'😬 Poco saludable', '2':'😐 Regular', '3':'🙂 Bien', '4':'😋 Muy saludable' };
-      var mealDefs = [
-        { id:'desayuno', icon:'🌅', label:'Desayuno' },
-        { id:'almuerzo', icon:'☀️', label:'Almuerzo' },
-        { id:'cena',     icon:'🌙', label:'Cena' },
-        { id:'snack',    icon:'🍎', label:'Snack' },
-      ];
-      var comidassec = null;
-      mealDefs.forEach(function(meal) {
-        var data = fStateHist['f_' + dk + '_' + meal.id];
-        if (!data || !data.eaten) return;
-        if (!comidassec) {
-          comidassec = document.createElement('div');
-          comidassec.className = 'hist-rec-section';
-          comidassec.innerHTML = '<div class="hist-rec-title">🍽️ Comidas</div>';
-        }
-        var it = document.createElement('div');
-        it.className = 'hist-rec-item';
-        var html = '<span style="font-weight:800">' + meal.icon + ' ' + meal.label + '</span>';
-        if (data.hora)    html += ' <span style="color:var(--muted);font-size:.75rem">· ' + data.hora + '</span>';
-        if (data.texto)   html += '<div style="margin-top:.15rem;font-size:.82rem">' + data.texto + '</div>';
-        if (data.quality) html += '<div style="font-size:.72rem;color:var(--muted);margin-top:.1rem">' + (qualityTxt[data.quality]||'') + '</div>';
-        it.innerHTML = html;
-        comidassec.appendChild(it);
-      });
-      if (comidassec) { hasAnything = true; panel.appendChild(comidassec); }
-    } catch(e) {}
-
-    if (!hasAnything) {
-      var empty = document.createElement('div');
-      empty.className = 'hist-no-data';
-      empty.textContent = 'Sin registros para este día 🌙';
-      panel.appendChild(empty);
-    }
-  }
-  window._initHistorial = function() {
-    window.histMonthOffset = 0;
-    window.histWeekOffset = 0;
-    renderHistCal();
-  };
-
-  // Hook into nav clicks to init when page becomes active
-  var _origNav = window.showPage;
-  window.showPage = function(pageId) {
-    if (_origNav) _origNav(pageId);
-    if (pageId === 'page-historial') {
-      setTimeout(function(){ renderHistCal(); renderHistWeek(); }, 50);
-    }
-  };
-
-  // Also render on DOMContentLoaded if already on this page
-  document.addEventListener('DOMContentLoaded', function() {
-    renderHistCal();
-    renderHistWeek();
-  });
-  setTimeout(function(){ renderHistCal(); renderHistWeek(); }, 300);
-
-})();
+}
 </script>
-</div><!-- end page-historial -->
+
+</div><!-- end page-intereses -->
+
 <div id="page-braindump" class="page-section">
 <style>
   .braindump-section {
@@ -35629,12 +35116,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
   <!-- Tabs -->
   <div class="bib-tabs">
-    <button class="bib-tab active" onclick="bibSwitchTab('playlists', this)">🎵 Playlists</button>
+    <button class="bib-tab active" onclick="bibSwitchTab('libros', this)">📚 Mis Libros</button>
+    <button class="bib-tab" onclick="bibSwitchTab('playlists', this)">🎵 Playlists</button>
     <button class="bib-tab" onclick="bibSwitchTab('dopamina', this)">⚡ Menú de dopamina</button>
   </div>
 
+  <!-- ── LIBROS ── -->
+  <div class="bib-panel" id="bibPanelLibros">
+    <div class="bib-panel-toolbar">
+      <div class="bib-filter-row" id="bibLibrosFilters">
+        <select class="bib-filter-select" id="bibFiltroGenero" onchange="bibFiltrarLibros()">
+          <option value="">Todos los géneros</option>
+        </select>
+        <select class="bib-filter-select" id="bibFiltroAutor" onchange="bibFiltrarLibros()">
+          <option value="">Todos los autores</option>
+        </select>
+      </div>
+      <button class="bib-add-btn" onclick="bibAbrirNuevoLibro()">+ agregar libro</button>
+    </div>
+    <div id="bibLibrosShelf"></div>
+  </div>
+
   <!-- ── PLAYLISTS ── -->
-  <div class="bib-panel" id="bibPanelPlaylists">
+  <div class="bib-panel" id="bibPanelPlaylists" style="display:none">
     <div class="bib-panel-toolbar">
       <div class="bib-cats" id="bibPlaylistCats"></div>
       <button class="bib-add-btn" onclick="bibOpenPlaylistModal()">+ agregar</button>
@@ -35845,8 +35349,10 @@ document.addEventListener('DOMContentLoaded', function() {
   window.bibSwitchTab = function(tab, btn) {
     document.querySelectorAll('.bib-tab').forEach(function(b){ b.classList.remove('active'); });
     btn.classList.add('active');
+    document.getElementById('bibPanelLibros').style.display   = tab === 'libros'   ? '' : 'none';
     document.getElementById('bibPanelPlaylists').style.display = tab === 'playlists' ? '' : 'none';
     document.getElementById('bibPanelDopamina').style.display  = tab === 'dopamina'  ? '' : 'none';
+    if (tab === 'libros') bibRenderLibros();
   };
 
   // ── Mood picker
@@ -36014,6 +35520,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Init
   renderPlaylists();
   renderDopamina();
+  if (window.bibRenderLibros) window.bibRenderLibros();
 
   if (window._watchCloud) {
     window._watchCloud(PL_KEY,  function(val){ playlists = val||[]; renderPlaylists(); });
@@ -36788,6 +36295,9 @@ document.addEventListener('DOMContentLoaded', function() {
 <div id="page-buscar" class="page-section">
 <style>
   .buscar-section { max-width:860px;margin:2rem auto 0;padding:0 1rem 4rem;animation:fadeUp .5s .1s ease both;opacity:0;animation-fill-mode:both; }
+  .buscar-page-tabs { display:flex;gap:.5rem;margin-bottom:1.4rem; }
+  .buscar-page-tab { padding:.35rem .9rem;border-radius:20px;border:1.5px solid var(--border);background:var(--card);font-family:var(--font-body);font-size:.75rem;font-weight:700;color:var(--muted);cursor:pointer;transition:all .2s; }
+  .buscar-page-tab.active { background:var(--rosa);border-color:var(--rosa);color:#fff; }
   .buscar-input-wrap { position:relative;margin-bottom:1.2rem; }
   .buscar-input { width:100%;padding:.8rem 1rem .8rem 2.8rem;border:2px solid var(--border);border-radius:50px;font-family:var(--font-body);font-size:.9rem;font-weight:600;color:var(--text);background:var(--card);outline:none;transition:border-color .2s;box-sizing:border-box; }
   .buscar-input:focus { border-color:var(--rosa); }
@@ -36807,21 +36317,751 @@ document.addEventListener('DOMContentLoaded', function() {
   .buscar-result-title mark, .buscar-result-snippet mark { background:rgba(var(--rosa-rgb,220,130,158),.18);color:var(--rosa);border-radius:3px;padding:0 .1rem; }
   .buscar-empty { text-align:center;color:var(--muted2);font-size:.85rem;font-weight:600;padding:3rem 0; }
   .buscar-count { font-size:.72rem;font-weight:700;color:var(--muted2);margin-bottom:.8rem; }
+
+  .historial-section {
+    max-width: 860px;
+    margin: 2rem auto 0;
+    padding: 0 1rem 4rem;
+    animation: fadeUp .5s .1s ease both;
+    opacity: 0;
+    animation-fill-mode: both;
+  }
+  .historial-header {
+    text-align: center;
+    margin-bottom: 1.6rem;
+  }
+  .historial-header .section-sub { display: block; margin-bottom: .3rem; }
+  .historial-view-toggle {
+    display: flex;
+    gap: .5rem;
+    justify-content: center;
+    margin-bottom: 1.4rem;
+  }
+  .hist-view-btn {
+    padding: .35rem .9rem;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: var(--card);
+    font-family: var(--font-body);
+    font-size: .75rem;
+    font-weight: 700;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .hist-view-btn.active {
+    background: var(--rosa);
+    border-color: var(--rosa);
+    color: #fff;
+  }
+  /* ── Calendario mensual ── */
+  .hist-cal-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: .8rem;
+  }
+  .hist-cal-nav-btn {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 50%;
+    width: 30px; height: 30px;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .2s;
+    color: var(--muted);
+  }
+  .hist-cal-nav-btn:hover { border-color: var(--rosa); color: var(--rosa); }
+  .hist-cal-label {
+    font-family: var(--font-title);
+    font-size: 1.1rem;
+    font-style: italic;
+    color: var(--text);
+    min-width: 160px;
+    text-align: center;
+  }
+  .hist-cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 1.2rem;
+  }
+  .hist-cal-dow {
+    text-align: center;
+    font-size: .6rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted2);
+    padding: .3rem 0;
+  }
+  .hist-cal-day {
+    aspect-ratio: 1;
+    border-radius: 10px;
+    border: 1.5px solid transparent;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all .18s;
+    background: var(--card);
+    position: relative;
+    font-size: .8rem;
+    font-weight: 700;
+    color: var(--text);
+    font-family: var(--font-body);
+  }
+  .hist-cal-day:hover { border-color: var(--rosa-soft); background: var(--surface); }
+  .hist-cal-day.today { border-color: var(--rosa); color: var(--rosa); }
+  .hist-cal-day.selected { background: var(--rosa); color: #fff; border-color: var(--rosa); }
+  .hist-cal-day.has-data::after {
+    content: '';
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--rosa);
+    position: absolute;
+    bottom: 4px;
+  }
+  .hist-cal-day.selected.has-data::after { background: rgba(255,255,255,.7); }
+  .hist-cal-day.empty-cell { background: transparent; border-color: transparent; cursor: default; }
+  .hist-cal-day.other-month { opacity: .35; }
+  /* ── Vista semanal ── */
+  .hist-week-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: .9rem;
+  }
+  .hist-week-label {
+    font-family: var(--font-title);
+    font-size: 1rem;
+    font-style: italic;
+    color: var(--text);
+    min-width: 200px;
+    text-align: center;
+  }
+  .hist-week-strip {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    margin-bottom: 1.2rem;
+  }
+  .hist-week-cell {
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    background: var(--card);
+    padding: .5rem .3rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all .18s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .2rem;
+    position: relative;
+  }
+  .hist-week-cell:hover { border-color: var(--rosa-soft); }
+  .hist-week-cell.today { border-color: var(--rosa); }
+  .hist-week-cell.selected { background: var(--rosa); border-color: var(--rosa); }
+  .hist-week-cell-dow {
+    font-size: .58rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted2);
+  }
+  .hist-week-cell.selected .hist-week-cell-dow { color: rgba(255,255,255,.75); }
+  .hist-week-cell-num {
+    font-size: .85rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .hist-week-cell.selected .hist-week-cell-num { color: #fff; }
+  .hist-week-cell.has-data::after {
+    content: '';
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--rosa);
+    position: absolute;
+    bottom: 4px;
+  }
+  .hist-week-cell.selected.has-data::after { background: rgba(255,255,255,.7); }
+  /* ── Panel de registros ── */
+  .hist-day-panel {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.2rem 1.4rem;
+    min-height: 120px;
+  }
+  .hist-day-panel-title {
+    font-family: var(--font-title);
+    font-size: 1rem;
+    font-style: italic;
+    color: var(--rosa);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+  }
+  .hist-no-data {
+    color: var(--muted2);
+    font-size: .8rem;
+    font-weight: 600;
+    text-align: center;
+    padding: 1.5rem 0;
+  }
+  .hist-rec-section {
+    margin-bottom: 1rem;
+  }
+  .hist-rec-title {
+    font-size: .65rem;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted2);
+    margin-bottom: .45rem;
+    padding-bottom: .3rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .hist-rec-item {
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--text);
+    padding: .3rem 0;
+    border-bottom: 1px dashed var(--border);
+    display: flex;
+    align-items: flex-start;
+    gap: .4rem;
+  }
+  .hist-rec-item:last-child { border-bottom: none; }
+  .hist-rec-item.done { color: var(--muted2); text-decoration: line-through; }
+  .hist-rec-meta {
+    font-size: .68rem;
+    color: var(--muted);
+    font-weight: 500;
+    margin-top: .1rem;
+  }
+  .hist-no-sel {
+    color: var(--muted2);
+    font-size: .82rem;
+    font-weight: 600;
+    text-align: center;
+    padding: 2rem 0;
+  }
+
 </style>
 <section class="buscar-section">
-  <span class="section-sub">búsqueda</span>
-  <h2 class="section-title" style="margin-bottom:1rem"><em>Buscar</em> en la app</h2>
-  <div class="buscar-input-wrap">
-    <span class="buscar-input-icon">🔍</span>
-    <input class="buscar-input" id="buscarInput" placeholder="Busca tareas, recetas, notas, listas…" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false">
-    <button class="buscar-clear" id="buscarClear" onclick="buscarClear()">✕</button>
+  <span class="section-sub">búsqueda & historial</span>
+  <h2 class="section-title" style="margin-bottom:1rem"><em>Buscar</em> <span style="font-style:normal;font-weight:400">. ݁₊ ⊹ . ݁ ⟡ ݁ . ⊹ ₊ ݁.</span></h2>
+
+  <!-- Tabs -->
+  <div class="buscar-page-tabs">
+    <button class="buscar-page-tab active" id="buscarTabBtnBuscar" onclick="buscarPageShowTab('buscar')">🔍 Buscar</button>
+    <button class="buscar-page-tab" id="buscarTabBtnHistorial" onclick="buscarPageShowTab('historial')">☁️ Historial</button>
   </div>
-  <div class="buscar-filters" id="buscarFilters"></div>
-  <div class="buscar-count" id="buscarCount" style="display:none"></div>
-  <div class="buscar-results" id="buscarResults">
-    <div class="buscar-empty">Escribe algo para empezar a buscar 🌸</div>
+
+  <!-- Tab: Buscar -->
+  <div id="buscarTabBuscar">
+    <div class="buscar-input-wrap">
+      <span class="buscar-input-icon">🔍</span>
+      <input class="buscar-input" id="buscarInput" placeholder="Busca tareas, recetas, notas, listas…" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <button class="buscar-clear" id="buscarClear" onclick="buscarClear()">✕</button>
+    </div>
+    <div class="buscar-filters" id="buscarFilters"></div>
+    <div class="buscar-count" id="buscarCount" style="display:none"></div>
+    <div class="buscar-results" id="buscarResults">
+      <div class="buscar-empty">Escribe algo para empezar a buscar 🌸</div>
+    </div>
+  </div>
+
+  <!-- Tab: Historial (moved from page-historial) -->
+  <div id="buscarTabHistorial" style="display:none">
+    <div class="historial-view-toggle" style="display:flex;gap:.5rem;justify-content:center;margin-bottom:1.4rem;">
+      <button class="hist-view-btn active" id="histBtnMensual" onclick="histSetView('mensual')">📅 Mensual</button>
+      <button class="hist-view-btn" id="histBtnSemanal" onclick="histSetView('semanal')">🗓️ Semanal</button>
+    </div>
+    <!-- Vista mensual -->
+    <div id="histViewMensual">
+      <div class="hist-cal-nav">
+        <button class="hist-cal-nav-btn" onclick="histMonthOffset--; renderHistCal()">‹</button>
+        <div class="hist-cal-label" id="histCalLabel"></div>
+        <button class="hist-cal-nav-btn" onclick="histMonthOffset++; renderHistCal()">›</button>
+      </div>
+      <div class="hist-cal-grid" id="histCalGrid"></div>
+    </div>
+    <!-- Vista semanal -->
+    <div id="histViewSemanal" style="display:none">
+      <div class="hist-week-nav">
+        <button class="hist-cal-nav-btn" onclick="histWeekOffset--; renderHistWeek()">‹</button>
+        <div class="hist-week-label" id="histWeekLabel"></div>
+        <button class="hist-cal-nav-btn" onclick="histWeekOffset++; renderHistWeek()">›</button>
+      </div>
+      <div class="hist-week-strip" id="histWeekStrip"></div>
+    </div>
+    <!-- Panel de registros del día seleccionado -->
+    <div class="hist-day-panel" id="histDayPanel">
+      <div class="hist-no-sel">Selecciona un día para ver tus registros 🌸</div>
+    </div>
   </div>
 </section>
+
+<script>
+window.buscarPageShowTab = function(tab) {
+  document.getElementById('buscarTabBtnBuscar').classList.toggle('active', tab==='buscar');
+  document.getElementById('buscarTabBtnHistorial').classList.toggle('active', tab==='historial');
+  document.getElementById('buscarTabBuscar').style.display = tab==='buscar' ? '' : 'none';
+  document.getElementById('buscarTabHistorial').style.display = tab==='historial' ? '' : 'none';
+  if (tab==='historial') {
+    setTimeout(function(){ renderHistCal(); renderHistWeek(); }, 50);
+  }
+  if (tab==='buscar') {
+    var inp = document.getElementById('buscarInput');
+    if (inp) inp.focus({ preventScroll: true });
+  }
+};
+
+// ── Historial JS (moved from page-historial) ──
+(function(){
+  var histView = 'mensual';
+  var histMonthOffset = 0;
+  var histWeekOffset = 0;
+  var histSelectedDk = null;
+
+  window.histMonthOffset = 0;
+  window.histWeekOffset = 0;
+
+  var DIAS_CORTO = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  var MESES_HIST = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+  function dkFromDate(d) {
+    var y = d.getFullYear();
+    var m = String(d.getMonth()+1).padStart(2,'0');
+    var day = String(d.getDate()).padStart(2,'0');
+    return y+'-'+m+'-'+day;
+  }
+
+  function todayDk() { return dkFromDate(new Date()); }
+
+  function dateHasData(dk) {
+    if (typeof completions !== 'undefined' && typeof recurringTasks !== 'undefined') {
+      if (recurringTasks.some(function(t){ return completions[t.id+'|'+dk]; })) return true;
+    }
+    if (typeof ejRegistros !== 'undefined' && ejRegistros[dk] && ejRegistros[dk].length > 0) return true;
+    if (typeof bellezaRegistros !== 'undefined' && bellezaRegistros[dk] && bellezaRegistros[dk].length > 0) return true;
+    if (typeof gratitudData !== 'undefined' && gratitudData[dk] && gratitudData[dk].filter(function(g){return g&&g.trim();}).length > 0) return true;
+    if (typeof suenoData !== 'undefined' && suenoData[dk] && (suenoData[dk].dormirse || suenoData[dk].despertar)) return true;
+    if (typeof diosData !== 'undefined' && diosData[dk] && (diosData[dk].oracion || diosData[dk].intencion || diosData[dk].ore > 0)) return true;
+    if (typeof finMovimientos !== 'undefined' && finMovimientos.some(function(m){ return m.fecha === dk; })) return true;
+    if (typeof rutinaAsignaciones !== 'undefined') {
+      var keys = Object.keys(rutinaAsignaciones);
+      if (keys.some(function(k){ return k.split('|')[0] === dk; })) return true;
+    }
+    try { var td = JSON.parse(localStorage.getItem('trans_data')||'[]'); if(td.some(function(t){return t.fecha===dk;})) return true; } catch(e){}
+    try { var rr = JSON.parse(localStorage.getItem('recuper_registros')||'{}'); if(rr[dk] && rr[dk].length>0) return true; } catch(e){}
+    try { var hd = JSON.parse(localStorage.getItem('habitos_data')||'[]'); if(hd.some(function(h){return h.log&&h.log.indexOf(dk)>-1;})) return true; } catch(e){}
+    return false;
+  }
+
+  window.histSetView = function(v) {
+    histView = v;
+    document.getElementById('histBtnMensual').classList.toggle('active', v==='mensual');
+    document.getElementById('histBtnSemanal').classList.toggle('active', v==='semanal');
+    document.getElementById('histViewMensual').style.display = v==='mensual' ? '' : 'none';
+    document.getElementById('histViewSemanal').style.display = v==='semanal' ? '' : 'none';
+    if (v==='mensual') renderHistCal();
+    else renderHistWeek();
+  };
+
+  window.renderHistCal = function() {
+    var mo = window.histMonthOffset;
+    var now = new Date();
+    var base = new Date(now.getFullYear(), now.getMonth() + mo, 1);
+    var year = base.getFullYear();
+    var month = base.getMonth();
+
+    document.getElementById('histCalLabel').textContent = MESES_HIST[month] + ' ' + year;
+
+    var grid = document.getElementById('histCalGrid');
+    grid.innerHTML = '';
+
+    DIAS_CORTO.forEach(function(d) {
+      var el = document.createElement('div');
+      el.className = 'hist-cal-dow';
+      el.textContent = d;
+      grid.appendChild(el);
+    });
+
+    var firstDay = new Date(year, month, 1).getDay();
+    var daysInMonth = new Date(year, month+1, 0).getDate();
+    var todayStr = todayDk();
+
+    for (var i = 0; i < firstDay; i++) {
+      var emp = document.createElement('div');
+      emp.className = 'hist-cal-day empty-cell';
+      grid.appendChild(emp);
+    }
+
+    for (var d = 1; d <= daysInMonth; d++) {
+      var date = new Date(year, month, d);
+      var dk = dkFromDate(date);
+      var cell = document.createElement('div');
+      var cls = 'hist-cal-day';
+      if (dk === todayStr) cls += ' today';
+      if (dk === histSelectedDk) cls += ' selected';
+      if (dateHasData(dk)) cls += ' has-data';
+      cell.className = cls;
+      cell.textContent = d;
+      cell.dataset.dk = dk;
+      cell.onclick = function() { histSelectDay(this.dataset.dk); };
+      grid.appendChild(cell);
+    }
+  };
+
+  window.renderHistWeek = function() {
+    var wo = window.histWeekOffset;
+    var now = new Date();
+    var day = now.getDay();
+    var monday = new Date(now);
+    monday.setDate(now.getDate() - day + (day===0 ? -6 : 1) + wo*7);
+
+    var dates = [];
+    for (var i = 0; i < 7; i++) {
+      var d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      dates.push(d);
+    }
+
+    var fmt = function(d) { return d.getDate() + ' ' + MESES_HIST[d.getMonth()].slice(0,3); };
+    document.getElementById('histWeekLabel').textContent = fmt(dates[0]) + ' – ' + fmt(dates[6]);
+
+    var strip = document.getElementById('histWeekStrip');
+    strip.innerHTML = '';
+    var todayStr = todayDk();
+
+    dates.forEach(function(date) {
+      var dk = dkFromDate(date);
+      var cell = document.createElement('div');
+      var cls = 'hist-week-cell';
+      if (dk === todayStr) cls += ' today';
+      if (dk === histSelectedDk) cls += ' selected';
+      if (dateHasData(dk)) cls += ' has-data';
+      cell.className = cls;
+
+      var dow = document.createElement('div');
+      dow.className = 'hist-week-cell-dow';
+      dow.textContent = DIAS_CORTO[date.getDay()];
+
+      var num = document.createElement('div');
+      num.className = 'hist-week-cell-num';
+      num.textContent = date.getDate();
+
+      cell.appendChild(dow);
+      cell.appendChild(num);
+      cell.dataset.dk = dk;
+      cell.onclick = function() { histSelectDay(this.dataset.dk); };
+      strip.appendChild(cell);
+    });
+  };
+
+  function histSelectDay(dk) {
+    histSelectedDk = dk;
+    if (histView === 'mensual') renderHistCal();
+    else renderHistWeek();
+    renderHistPanel(dk);
+  }
+
+  function renderHistPanel(dk) {
+    var panel = document.getElementById('histDayPanel');
+    panel.innerHTML = '';
+
+    var d = new Date(dk + 'T12:00:00');
+    var label = DIAS_CORTO[d.getDay()] + ' ' + d.getDate() + ' de ' + MESES_HIST[d.getMonth()] + ' ' + d.getFullYear();
+
+    var title = document.createElement('div');
+    title.className = 'hist-day-panel-title';
+    title.innerHTML = '☁️ ' + label;
+    panel.appendChild(title);
+
+    var hasAnything = false;
+
+    if (typeof completions !== 'undefined' && typeof recurringTasks !== 'undefined') {
+      var doneTasks = recurringTasks.filter(function(t){ return completions[t.id+'|'+dk]; });
+      if (doneTasks.length > 0) {
+        hasAnything = true;
+        var sec = document.createElement('div'); sec.className = 'hist-rec-section';
+        sec.innerHTML = '<div class="hist-rec-title">✅ Tareas completadas</div>';
+        doneTasks.forEach(function(t) {
+          var it = document.createElement('div'); it.className = 'hist-rec-item done';
+          it.textContent = '✓ ' + t.text; sec.appendChild(it);
+        });
+        panel.appendChild(sec);
+      }
+    }
+
+    if (typeof rutinaAsignaciones !== 'undefined' && typeof rutinaTemplates !== 'undefined') {
+      var rutItems = [];
+      Object.keys(rutinaAsignaciones).forEach(function(k) {
+        var parts = k.split('|');
+        if (parts[0] === dk) {
+          var tpl = rutinaTemplates.find(function(r){ return r.id === rutinaAsignaciones[k]; });
+          if (tpl) rutItems.push(tpl.emoji + ' ' + tpl.name);
+        }
+      });
+      if (rutItems.length > 0) {
+        hasAnything = true;
+        var sec = document.createElement('div'); sec.className = 'hist-rec-section';
+        sec.innerHTML = '<div class="hist-rec-title">🌸 Rutinas del día</div>';
+        rutItems.forEach(function(r) {
+          var it = document.createElement('div'); it.className = 'hist-rec-item';
+          it.textContent = r; sec.appendChild(it);
+        });
+        panel.appendChild(sec);
+      }
+    }
+
+    if (typeof ejRegistros !== 'undefined' && ejRegistros[dk] && ejRegistros[dk].length > 0) {
+      hasAnything = true;
+      var sec = document.createElement('div'); sec.className = 'hist-rec-section';
+      sec.innerHTML = '<div class="hist-rec-title">🏃 Ejercicio</div>';
+      ejRegistros[dk].forEach(function(reg) {
+        var tpl = typeof ejTemplates !== 'undefined' && ejTemplates.find(function(t){ return t.id===reg.templateId; });
+        if (!tpl) return;
+        var it = document.createElement('div'); it.className = 'hist-rec-item';
+        it.textContent = tpl.emoji + ' ' + tpl.name + ' · ' + reg.completedSteps.length + '/' + tpl.pasos.length + ' ejercicios';
+        sec.appendChild(it);
+      });
+      panel.appendChild(sec);
+    }
+
+    if (typeof bellezaRegistros !== 'undefined' && bellezaRegistros[dk] && bellezaRegistros[dk].length > 0) {
+      hasAnything = true;
+      var sec = document.createElement('div'); sec.className = 'hist-rec-section';
+      sec.innerHTML = '<div class="hist-rec-title">✨ Selfcare & Belleza</div>';
+      bellezaRegistros[dk].forEach(function(reg) {
+        var tpl = typeof bellezaTemplates !== 'undefined' && bellezaTemplates.find(function(t){ return t.id===reg.templateId; });
+        if (!tpl) return;
+        var it = document.createElement('div'); it.className = 'hist-rec-item';
+        it.textContent = tpl.emoji + ' ' + tpl.name + ' · ' + reg.completedSteps.length + '/' + tpl.pasos.length + ' pasos';
+        sec.appendChild(it);
+      });
+      panel.appendChild(sec);
+    }
+
+    if (typeof diosData !== 'undefined' && diosData[dk]) {
+      var dd = diosData[dk];
+      if (dd.oracion || dd.intencion || dd.ore > 0) {
+        hasAnything = true;
+        var sec = document.createElement('div'); sec.className = 'hist-rec-section';
+        sec.innerHTML = '<div class="hist-rec-title">🙏 Fe & Espiritualidad</div>';
+        if (dd.ore > 0) {
+          var it = document.createElement('div'); it.className = 'hist-rec-item';
+          it.textContent = '🙏 Oré ' + dd.ore + ' vez' + (dd.ore>1?'es':'') + ' ese día';
+          sec.appendChild(it);
+        }
+        if (dd.oracion) {
+          var it = document.createElement('div'); it.className = 'hist-rec-item';
+          it.innerHTML = '<div><div class="hist-rec-meta">Oración / reflexión</div>' + dd.oracion + '</div>';
+          sec.appendChild(it);
+        }
+        if (dd.intencion) {
+          var it = document.createElement('div'); it.className = 'hist-rec-item';
+          it.innerHTML = '<div><div class="hist-rec-meta">Intención / petición</div>' + dd.intencion + '</div>';
+          sec.appendChild(it);
+        }
+        panel.appendChild(sec);
+      }
+    }
+
+    if (typeof gratitudData !== 'undefined' && gratitudData[dk]) {
+      var gr = gratitudData[dk].filter(function(g){ return g && g.trim(); });
+      if (gr.length > 0) {
+        hasAnything = true;
+        var sec = document.createElement('div'); sec.className = 'hist-rec-section';
+        sec.innerHTML = '<div class="hist-rec-title">🌸 Agradecimiento del día</div>';
+        gr.forEach(function(g) {
+          var it = document.createElement('div'); it.className = 'hist-rec-item';
+          it.textContent = '✨ ' + g; sec.appendChild(it);
+        });
+        panel.appendChild(sec);
+      }
+    }
+
+    if (typeof suenoData !== 'undefined' && suenoData[dk]) {
+      var sd = suenoData[dk];
+      if (sd.dormirse || sd.despertar) {
+        hasAnything = true;
+        var sec = document.createElement('div'); sec.className = 'hist-rec-section';
+        sec.innerHTML = '<div class="hist-rec-title">🌙 Sueño</div>';
+        var it = document.createElement('div'); it.className = 'hist-rec-item';
+        var txt = '';
+        if (sd.dormirse) txt += '😴 Me dormí a las ' + sd.dormirse;
+        if (sd.despertar) txt += (txt?' · ':'') + '☀️ Desperté a las ' + sd.despertar;
+        if (sd.calidad) txt += ' · ' + sd.calidad;
+        it.textContent = txt; sec.appendChild(it);
+        panel.appendChild(sec);
+      }
+    }
+
+    if (typeof finMovimientos !== 'undefined') {
+      var movs = finMovimientos.filter(function(m){ return m.fecha === dk; });
+      if (movs.length > 0) {
+        hasAnything = true;
+        var sec = document.createElement('div'); sec.className = 'hist-rec-section';
+        sec.innerHTML = '<div class="hist-rec-title">💸 Finanzas</div>';
+        movs.forEach(function(m) {
+          var cat = typeof finCategorias !== 'undefined' && finCategorias.find(function(c){ return c.id===m.categoriaId; });
+          var it = document.createElement('div'); it.className = 'hist-rec-item';
+          var signo = m.tipo === 'ingreso' ? '+' : '-';
+          var color = m.tipo === 'ingreso' ? 'var(--verde)' : 'var(--rosa)';
+          it.innerHTML = '<span style="color:'+color+';font-weight:800">'+signo+'$'+Number(m.monto).toFixed(2)+'</span>'
+            + '<span>' + (m.desc || '') + (cat ? ' <span style="color:var(--muted);font-size:.7rem">· '+cat.nombre+'</span>' : '') + '</span>';
+          sec.appendChild(it);
+        });
+        panel.appendChild(sec);
+      }
+    }
+
+    if (typeof mensData !== 'undefined' && mensData[dk]) {
+      var md = mensData[dk];
+      if (md.fase || (md.sintomas && md.sintomas.length > 0)) {
+        hasAnything = true;
+        var sec = document.createElement('div'); sec.className = 'hist-rec-section';
+        sec.innerHTML = '<div class="hist-rec-title">🍏 Salud</div>';
+        if (md.fase) {
+          var it = document.createElement('div'); it.className = 'hist-rec-item';
+          it.textContent = '📍 Fase: ' + md.fase; sec.appendChild(it);
+        }
+        if (md.sintomas && md.sintomas.length > 0) {
+          var it2 = document.createElement('div'); it2.className = 'hist-rec-item';
+          it2.textContent = '🩺 ' + md.sintomas.join(', '); sec.appendChild(it2);
+        }
+        panel.appendChild(sec);
+      }
+    }
+
+    try {
+      var transData = JSON.parse(localStorage.getItem('trans_data') || '[]');
+      var transDk = transData.filter(function(t){ return t.fecha === dk; });
+      if (transDk.length > 0) {
+        hasAnything = true;
+        var sec = document.createElement('div'); sec.className = 'hist-rec-section';
+        sec.innerHTML = '<div class="hist-rec-title">🔄 Transiciones</div>';
+        transDk.forEach(function(t) {
+          var it = document.createElement('div'); it.className = 'hist-rec-item';
+          it.textContent = t.actual + ' → ' + t.siguiente + ' (' + t.hora + ')';
+          sec.appendChild(it);
+        });
+        panel.appendChild(sec);
+      }
+    } catch(e) {}
+
+    try {
+      var eventosData = JSON.parse(localStorage.getItem('eventos_prep') || '[]');
+      var eventosDk = eventosData.filter(function(e){ return e.fecha && e.fecha.slice(0,10) === dk; });
+      if (eventosDk.length > 0) {
+        hasAnything = true;
+        var sec = document.createElement('div'); sec.className = 'hist-rec-section';
+        sec.innerHTML = '<div class="hist-rec-title">📅 Eventos</div>';
+        eventosDk.forEach(function(e) {
+          var it = document.createElement('div'); it.className = 'hist-rec-item';
+          it.textContent = '📅 ' + e.nombre; sec.appendChild(it);
+        });
+        panel.appendChild(sec);
+      }
+    } catch(e) {}
+
+    try {
+      var recuperRegs = JSON.parse(localStorage.getItem('recuper_registros') || '{}');
+      var regsHoy = recuperRegs[dk];
+      if (regsHoy && regsHoy.length > 0) {
+        hasAnything = true;
+        var sec = document.createElement('div'); sec.className = 'hist-rec-section';
+        sec.innerHTML = '<div class="hist-rec-title">🌿 Modo Recuperación</div>';
+        regsHoy.forEach(function(r) {
+          var it = document.createElement('div'); it.className = 'hist-rec-item';
+          var txt = '';
+          if (r.que) txt += r.que;
+          if (r.ayudo) txt += (txt ? ' · Ayudó: ' : 'Ayudó: ') + r.ayudo;
+          it.textContent = txt; sec.appendChild(it);
+        });
+        panel.appendChild(sec);
+      }
+    } catch(e) {}
+
+    try {
+      var habitosData = JSON.parse(localStorage.getItem('habitos_data') || '[]');
+      var habDone = habitosData.filter(function(h){ return h.log && h.log.indexOf(dk) > -1; });
+      if (habDone.length > 0) {
+        hasAnything = true;
+        var sec = document.createElement('div'); sec.className = 'hist-rec-section';
+        sec.innerHTML = '<div class="hist-rec-title">🌱 Hábitos</div>';
+        habDone.forEach(function(h) {
+          var it = document.createElement('div'); it.className = 'hist-rec-item done';
+          it.textContent = '✓ ' + (h.emoji||'') + ' ' + h.nombre; sec.appendChild(it);
+        });
+        panel.appendChild(sec);
+      }
+    } catch(e) {}
+
+    try {
+      var fStateHist = JSON.parse(localStorage.getItem('food_state') || '{}');
+      var qualityTxt = { '1':'😬 Poco saludable', '2':'😐 Regular', '3':'🙂 Bien', '4':'😋 Muy saludable' };
+      var mealDefs = [
+        { id:'desayuno', icon:'🌅', label:'Desayuno' },
+        { id:'almuerzo', icon:'☀️', label:'Almuerzo' },
+        { id:'cena',     icon:'🌙', label:'Cena' },
+        { id:'snack',    icon:'🍎', label:'Snack' },
+      ];
+      var comidassec = null;
+      mealDefs.forEach(function(meal) {
+        var data = fStateHist['f_' + dk + '_' + meal.id];
+        if (!data || !data.eaten) return;
+        if (!comidassec) {
+          comidassec = document.createElement('div');
+          comidassec.className = 'hist-rec-section';
+          comidassec.innerHTML = '<div class="hist-rec-title">🍽️ Comidas</div>';
+        }
+        var it = document.createElement('div');
+        it.className = 'hist-rec-item';
+        var html = '<span style="font-weight:800">' + meal.icon + ' ' + meal.label + '</span>';
+        if (data.hora)    html += ' <span style="color:var(--muted);font-size:.75rem">· ' + data.hora + '</span>';
+        if (data.texto)   html += '<div style="margin-top:.15rem;font-size:.82rem">' + data.texto + '</div>';
+        if (data.quality) html += '<div style="font-size:.72rem;color:var(--muted);margin-top:.1rem">' + (qualityTxt[data.quality]||'') + '</div>';
+        it.innerHTML = html;
+        comidassec.appendChild(it);
+      });
+      if (comidassec) { hasAnything = true; panel.appendChild(comidassec); }
+    } catch(e) {}
+
+    if (!hasAnything) {
+      var empty = document.createElement('div');
+      empty.className = 'hist-no-data';
+      empty.textContent = 'Sin registros para este día 🌙';
+      panel.appendChild(empty);
+    }
+  }
+
+  window._initHistorial = function() {
+    window.histMonthOffset = 0;
+    window.histWeekOffset = 0;
+    renderHistCal();
+  };
+
+  document.addEventListener('DOMContentLoaded', function() {
+    // Only render if historial tab is visible
+    var histTab = document.getElementById('buscarTabHistorial');
+    if (histTab && histTab.style.display !== 'none') {
+      renderHistCal();
+      renderHistWeek();
+    }
+  });
+})();
+</script>
 <script>
 (function(){
   var buscarQuery = '';
@@ -37426,8 +37666,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
   <!-- Personalizar experiencia -->
-  <div class="config-block">
-    <div class="config-block-title">✨ Personalizar experiencia</div>
+  <div class="config-block config-block-collapsible collapsed" id="personalizarExpBlock">
+    <div class="config-block-title" onclick="(function(){ var b=document.getElementById('personalizarExpBlock'); b.classList.toggle('collapsed'); })()">✨ Personalizar experiencia</div>
+    <div class="theme-collapse-body">
     <p style="font-size:.72rem;color:var(--muted);font-weight:600;margin-bottom:1rem;line-height:1.5">Personaliza la app para que se adapte a ti 💙</p>
 
     <div class="config-field">
@@ -37488,6 +37729,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
       </div>
     </div>
+    </div><!-- /theme-collapse-body -->
   </div>
 
   <!-- Ciudad para clima del armario -->
@@ -37903,6 +38145,8 @@ document.addEventListener('DOMContentLoaded', function() {
     { id:'petal',   label:'Petal 🌸',   vars:{ '--bg':'#f5ede0','--surface':'#e8d4bc','--card':'#fdf7f0','--border':'#c4a882','--rosa':'#ba4353','--rosa-soft':'#F9DCEC','--verde':'#ad9f22','--verde-soft':'#f0eec8','--beige':'#d0a583','--beige-soft':'#f5ede0','--pink-light':'#F9DCEC','--text':'#5f4e34','--muted':'#8a6a4a','--muted2':'#c4a882','--manana-bg':'#fdf0e0','--manana-border':'#d4b890','--tarde-bg':'#F9DCEC','--tarde-border':'#d4a0b0','--noche-bg':'#f0eec8','--noche-border':'#c0b840' }},
     { id:'elegantrose', label:'Elegant Rose 🥀', vars:{ '--bg':'#fff5f5','--surface':'#FFE4E1','--card':'#fff9f9','--border':'#e8c0c0','--rosa':'#C08081','--rosa-soft':'#FFE4E1','--verde':'#a8b8a0','--verde-soft':'#e8ede5','--beige':'#d4a8a0','--beige-soft':'#FFE4E1','--pink-light':'#FFE4E1','--text':'#4a2020','--muted':'#a06060','--muted2':'#d4a0a0','--manana-bg':'#fff0f0','--manana-border':'#e8b8b8','--tarde-bg':'#FFE4E1','--tarde-border':'#C08081','--noche-bg':'#eef0ec','--noche-border':'#a0b098' }},
     { id:'strawberry', label:'Strawberry 🍓', vars:{ '--bg':'#fff0f2','--surface':'#fdd8dc','--card':'#fff7f8','--border':'#f0b0b8','--rosa':'#d63a50','--rosa-soft':'#fdd8dc','--verde':'#4a8a50','--verde-soft':'#c8e8ca','--beige':'#e8786a','--beige-soft':'#fde0dc','--pink-light':'#fdd8dc','--text':'#4a0e18','--muted':'#c03048','--muted2':'#e8909a','--manana-bg':'#c8e8ca','--manana-border':'#78b880','--tarde-bg':'#fdd8dc','--tarde-border':'#e09098','--noche-bg':'#d8f0da','--noche-border':'#5a9e60' }},
+    { id:'naturale',   label:'Naturale 🍃',  vars:{ '--bg':'#f5f0e8','--surface':'#e8e0d0','--card':'#faf6ef','--border':'#c8b898','--rosa':'#5a8a4a','--rosa-soft':'#d8e8d0','--verde':'#4a7840','--verde-soft':'#cce0c8','--beige':'#6a9a58','--beige-soft':'#d8ecd0','--pink-light':'#d8e8d0','--text':'#2a3a1a','--muted':'#5a7040','--muted2':'#90a878','--manana-bg':'#eef5e8','--manana-border':'#a8c890','--tarde-bg':'#f0ece0','--tarde-border':'#c0a870','--noche-bg':'#e0ecd8','--noche-border':'#7a9a68' }},
+    { id:'boscaje',    label:'Boscaje 🌿',   vars:{ '--bg':'#f5f0e0','--surface':'#e8e0c8','--card':'#fdf8ee','--border':'#b8c89a','--rosa':'#5a8040','--rosa-soft':'#d8e8c8','--verde':'#4a7030','--verde-soft':'#cce0b8','--beige':'#6a8a50','--beige-soft':'#d8e8c8','--pink-light':'#d8e8c8','--text':'#2a3818','--muted':'#587038','--muted2':'#8aaa68','--manana-bg':'#eef5e0','--manana-border':'#a8c880','--tarde-bg':'#f0ecd8','--tarde-border':'#c0b868','--noche-bg':'#ddecd0','--noche-border':'#789858' }},
   ];
 
   var currentTheme = localStorage.getItem('config_theme') || 'rosa';
@@ -37959,7 +38203,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function renderThemeGrid() {
     var solidIds = ['rosa','lila','menta','melocoton','azul','neutro','noche','candy','formal','tierra','oceano','bosque','aurora'];
-    var comboIds = ['mystic','mermaid','unicorn','petal','elegantrose','strawberry'];
+    var comboIds = ['mystic','mermaid','unicorn','petal','elegantrose','strawberry','naturale','boscaje'];
 
     function fillGrid(gridId, ids) {
       var grid = document.getElementById(gridId); if(!grid) return;
@@ -40041,7 +40285,7 @@ document.createElement = function(tag) {
     'page-inicio','page-semana','page-logros','page-habitos',
     'page-rutinas','page-tareas','page-armario','page-recetario',
     'page-braindump','page-biblioteca','page-personas','page-notas',
-    'page-finanzas','page-horario','page-historial'
+    'page-finanzas','page-horario'
   ];
 
   var STK_LIB_KEY   = 'stk_library';   // imágenes guardadas (globales)
@@ -40817,6 +41061,282 @@ document.createElement = function(tag) {
 </style>
 
 <script>
+
+// ============================================================
+//  📚 MIS LIBROS — Gemas de libros favoritos
+// ============================================================
+(function(){
+'use strict';
+
+var BL_KEY = 'yuki_biblioteca_libros';
+
+function loadLibros() {
+  try { return JSON.parse(localStorage.getItem(BL_KEY) || '[]'); } catch(e){ return []; }
+}
+function saveLibros(arr) {
+  try { localStorage.setItem(BL_KEY, JSON.stringify(arr)); } catch(e){} 
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
+
+// ── Actualizar selects de filtro ─────────────────────────────
+function actualizarFiltros(libros) {
+  var selG = document.getElementById('bibFiltroGenero');
+  var selA = document.getElementById('bibFiltroAutor');
+  if (!selG || !selA) return;
+  var generos = [...new Set(libros.map(function(l){ return l.genero; }).filter(Boolean))].sort();
+  var autores = [...new Set(libros.map(function(l){ return l.autor; }).filter(Boolean))].sort();
+  var valG = selG.value, valA = selA.value;
+  selG.innerHTML = '<option value="">Todos los géneros</option>' +
+    generos.map(function(g){ return '<option value="'+g+'"'+(g===valG?' selected':'')+'>'+g+'</option>'; }).join('');
+  selA.innerHTML = '<option value="">Todos los autores</option>' +
+    autores.map(function(a){ return '<option value="'+a+'"'+(a===valA?' selected':'')+'>'+a+'</option>'; }).join('');
+}
+
+// ── Filtrar y renderizar estantería ─────────────────────────
+window.bibFiltrarLibros = function() { bibRenderLibros(); };
+
+window.bibRenderLibros = function() {
+  var container = document.getElementById('bibLibrosShelf');
+  if (!container) return;
+  var libros = loadLibros();
+  actualizarFiltros(libros);
+
+  var filtroG = (document.getElementById('bibFiltroGenero')||{}).value || '';
+  var filtroA = (document.getElementById('bibFiltroAutor')||{}).value || '';
+  var filtrados = libros.filter(function(l){
+    return (!filtroG || l.genero === filtroG) && (!filtroA || l.autor === filtroA);
+  });
+
+  container.innerHTML = '';
+  var shelf = document.createElement('div');
+  shelf.className = 'bib-libros-shelf';
+
+  // Header
+  var hdr = document.createElement('div');
+  hdr.className = 'bib-libros-shelf-header';
+  var ttl = document.createElement('span');
+  ttl.className = 'bib-libros-shelf-title';
+  ttl.textContent = '📚 ' + libros.length + ' libro' + (libros.length !== 1 ? 's' : '');
+  hdr.appendChild(ttl);
+  shelf.appendChild(hdr);
+
+  if (filtrados.length === 0) {
+    var emp = document.createElement('div');
+    emp.className = 'sb-empty-state';
+    emp.innerHTML = libros.length === 0
+      ? '📚<br><br>Aún no tienes libros.<br>¡Agrega tu primera gema! 🌸'
+      : '🔍<br><br>Ningún libro coincide con los filtros.';
+    shelf.appendChild(emp);
+  } else {
+    var grid = document.createElement('div');
+    grid.className = 'bib-libros-grid';
+    filtrados.forEach(function(libro) {
+      var card = document.createElement('div');
+      card.className = 'bib-libro-card';
+
+      if (libro.coverSrc) {
+        var img = document.createElement('img');
+        img.src = libro.coverSrc;
+        img.className = 'bib-libro-cover-img';
+        card.appendChild(img);
+        var lbl = document.createElement('div');
+        lbl.className = 'bib-libro-cover-label';
+        lbl.innerHTML = '<span class="bib-libro-cover-name">'+libro.titulo+'</span>'+
+          (libro.autor ? '<span class="bib-libro-cover-autor">'+libro.autor+'</span>' : '');
+        card.appendChild(lbl);
+      } else {
+        var emp2 = document.createElement('div');
+        emp2.className = 'bib-libro-cover-empty';
+        emp2.style.background = libro.coverColor || 'var(--surface)';
+        emp2.innerHTML = '<div class="bib-libro-cover-emoji">'+(libro.emoji||'📚')+'</div>'+
+          '<div class="bib-libro-cover-name2">'+libro.titulo+'</div>'+
+          (libro.autor ? '<div class="bib-libro-cover-autor2">'+libro.autor+'</div>' : '');
+        card.appendChild(emp2);
+      }
+
+      if (libro.genero) {
+        var badge = document.createElement('div');
+        badge.className = 'bib-libro-genero-badge';
+        badge.textContent = libro.genero;
+        card.appendChild(badge);
+      }
+
+      card.onclick = function(){ bibAbrirLibro(libro.id); };
+
+      // Long press para eliminar
+      var holdT;
+      card.addEventListener('pointerdown', function(){
+        holdT = setTimeout(function(){
+          if (confirm('¿Eliminar "'+libro.titulo+'"? Se perderán todas sus gemas.')) {
+            var all = loadLibros().filter(function(l){ return l.id !== libro.id; });
+            saveLibros(all);
+            bibRenderLibros();
+          }
+        }, 700);
+      });
+      card.addEventListener('pointerup', function(){ clearTimeout(holdT); });
+      card.addEventListener('pointerleave', function(){ clearTimeout(holdT); });
+
+      grid.appendChild(card);
+    });
+    shelf.appendChild(grid);
+  }
+  container.appendChild(shelf);
+};
+
+// ── Modal nuevo libro ────────────────────────────────────────
+window.bibAbrirNuevoLibro = function() {
+  var old = document.getElementById('bibLibroModal');
+  if (old) old.remove();
+  var coverData = null;
+  var selectedEmoji = '📚';
+  var selectedPattern = 'lines';
+  var COLORES = ['#fce4ec','#e8f5e9','#e3f2fd','#f3e5f5','#fff8e1','#fef9c3','#e0f2fe','#f0fdf4'];
+  var selectedColor = COLORES[Math.floor(Math.random()*COLORES.length)];
+  var EMOJIS = ['📚','📖','📗','📘','📙','📕','🌸','💫','✨','🌿','🦋','💌','⭐','🎀'];
+
+  var back = document.createElement('div');
+  back.className = 'bib-libro-modal-back';
+  back.id = 'bibLibroModal';
+
+  back.innerHTML = [
+    '<div class="bib-libro-modal-box">',
+      '<div class="bib-libro-modal-title">✨ Agregar libro</div>',
+      '<div class="sb-modal-field">',
+        '<label class="sb-modal-label">Título *</label>',
+        '<input class="sb-modal-input" id="blTitulo" placeholder="Ej: El principito">',
+      '</div>',
+      '<div class="sb-modal-field">',
+        '<label class="sb-modal-label">Autor</label>',
+        '<input class="sb-modal-input" id="blAutor" placeholder="Ej: Antoine de Saint-Exupéry">',
+      '</div>',
+      '<div class="sb-modal-field">',
+        '<label class="sb-modal-label">Género</label>',
+        '<input class="sb-modal-input" id="blGenero" placeholder="Ej: Ficción, Filosofía, Romance…">',
+      '</div>',
+      '<div class="sb-modal-field">',
+        '<label class="sb-modal-label">Emoji</label>',
+        '<div style="display:flex;gap:.4rem;flex-wrap:wrap" id="blEmojiRow">',
+          EMOJIS.map(function(e,i){
+            return '<button class="sb-pattern-opt'+(i===0?' active':'')+'" data-emoji="'+e+'" onclick="blPickEmoji(this)">'+e+'</button>';
+          }).join(''),
+        '</div>',
+      '</div>',
+      '<div class="sb-modal-field">',
+        '<label class="sb-modal-label">Portada (opcional)</label>',
+        '<label class="sb-cover-pick" id="blCoverPick" style="height:120px">',
+          '<span class="sb-cover-pick-lbl" id="blCoverPickLbl">📁 Subir imagen de portada</span>',
+          '<input type="file" accept="image/*" style="display:none" id="blCoverFile">',
+        '</label>',
+      '</div>',
+      '<div class="sb-modal-field">',
+        '<label class="sb-modal-label">Color de portada</label>',
+        '<div style="display:flex;gap:.4rem;flex-wrap:wrap" id="blColorRow">',
+          COLORES.map(function(c,i){
+            return '<div style="width:28px;height:28px;border-radius:50%;background:'+c+';cursor:pointer;border:2px solid '+(i===0?'var(--rosa)':'transparent')+';transition:border-color .15s" data-color="'+c+'" onclick="blPickColor(this)"></div>';
+          }).join(''),
+        '</div>',
+      '</div>',
+      '<div class="sb-modal-field">',
+        '<label class="sb-modal-label">Diseño de páginas</label>',
+        '<div class="sb-pattern-row" id="blPatternRow">',
+          [['lines','Rayas'],['dots','Punteado'],['grid','Cuadriculado'],['blank','En blanco']].map(function(p){
+            return '<button class="sb-pattern-opt'+(p[0]==='lines'?' active':'')+'" data-pattern="'+p[0]+'" onclick="blPickPattern(this)">'+p[1]+'</button>';
+          }).join(''),
+        '</div>',
+      '</div>',
+      '<div class="sb-modal-btns">',
+        '<button class="sb-modal-cancel" onclick="document.getElementById(\'bibLibroModal\').remove()">Cancelar</button>',
+        '<button class="sb-modal-ok" id="blCrearBtn">Crear 🌸</button>',
+      '</div>',
+    '</div>'
+  ].join('');
+
+  document.body.appendChild(back);
+
+  // Cover file
+  document.getElementById('blCoverFile').onchange = function(e) {
+    var f = e.target.files[0]; if (!f) return;
+    var r = new FileReader();
+    r.onload = function(ev) {
+      coverData = ev.target.result;
+      var pick = document.getElementById('blCoverPick');
+      pick.innerHTML = '<img src="'+coverData+'" style="width:100%;height:100%;object-fit:cover;border-radius:10px"><input type="file" accept="image/*" style="display:none" id="blCoverFile">';
+      document.getElementById('blCoverFile').onchange = arguments.callee;
+    };
+    r.readAsDataURL(f);
+  };
+
+  window.blPickEmoji = function(btn) {
+    document.querySelectorAll('#blEmojiRow .sb-pattern-opt').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active'); selectedEmoji = btn.dataset.emoji;
+  };
+  window.blPickPattern = function(btn) {
+    document.querySelectorAll('#blPatternRow .sb-pattern-opt').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active'); selectedPattern = btn.dataset.pattern;
+  };
+  window.blPickColor = function(div) {
+    document.querySelectorAll('#blColorRow div').forEach(function(d){ d.style.borderColor = 'transparent'; });
+    div.style.borderColor = 'var(--rosa)'; selectedColor = div.dataset.color;
+  };
+
+  document.getElementById('blCrearBtn').onclick = function() {
+    var titulo = (document.getElementById('blTitulo').value||'').trim();
+    if (!titulo) { document.getElementById('blTitulo').focus(); return; }
+    var libro = {
+      id: uid(),
+      titulo: titulo,
+      autor: (document.getElementById('blAutor').value||'').trim(),
+      genero: (document.getElementById('blGenero').value||'').trim(),
+      emoji: selectedEmoji,
+      pattern: selectedPattern,
+      coverSrc: coverData || null,
+      coverColor: selectedColor,
+      context: 'biblioteca',
+      pages: [{ id: uid(), elements: [] }, { id: uid(), elements: [] }]
+    };
+    var all = loadLibros();
+    all.push(libro);
+    saveLibros(all);
+    back.remove();
+    bibAbrirLibro(libro.id);
+  };
+
+  back.addEventListener('click', function(e){ if(e.target===back) back.remove(); });
+};
+
+// ── Abrir libro (reutiliza el scrapbook engine) ──────────────
+window.bibAbrirLibro = function(libroId) {
+  var libros = loadLibros();
+  var libro = libros.find(function(l){ return l.id === libroId; });
+  if (!libro) return;
+  // Sync al scrapbook engine
+  var sbAll = [];
+  try { sbAll = JSON.parse(localStorage.getItem('yuki_scrapbooks')||'[]'); } catch(e){}
+  var idx = sbAll.findIndex(function(b){ return b.id === libroId; });
+  var bookForSB = Object.assign({}, libro, { name: libro.titulo, context: 'biblioteca' });
+  if (idx === -1) sbAll.push(bookForSB);
+  else { sbAll[idx] = Object.assign({}, sbAll[idx], bookForSB); }
+  try { localStorage.setItem('yuki_scrapbooks', JSON.stringify(sbAll)); } catch(e){}
+  // Abrir con el engine del scrapbook
+  if (window._sbOpenBook) {
+    window._sbOpenBook(libroId);
+  } else if (typeof openBook === 'function') {
+    openBook(libroId);
+  }
+};
+
+// Init: renderizar al cargar si la tab de libros es la activa
+document.addEventListener('DOMContentLoaded', function(){
+  // La tab de libros es la primera/por defecto
+  setTimeout(function(){
+    var panel = document.getElementById('bibPanelLibros');
+    if (panel && panel.style.display !== 'none') bibRenderLibros();
+  }, 100);
+});
+
+})();
+
 // ============================================================
 //  📔 CUADERNOS DIGITALES — SCRAPBOOK ENGINE
 // ============================================================
@@ -40847,6 +41367,9 @@ var _pageIdx = 0;       // current page index
 var _flipping = false;
 var _libOpen = false;
 var _selectedElId = null;
+
+// Exponer openBook para uso externo
+window._sbOpenBook = null; // se asignará abajo
 
 // ── WASHI COLORS ─────────────────────────────────────────────
 var WASHI_COLORS = [
@@ -41044,7 +41567,22 @@ function openNewBookModal(context) {
 }
 
 // ── OPEN BOOK ────────────────────────────────────────────────
+window._sbOpenBook = function(bookId){ openBook(bookId); };
 function openBook(bookId) {
+  // Sync libro de biblioteca si aplica
+  (function(){
+    try {
+      var bls = JSON.parse(localStorage.getItem('yuki_biblioteca_libros')||'[]');
+      var lb = bls.find(function(l){ return l.id===bookId; });
+      if (lb) {
+        var sbAll = JSON.parse(localStorage.getItem('yuki_scrapbooks')||'[]');
+        var idx = sbAll.findIndex(function(b){ return b.id===bookId; });
+        var merged = Object.assign({}, lb, { name: lb.titulo, context:'biblioteca' });
+        if (idx===-1) sbAll.push(merged); else sbAll[idx]=merged;
+        localStorage.setItem('yuki_scrapbooks', JSON.stringify(sbAll));
+      }
+    } catch(e){}
+  })();
   var books = loadBooks();
   _book = books.find(function(b){ return b.id === bookId; });
   if (!_book) return;
@@ -41076,7 +41614,21 @@ function renderBookViewer() {
   var closeBtn = document.createElement('button');
   closeBtn.className = 'sb-book-close';
   closeBtn.textContent = '✕';
-  closeBtn.onclick = function() { saveCurrentBook(); ov.remove(); };
+  closeBtn.onclick = function() {
+    saveCurrentBook();
+    // Si es un libro de biblioteca, sync de vuelta
+    if (_book && _book.context === 'biblioteca') {
+      try {
+        var bls = JSON.parse(localStorage.getItem('yuki_biblioteca_libros')||'[]');
+        var idx = bls.findIndex(function(l){ return l.id===_book.id; });
+        var updated = Object.assign({}, _book, { titulo: _book.titulo || _book.name });
+        if (idx !== -1) { bls[idx] = updated; } else { bls.push(updated); }
+        localStorage.setItem('yuki_biblioteca_libros', JSON.stringify(bls));
+        if (window.bibRenderLibros) bibRenderLibros();
+      } catch(e){}
+    }
+    ov.remove();
+  };
   topbar.appendChild(closeBtn);
   ov.appendChild(topbar);
 
@@ -43857,50 +44409,57 @@ setTimeout(function() {
 // ══════════════════════════════════════════
 (function() {
 
+  // tryStreak: solo actualiza racha, sin EXP/flores (para init y navegación)
   function tryStreak() {
     if (window.yukiCheckStreak) {
-      window.yukiCheckStreak();
+      window.yukiCheckStreak(false);
     } else {
-      // Si aún no está lista la función, reintentamos
-      setTimeout(function() { if (window.yukiCheckStreak) window.yukiCheckStreak(); }, 1500);
+      setTimeout(function() { if (window.yukiCheckStreak) window.yukiCheckStreak(false); }, 1500);
+    }
+  }
+  // tryStreakAction: actualiza racha Y da EXP/flores (para acciones reales)
+  function tryStreakAction() {
+    if (window.yukiCheckStreak) {
+      window.yukiCheckStreak(true);
+    } else {
+      setTimeout(function() { if (window.yukiCheckStreak) window.yukiCheckStreak(true); }, 1500);
     }
   }
 
-  // 1. Al abrir la app autenticada
+  // 1. Al abrir la app autenticada (sin EXP/flores)
   document.addEventListener('firebase-ready', function() {
     setTimeout(tryStreak, 800); // dar tiempo a que syncFromCloud termine
   });
 
-  // 1b. Fallback modo local (sin login)
+  // 1b. Fallback modo local (sin login, sin EXP/flores)
   document.addEventListener('DOMContentLoaded', function() {
     setTimeout(tryStreak, 1200);
   });
 
-  // 2. Al completar paso de rutina — hookear saveRutinas
+  // 2. Al completar paso de rutina — hookear saveRutinas (acción real → con EXP/flores)
   function patchSaveRutinas() {
     var orig = window.saveRutinas;
     if (!orig || orig._streakedR) return;
     window.saveRutinas = function() {
       orig.apply(this, arguments);
-      tryStreak();
+      tryStreakAction();
     };
     window.saveRutinas._streakedR = true;
     try { if (typeof saveRutinas !== 'undefined') saveRutinas = window.saveRutinas; } catch(e) {}
   }
   setTimeout(patchSaveRutinas, 1000);
 
-  // 3. Al marcar check de ancla (tab Anclas y Horario)
-  // Hookeamos localStorage.setItem para las keys de checks de ancla
+  // 3. Al marcar check de ancla (acción real → con EXP/flores)
   var _origSetItem = localStorage.setItem.bind(localStorage);
   var ANCLA_CHK_KEYS = ['yuki_anclas_chk', 'yuki_bloque_ancla_chk'];
   localStorage.setItem = function(key, value) {
     _origSetItem(key, value);
     if (ANCLA_CHK_KEYS.indexOf(key) !== -1) {
-      tryStreak();
+      tryStreakAction();
     }
   };
 
-  // 4. Al navegar a page-horario o page-rutinas
+  // 4. Al navegar a páginas (no es acción real → sin EXP/flores)
   var STREAK_PAGES = ['page-horario', 'page-rutinas', 'page-tareas', 'page-habitos'];
   function patchShowPageStreak() {
     var orig = window.showPage;
