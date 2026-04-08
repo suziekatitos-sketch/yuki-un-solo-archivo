@@ -143,6 +143,7 @@ window.kittyConfirm = function(msg, onYes, onNo) {
         if (raw.spark_pins)          { window._sparkPins          = JSON.parse(raw.spark_pins);          }
         if (raw.spark_historial)     { window._sparkHistorial     = JSON.parse(raw.spark_historial);     }
         if (raw.spark_total_minutes) { window._sparkTotalMinutes  = parseInt(raw.spark_total_minutes);   }
+        if (raw.habitos_data)        { window._habitosData        = JSON.parse(raw.habitos_data);        }
         // Mirror Firebase → localStorage para todas las keys conocidas
         const mirrorKeys = ['sem_data','sem_custom','recurring_tasks','completions',
           'rutina_templates','rutina_asignaciones','rutina_completions','desglose_items',
