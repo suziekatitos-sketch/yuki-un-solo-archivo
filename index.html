@@ -137,6 +137,7 @@ window.kittyConfirm = function(msg, onYes, onNo) {
         if (raw.ql_lists)         { window._qlLists         = JSON.parse(raw.ql_lists);         }
         if (raw.wl_items)         { window._wlItems         = JSON.parse(raw.wl_items);         }
         if (raw.wishlist_items)   { window._wishlistItems   = JSON.parse(raw.wishlist_items);   }
+        if (raw.univ_futuro_items)   { window._univFuturoItems   = JSON.parse(raw.univ_futuro_items);   }
         if (raw.univ_links)          { window._univLinks          = JSON.parse(raw.univ_links);          }
         if (raw.univ_proyectos)      { window._univProyectos      = JSON.parse(raw.univ_proyectos);      }
         if (raw.spark_pins)          { window._sparkPins          = JSON.parse(raw.spark_pins);          }
@@ -150,7 +151,7 @@ window.kittyConfirm = function(msg, onYes, onNo) {
           'braindump_notes','vb_items','metas_data','mood_data','ql_lists','wl_items','wishlist_items','beauty_tips',
           'ci_state','nd_state','calm_tools','water_goal','water_state','food_state',
           'logros_data','fortalezas','cambio_state','cambio_custom',
-          'univ_links','univ_proyectos','spark_pins','spark_historial','spark_total_minutes',
+          'univ_futuro_items','univ_links','univ_proyectos','spark_pins','spark_historial','spark_total_minutes',
           'trans_data','custom_notifs','eventos_prep','recuper_registros',
           'notas_intereses_data','notas_intereses_cats',
           'yuki_mascotas','yuki_plantas','yuki_biblioteca_playlists','yuki_biblioteca_dopamina','yuki_biblioteca_libros','yuki_diario',
@@ -626,7 +627,7 @@ window.kittyConfirm = function(msg, onYes, onNo) {
   /* ── Vista HOY: columnas verticales anchas en lugar de filas ── */
   .day-slots-row-hoy {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: .75rem;
     padding: .9rem;
     background: var(--bg);
@@ -641,11 +642,14 @@ window.kittyConfirm = function(msg, onYes, onNo) {
     flex-direction: column;
     gap: .5rem;
     min-height: 140px;
+    min-width: 0;
+    overflow: hidden;
+    word-break: break-word;
   }
   .day-slots-row-hoy .day-slot-wrap:last-child { border-right: 1.5px solid var(--border); }
-  .day-slots-row-hoy .slot-manana-cell-wrap { border-top: 3px solid var(--manana-border) !important; }
-  .day-slots-row-hoy .slot-tarde-cell-wrap  { border-top: 3px solid var(--tarde-border)  !important; }
-  .day-slots-row-hoy .slot-noche-cell-wrap  { border-top: 3px solid var(--noche-border)  !important; }
+  .day-slots-row-hoy .slot-manana-cell-wrap { }
+  .day-slots-row-hoy .slot-tarde-cell-wrap  { }
+  .day-slots-row-hoy .slot-noche-cell-wrap  { }
   /* Etiqueta del slot más grande en vista hoy */
   .day-slots-row-hoy .day-slot-label {
     font-size: .68rem;
@@ -2139,6 +2143,88 @@ window.kittyConfirm = function(msg, onYes, onNo) {
   }
   .dios-ver-del:hover { color: var(--rosa); }
 
+  /* ── Racha de constancia ── */
+  .dios-racha-row {
+    display: flex; align-items: center; gap: .8rem;
+    background: var(--bg); border: 1.5px solid var(--border);
+    border-radius: 12px; padding: .6rem .9rem;
+  }
+  .dios-racha-emoji { font-size: 1.5rem; flex-shrink: 0; }
+  .dios-racha-info { flex: 1; }
+  .dios-racha-num {
+    font-size: 1.3rem; font-weight: 800; color: var(--rosa); line-height: 1;
+  }
+  .dios-racha-label {
+    font-size: .65rem; font-weight: 700; color: var(--muted);
+    letter-spacing: .05em; text-transform: uppercase;
+  }
+  .dios-racha-msg {
+    font-size: .68rem; color: var(--muted2); font-style: italic; margin-top: 1px;
+  }
+
+  /* ── Estado espiritual ── */
+  .dios-estado-row {
+    display: flex; gap: .45rem; flex-wrap: wrap;
+  }
+  .dios-estado-chip {
+    padding: .35rem .75rem; border-radius: 20px;
+    border: 1.5px solid var(--border); background: var(--bg);
+    font-family: var(--font-body); font-size: .72rem; font-weight: 700;
+    color: var(--muted); cursor: pointer; transition: all .15s;
+  }
+  .dios-estado-chip:hover { border-color: var(--rosa); color: var(--rosa); }
+  .dios-estado-chip.activo {
+    background: var(--rosa); border-color: var(--rosa); color: #fff;
+  }
+
+  /* ── Peticiones con seguimiento ── */
+  .dios-peticiones-list {
+    display: flex; flex-direction: column; gap: .4rem; margin-bottom: .5rem;
+  }
+  .dios-peticion-item {
+    display: flex; align-items: center; gap: .6rem;
+    padding: .55rem .75rem; border-radius: 10px;
+    background: var(--bg); border: 1.5px solid var(--border);
+    transition: border-color .15s;
+  }
+  .dios-peticion-item.respondida {
+    border-left: 3px solid #6ee7b7; opacity: .75;
+  }
+  .dios-peticion-check {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid var(--border); background: transparent;
+    cursor: pointer; flex-shrink: 0; transition: all .15s;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .65rem; font-weight: 700;
+  }
+  .dios-peticion-item.respondida .dios-peticion-check {
+    background: #6ee7b7; border-color: #6ee7b7; color: #fff;
+  }
+  .dios-peticion-text {
+    flex: 1; font-size: .74rem; font-weight: 600; color: var(--text); line-height: 1.4;
+  }
+  .dios-peticion-item.respondida .dios-peticion-text {
+    text-decoration: line-through; color: var(--muted2);
+  }
+  .dios-peticion-fecha {
+    font-size: .6rem; color: var(--muted2); flex-shrink: 0;
+  }
+  .dios-peticion-del {
+    background: none; border: none; color: var(--muted2);
+    cursor: pointer; font-size: .75rem; padding: .1rem; flex-shrink: 0;
+    transition: color .15s;
+  }
+  .dios-peticion-del:hover { color: var(--rosa); }
+
+  /* ── Frase aliento ── */
+  .dios-aliento {
+    background: linear-gradient(135deg, rgba(var(--rosa-rgb,244,114,182),.08), rgba(167,139,250,.08));
+    border: 1.5px solid var(--border); border-radius: 12px;
+    padding: .7rem 1rem; text-align: center;
+    font-size: .75rem; font-weight: 600; color: var(--text);
+    font-style: italic; line-height: 1.5;
+  }
+
   .dios-add-btn {
     background: transparent;
     border: 1.5px dashed var(--muted2);
@@ -2223,6 +2309,45 @@ window.kittyConfirm = function(msg, onYes, onNo) {
     font-weight: 700;
     color: var(--text);
   }
+
+  /* ── TABS NAV ── */
+  .univ-tabs-nav {
+    display: flex;
+    gap: .4rem;
+    margin-bottom: 1rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: .1rem;
+  }
+  .univ-tabs-nav::-webkit-scrollbar { display: none; }
+
+  .univ-tab-btn {
+    flex-shrink: 0;
+    padding: .45rem 1rem;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    font-family: var(--font-body);
+    font-size: .75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .18s;
+    white-space: nowrap;
+  }
+  .univ-tab-btn:hover {
+    border-color: var(--rosa);
+    color: var(--rosa);
+  }
+  .univ-tab-btn.active {
+    background: var(--rosa);
+    border-color: var(--rosa);
+    color: #fff;
+    box-shadow: 0 2px 10px rgba(var(--rosa-rgb, 233,30,140), .25);
+  }
+
+  .univ-tab-panel { animation: fadeUp .22s ease both; }
 
   /* Materias — tarjetas con foto */
   .univ-materias-grid {
@@ -3020,7 +3145,7 @@ window.kittyConfirm = function(msg, onYes, onNo) {
   .belleza-section {
     max-width: 900px;
     margin: 2.2rem auto 0;
-    animation: fadeUp .5s .35s ease both;
+    animation: fadeUp .3s ease both;
     opacity: 0;
     animation-fill-mode: both;
   }
@@ -6602,6 +6727,8 @@ function todayKey() { return dateKey(new Date()); }
   .vb-add-row {
     display: flex; gap: .6rem; margin-top: .8rem; flex-wrap: wrap; align-items: center;
   }
+  @media (max-width: 768px) { .vb-add-row { display: none !important; } .vb-card-del { display: none !important; } }
+
   .vb-url-input {
     flex: 1; min-width: 200px;
     border: 1.5px solid var(--border); border-radius: 12px;
@@ -7342,7 +7469,8 @@ function todayKey() { return dateKey(new Date()); }
         habitos = window._habitosData || JSON.parse(localStorage.getItem('habitos_data') || '[]');
       } catch(e){}
       var total = habitos.length;
-      var done  = habitos.filter(function(h){ return h.completions && habitoIsDone(h, todayKey); }).length;
+      var _hIsDone = window.habitoIsDone || function(h,dk){ try{ var c=h.completions&&h.completions[dk]; return (typeof c==='number'?c:c?1:0) >= (h.meta||1); }catch(e){return false;} };
+      var done  = habitos.filter(function(h){ return h.completions && _hIsDone(h, todayKey); }).length;
       var pct   = total > 0 ? Math.round(done/total*100) : 0;
       var accent = done === total && total > 0 ? 'var(--verde)' : 'var(--alerta)';
       row.appendChild(makeWidget(
@@ -7502,7 +7630,7 @@ function todayKey() { return dateKey(new Date()); }
             return Object.keys(comps).some(function(k){ return k.indexOf(dk) > -1; });
           } catch(e){ return false; }
         }},
-        { id: 'mood_tarde',     texto: 'Registrar estado de ánimo', pagina: 'page-salud', tab: 'registros', emoji: '🌈', check: function() {
+        { id: 'mood_tarde',     texto: 'Registrar estado de ánimo', pagina: 'page-journal', tab: null, emoji: '🌈', check: function() {
           try { var d = JSON.parse(localStorage.getItem('mens_data')||'{}'); var dk = new Date().toISOString().slice(0,10); var e = (d.dias||{})[dk]||{}; return !!(e.mood && e.mood.length); } catch(e){ return false; }
         }},
         { id: 'checkin_energia', texto: 'Check-in de energía sensorial', pagina: 'page-calma', tab: null, emoji: '🧠', check: function() {
@@ -7964,7 +8092,8 @@ function todayKey() { return dateKey(new Date()); }
     try {
       var habitos = window._habitosData || JSON.parse(localStorage.getItem('habitos_data') || '[]');
       if (habitos.length > 0) {
-        var doneAyer = habitos.filter(function(h){ return h.completions && habitoIsDone(h, dkAyer); }).length;
+        var _hIsDone2 = window.habitoIsDone || function(h,dk){ try{ var c=h.completions&&h.completions[dk]; return (typeof c==='number'?c:c?1:0) >= (h.meta||1); }catch(e){return false;} };
+      var doneAyer = habitos.filter(function(h){ return h.completions && _hIsDone2(h, dkAyer); }).length;
         var totalH   = habitos.length;
         var pctH     = totalH > 0 ? doneAyer / totalH : 0;
         if (pctH >= 0.75) {
@@ -9262,9 +9391,9 @@ function todayKey() { return dateKey(new Date()); }
         card.appendChild(lbl);
       }
       var del=document.createElement('button'); del.className='vb-card-del'; del.textContent='✕';
-      del.onclick=(function(i){return function(e){e.stopPropagation();vbDelete(i);};})(idx);
+      del.onclick=(function(i){return function(e){e.stopPropagation();if(window.innerWidth<=768)return;vbDelete(i);};})(idx);
       card.appendChild(del);
-      card.onclick=(function(i){return function(e){ if(e.target===del) return; vbOpenEdit(i); };})(idx);
+      card.onclick=(function(i){return function(e){ if(e.target===del) return; if(window.innerWidth<=768) return; vbOpenEdit(i); };})(idx);
       grid.appendChild(card);
     });
   }
@@ -15027,23 +15156,57 @@ function renderDios() {
   card.innerHTML = '';
 
   var tdk = dateKey(new Date());
-  if (!diosData[tdk]) diosData[tdk] = { ore: 0, oracion: '', intencion: '' };
+  if (!diosData[tdk]) diosData[tdk] = { ore: 0, oracion: '', intencion: '', devocional: '', estado: '', aliento: '' };
   var entry = diosData[tdk];
+  if (!diosData.peticiones) diosData.peticiones = [];
 
-  // 1. Tracker de oración
+  // ── FRASE DE ALIENTO ──
+  var rachaVal = calcRachaFe();
+  var alientos = {
+    0: ['Cada día es una oportunidad nueva 🌸', 'Dios te espera hoy también 💙', 'Un pequeño paso de fe ya es mucho 🕊️'],
+    1: ['¡Empezaste! Dios ve tu corazón 💙', 'Un día de fe a la vez 🌱', 'Ya arrancaste, sigue así 🙏'],
+    3: ['3 días seguidos — ¡tu espíritu brilla! ✨', 'La constancia es una forma de amor 💜', '¡3 días! Estás construyendo algo hermoso 🌟'],
+    7: ['¡Una semana de fe! Eso es hermoso 🌺', '7 días seguidos — Dios sonríe contigo 💙', '¡Racha de una semana! ¡Increíble! 🔥'],
+    30: ['¡Un mes de constancia! Eres inspiración 🏆', '30 días de fe — eso es devoción de verdad 💎', '¡Wooow un mes! Dios está orgulloso 🌈']
+  };
+  var aliKey = rachaVal >= 30 ? 30 : rachaVal >= 7 ? 7 : rachaVal >= 3 ? 3 : rachaVal >= 1 ? 1 : 0;
+  var aliArr = alientos[aliKey];
+  var aliMsg = entry.aliento;
+  if (!aliMsg || !aliArr.includes(aliMsg)) {
+    aliMsg = aliArr[Math.floor(Math.random() * aliArr.length)];
+    diosData[tdk].aliento = aliMsg;
+  }
+  var aliDiv = document.createElement('div');
+  aliDiv.className = 'dios-aliento';
+  aliDiv.textContent = aliMsg;
+  card.appendChild(aliDiv);
+
+  // ── RACHA DE CONSTANCIA ──
+  var rachaRow = document.createElement('div');
+  rachaRow.className = 'dios-racha-row';
+  var rachaEmoji = rachaVal >= 7 ? '🔥' : rachaVal >= 3 ? '⭐' : rachaVal >= 1 ? '🌱' : '💤';
+  var rachaMsgs = ['Aún no empiezas hoy 🌙', '¡Empezaste tu racha! 🌱', '¡2 días! Sigue así 💪', '¡3 días de fe! ✨', '¡4 días! 🌟', '¡5 días! 💜', '¡6 días! 🔥', '¡Una semana! 🏆'];
+  var rachaMsg = rachaVal < rachaMsgs.length ? rachaMsgs[rachaVal] : '¡' + rachaVal + ' días! ¡Impresionante! 🌈';
+  rachaRow.innerHTML = '<div class="dios-racha-emoji">' + rachaEmoji + '</div>' +
+    '<div class="dios-racha-info">' +
+      '<div class="dios-racha-num">' + rachaVal + ' días</div>' +
+      '<div class="dios-racha-label">Racha de constancia</div>' +
+      '<div class="dios-racha-msg">' + rachaMsg + '</div>' +
+    '</div>';
+  card.appendChild(rachaRow);
+
+  card.appendChild(Object.assign(document.createElement('hr'), { className: 'dios-divider' }));
+
+  // ── TRACKER DE ORACIÓN ──
   var oreCount = typeof entry.ore === 'number' ? entry.ore : 0;
   var oreRow = document.createElement('div');
   oreRow.className = 'dios-ore-tracker';
-
   var oreInfo = document.createElement('div');
   oreInfo.className = 'dios-ore-info';
-
   var oreLabel = document.createElement('span');
   oreLabel.className = 'dios-ore-label';
   oreLabel.textContent = '🙏 Oraciones de hoy';
   oreInfo.appendChild(oreLabel);
-
-  // 3 dots indicator
   var oreDots = document.createElement('div');
   oreDots.className = 'dios-ore-dots';
   for (var di = 0; di < 3; di++) {
@@ -15052,125 +15215,229 @@ function renderDios() {
     oreDots.appendChild(dot);
   }
   oreInfo.appendChild(oreDots);
-
   var oreCounter = document.createElement('div');
   oreCounter.className = 'dios-ore-counter';
-
   var oreMinus = document.createElement('button');
-  oreMinus.className = 'dios-ore-minus';
-  oreMinus.textContent = '-';
-  oreMinus.onclick = function() {
-    if (diosData[tdk].ore > 0) { diosData[tdk].ore--; saveDios(); renderDios(); }
-  };
-
+  oreMinus.className = 'dios-ore-minus'; oreMinus.textContent = '-';
+  oreMinus.onclick = (function(k){ return function() { if (diosData[k].ore > 0) { diosData[k].ore--; saveDios(); renderDios(); } }; })(tdk);
   var oreNum = document.createElement('span');
-  oreNum.className = 'dios-ore-num';
-  oreNum.textContent = oreCount;
-
+  oreNum.className = 'dios-ore-num'; oreNum.textContent = oreCount;
   var orePlus = document.createElement('button');
-  orePlus.className = 'dios-ore-plus';
-  orePlus.textContent = '+';
-  orePlus.onclick = function() {
-    diosData[tdk].ore = (diosData[tdk].ore || 0) + 1;
-    saveDios(); renderDios();
-  };
-
-  oreCounter.appendChild(oreMinus);
-  oreCounter.appendChild(oreNum);
-  oreCounter.appendChild(orePlus);
-
-  oreRow.appendChild(oreInfo);
-  oreRow.appendChild(oreCounter);
+  orePlus.className = 'dios-ore-plus'; orePlus.textContent = '+';
+  orePlus.onclick = (function(k){ return function() { diosData[k].ore = (diosData[k].ore || 0) + 1; saveDios(); renderDios(); }; })(tdk);
+  oreCounter.appendChild(oreMinus); oreCounter.appendChild(oreNum); oreCounter.appendChild(orePlus);
+  oreRow.appendChild(oreInfo); oreRow.appendChild(oreCounter);
   card.appendChild(oreRow);
 
-  card.appendChild(document.createElement('hr')).className = 'dios-divider';
+  card.appendChild(Object.assign(document.createElement('hr'), { className: 'dios-divider' }));
 
-  // 2. Oración / reflexión del día
+  // ── ESTADO ESPIRITUAL ──
+  var estLabel = document.createElement('span');
+  estLabel.className = 'dios-field-label';
+  estLabel.textContent = '🌡️ ¿Cómo me siento espiritualmente hoy?';
+  card.appendChild(estLabel);
+  var estados = [
+    { val: 'creciendo', emoji: '🌱', label: 'Creciendo' },
+    { val: 'calma',     emoji: '🌊', label: 'En calma' },
+    { val: 'lucha',     emoji: '🌩️', label: 'En lucha' },
+    { val: 'encendida', emoji: '🔥', label: 'Encendida' }
+  ];
+  var estRow = document.createElement('div');
+  estRow.className = 'dios-estado-row';
+  estados.forEach(function(est) {
+    var chip = document.createElement('button');
+    chip.className = 'dios-estado-chip' + (entry.estado === est.val ? ' activo' : '');
+    chip.textContent = est.emoji + ' ' + est.label;
+    chip.onclick = (function(v, k) { return function() {
+      diosData[k].estado = diosData[k].estado === v ? '' : v;
+      saveDios(); renderDios();
+    }; })(est.val, tdk);
+    estRow.appendChild(chip);
+  });
+  card.appendChild(estRow);
+
+  card.appendChild(Object.assign(document.createElement('hr'), { className: 'dios-divider' }));
+
+  // ── ORACIÓN / REFLEXIÓN ──
   var orLabel = document.createElement('span');
   orLabel.className = 'dios-field-label';
-  orLabel.textContent = '✨ Oracion o reflexion del dia';
+  orLabel.textContent = '✨ Oración o reflexión del día';
   card.appendChild(orLabel);
-
   var orInput = document.createElement('textarea');
-  orInput.className = 'modal-input';
-  orInput.rows = 3;
-  orInput.placeholder = 'Escribe tu oracion, lo que sientes, lo que quieres decirle a Dios hoy...';
+  orInput.className = 'modal-input'; orInput.rows = 3;
+  orInput.placeholder = 'Escribe tu oración, lo que sientes, lo que quieres decirle a Dios hoy...';
   orInput.value = entry.oracion || '';
   orInput.style.cssText = 'width:100%;resize:vertical;margin-bottom:.4rem';
-  orInput.oninput = function() {
-    diosData[tdk].oracion = orInput.value;
-    saveDios();
-  };
+  orInput.oninput = (function(k){ return function() { diosData[k].oracion = orInput.value; saveDios(); }; })(tdk);
   card.appendChild(orInput);
 
-  card.appendChild(document.createElement('hr')).className = 'dios-divider';
+  card.appendChild(Object.assign(document.createElement('hr'), { className: 'dios-divider' }));
 
-  // 3. Intención / petición del día
+  // ── DEVOCIONAL / LECTURA ──
+  var devLabel = document.createElement('span');
+  devLabel.className = 'dios-field-label';
+  devLabel.textContent = '📖 Lectura o devocional del día';
+  card.appendChild(devLabel);
+  var devInput = document.createElement('input');
+  devInput.className = 'modal-input'; devInput.type = 'text';
+  devInput.placeholder = 'ej: Salmos 23, Juan 15:1-17, libro que estás leyendo...';
+  devInput.value = entry.devocional || '';
+  devInput.style.cssText = 'width:100%;margin-bottom:.4rem';
+  devInput.oninput = (function(k){ return function() { diosData[k].devocional = devInput.value; saveDios(); }; })(tdk);
+  card.appendChild(devInput);
+
+  card.appendChild(Object.assign(document.createElement('hr'), { className: 'dios-divider' }));
+
+  // ── INTENCIÓN / PETICIÓN DEL DÍA ──
   var intLabel = document.createElement('span');
   intLabel.className = 'dios-field-label';
-  intLabel.textContent = '🕊 Intencion o peticion de hoy';
+  intLabel.textContent = '🕊 Intención o petición de hoy';
   card.appendChild(intLabel);
-
   var intInput = document.createElement('textarea');
-  intInput.className = 'modal-input';
-  intInput.rows = 2;
-  intInput.placeholder = 'Por quien o que quieres orar hoy...';
+  intInput.className = 'modal-input'; intInput.rows = 2;
+  intInput.placeholder = 'Por quién o qué quieres orar hoy...';
   intInput.value = entry.intencion || '';
   intInput.style.cssText = 'width:100%;resize:vertical;margin-bottom:.4rem';
-  intInput.oninput = function() {
-    diosData[tdk].intencion = intInput.value;
-    saveDios();
-  };
+  intInput.oninput = (function(k){ return function() { diosData[k].intencion = intInput.value; saveDios(); }; })(tdk);
   card.appendChild(intInput);
 
-  card.appendChild(document.createElement('hr')).className = 'dios-divider';
+  card.appendChild(Object.assign(document.createElement('hr'), { className: 'dios-divider' }));
 
-  // 4. Versículos favoritos
+  // ── PETICIONES CON SEGUIMIENTO ──
+  var petLabel = document.createElement('span');
+  petLabel.className = 'dios-field-label';
+  petLabel.textContent = '📝 Mis peticiones — registro con seguimiento';
+  card.appendChild(petLabel);
+  var petList = document.createElement('div');
+  petList.className = 'dios-peticiones-list';
+  if (!diosData.peticiones || diosData.peticiones.length === 0) {
+    var petEmpty = document.createElement('div');
+    petEmpty.style.cssText = 'font-size:.72rem;color:var(--muted2);font-weight:600;padding:.3rem 0';
+    petEmpty.textContent = 'Registra tus peticiones y marca cuando sean respondidas 🙏';
+    petList.appendChild(petEmpty);
+  } else {
+    diosData.peticiones.forEach(function(pet, pi) {
+      var item = document.createElement('div');
+      item.className = 'dios-peticion-item' + (pet.respondida ? ' respondida' : '');
+      var chk = document.createElement('button');
+      chk.className = 'dios-peticion-check';
+      chk.textContent = pet.respondida ? '✓' : '';
+      chk.title = pet.respondida ? 'Quitar respondida' : 'Marcar como respondida';
+      chk.onclick = (function(i){ return function() {
+        diosData.peticiones[i].respondida = !diosData.peticiones[i].respondida;
+        saveDios(); renderDios();
+      }; })(pi);
+      var txt = document.createElement('div');
+      txt.className = 'dios-peticion-text'; txt.textContent = pet.texto;
+      var fecha = document.createElement('div');
+      fecha.className = 'dios-peticion-fecha'; fecha.textContent = pet.fecha || '';
+      var del = document.createElement('button');
+      del.className = 'dios-peticion-del'; del.textContent = '✕';
+      del.onclick = (function(i){ return function(e) {
+        e.stopPropagation();
+        diosData.peticiones.splice(i, 1);
+        saveDios(); renderDios();
+      }; })(pi);
+      item.appendChild(chk); item.appendChild(txt); item.appendChild(fecha); item.appendChild(del);
+      petList.appendChild(item);
+    });
+  }
+  card.appendChild(petList);
+  var addPetBtn = document.createElement('button');
+  addPetBtn.className = 'dios-add-btn';
+  addPetBtn.textContent = '＋ Agregar petición';
+  addPetBtn.onclick = function() { openPeticionModal(); };
+  card.appendChild(addPetBtn);
+
+  card.appendChild(Object.assign(document.createElement('hr'), { className: 'dios-divider' }));
+
+  // ── VERSÍCULOS FAVORITOS ──
   var verLabel = document.createElement('span');
   verLabel.className = 'dios-field-label';
-  verLabel.textContent = '📖 Versiculos favoritos';
+  verLabel.textContent = '📖 Versículos favoritos';
   card.appendChild(verLabel);
-
   var verList = document.createElement('div');
   verList.className = 'dios-versiculos-list';
-
   if (versiculos.length === 0) {
     var empty = document.createElement('div');
     empty.style.cssText = 'font-size:.72rem;color:var(--muted2);font-weight:600;padding:.3rem 0';
-    empty.textContent = 'Guarda aqui tus versiculos favoritos 🌟';
+    empty.textContent = 'Guarda aquí tus versículos favoritos 🌟';
     verList.appendChild(empty);
   } else {
     versiculos.forEach(function(ver, vi) {
       var item = document.createElement('div');
       item.className = 'dios-versiculo-item';
-
       var textWrap = document.createElement('div');
       textWrap.style.flex = '1';
-
       var verText = document.createElement('div');
       verText.className = 'dios-versiculo-text';
       verText.textContent = '"' + ver.texto + '"';
-
       var verRef = document.createElement('div');
       verRef.className = 'dios-versiculo-ref';
       verRef.textContent = ver.referencia || '';
-
       textWrap.appendChild(verText);
       if (ver.referencia) textWrap.appendChild(verRef);
-
-      item.appendChild(textWrap);
+      var del = document.createElement('button');
+      del.className = 'dios-ver-del'; del.textContent = '✕';
+      del.onclick = (function(i){ return function() { versiculos.splice(i,1); saveDios(); renderDios(); }; })(vi);
+      item.appendChild(textWrap); item.appendChild(del);
       verList.appendChild(item);
     });
   }
-
   card.appendChild(verList);
-
   var addVerBtn = document.createElement('button');
   addVerBtn.className = 'dios-add-btn';
-  addVerBtn.textContent = '＋ Agregar versiculo';
+  addVerBtn.textContent = '＋ Agregar versículo';
   addVerBtn.onclick = function() { openVersiculoModal(); };
   card.appendChild(addVerBtn);
 }
+
+// Calcula racha de constancia espiritual
+function calcRachaFe() {
+  var racha = 0;
+  var d = new Date();
+  while (true) {
+    var k = dateKey(d);
+    var e = diosData[k];
+    var activo = e && (e.ore > 0 || (e.oracion||'').trim() || (e.intencion||'').trim() || (e.devocional||'').trim() || e.estado);
+    if (!activo) break;
+    racha++;
+    d.setDate(d.getDate() - 1);
+    if (racha > 365) break;
+  }
+  return racha;
+}
+
+function openPeticionModal() {
+  var old = document.getElementById('peticionModal');
+  if (old) old.remove();
+  var back = document.createElement('div');
+  back.className = 'rutina-modal-backdrop'; back.id = 'peticionModal';
+  back.onclick = function(e) { if (e.target === back) back.remove(); };
+  var box = document.createElement('div');
+  box.className = 'rutina-modal-box';
+  var today = dateKey(new Date());
+  box.innerHTML = '<div class="rutina-modal-title">🙏 <em>Nueva petición</em></div>' +
+    '<div class="modal-field">' +
+      '<label class="modal-label">¿Por qué o por quién quieres orar?</label>' +
+      '<textarea class="modal-input" id="petTexto" rows="3" placeholder="Escribe tu petición..." style="width:100%;resize:vertical"></textarea>' +
+    '</div>' +
+    '<div class="modal-btns" style="margin-top:1.2rem">' +
+      '<button class="modal-btn-cancel" id="petCancelBtn">Cancelar</button>' +
+      '<button class="modal-btn-save" id="petSaveBtn">Guardar 🙏</button>' +
+    '</div>';
+  back.appendChild(box); document.body.appendChild(back);
+  document.getElementById('petCancelBtn').onclick = function() { back.remove(); };
+  document.getElementById('petSaveBtn').onclick = function() {
+    var texto = document.getElementById('petTexto').value.trim();
+    if (!texto) { document.getElementById('petTexto').focus(); return; }
+    if (!diosData.peticiones) diosData.peticiones = [];
+    diosData.peticiones.push({ texto: texto, fecha: today, respondida: false });
+    saveDios(); renderDios(); back.remove();
+  };
+  document.getElementById('petTexto').focus();
+}
+
 
 function openVersiculoModal() {
   var old = document.getElementById('versiculoModal');
@@ -19976,12 +20243,6 @@ function render() {
     SLOTS.forEach(slot => {
       const slotWrap = document.createElement('div');
       slotWrap.className = 'day-slot-wrap';
-      // En vista hoy: añadir color de borde superior directamente al wrap
-      if (agendaVista === 'hoy') {
-        const borderColors = { m: 'var(--manana-border)', t: 'var(--tarde-border)', n: 'var(--noche-border)' };
-        slotWrap.style.borderTopColor = borderColors[slot.id] || 'var(--border)';
-        slotWrap.style.borderTopWidth = '3px';
-      }
 
       const slotLabel = document.createElement('div');
       slotLabel.className = 'day-slot-label ' + slot.cls;
@@ -26621,14 +26882,27 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
   window.petsHandlePhoto = function(input) {
     var file = input.files && input.files[0];
     if (!file) return;
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      document.getElementById('petsPhotoData').value = e.target.result;
+    function compressImg(f, maxSz, qual, cb) {
+      var rd = new FileReader();
+      rd.onload = function(e) {
+        var im = new Image();
+        im.onload = function() {
+          var sc = Math.min(1, maxSz / Math.max(im.width, im.height));
+          var cv = document.createElement('canvas');
+          cv.width = Math.round(im.width * sc); cv.height = Math.round(im.height * sc);
+          cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
+          cb(cv.toDataURL('image/jpeg', qual));
+        };
+        im.src = e.target.result;
+      };
+      rd.readAsDataURL(f);
+    }
+    compressImg(file, 400, 0.72, function(b64) {
+      document.getElementById('petsPhotoData').value = b64;
       var img = document.getElementById('petsPhotoImg');
       var ph = document.getElementById('petsPhotoPlaceholder');
-      img.src = e.target.result; img.style.display=''; ph.style.display='none';
-    };
-    reader.readAsDataURL(file);
+      img.src = b64; img.style.display=''; ph.style.display='none';
+    });
   };
 
   // Asignar onchange por JS para evitar problemas al mover el modal al body
@@ -26690,7 +26964,8 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
       pets.push(pet);
     }
     editingId = null;
-    save(); petsCloseModal(); render();
+    try{save();}catch(e){alert('La foto es muy grande. Se guardará sin foto.');pet.foto='';if(pets[pets.length-1]&&pets[pets.length-1].id===pet.id)pets[pets.length-1]=pet;else{var fi=pets.findIndex(function(x){return x.id===pet.id;});if(fi>=0)pets[fi]=pet;}try{save();}catch(e2){}}
+    petsCloseModal(); render();
   };
 
   window.petsDelete = function(id) {
@@ -26947,14 +27222,27 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
   window.plantsHandlePhoto = function(input) {
     var file = input.files && input.files[0];
     if (!file) return;
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      document.getElementById('plantsPhotoData').value = e.target.result;
+    function compressImg(f, maxSz, qual, cb) {
+      var rd = new FileReader();
+      rd.onload = function(e) {
+        var im = new Image();
+        im.onload = function() {
+          var sc = Math.min(1, maxSz / Math.max(im.width, im.height));
+          var cv = document.createElement('canvas');
+          cv.width = Math.round(im.width * sc); cv.height = Math.round(im.height * sc);
+          cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
+          cb(cv.toDataURL('image/jpeg', qual));
+        };
+        im.src = e.target.result;
+      };
+      rd.readAsDataURL(f);
+    }
+    compressImg(file, 400, 0.72, function(b64) {
+      document.getElementById('plantsPhotoData').value = b64;
       var img = document.getElementById('plantsPhotoImg');
       var ph = document.getElementById('plantsPhotoPlaceholder');
-      img.src = e.target.result; img.style.display=''; ph.style.display='none';
-    };
-    reader.readAsDataURL(file);
+      img.src = b64; img.style.display=''; ph.style.display='none';
+    });
   };
 
   function addDiarioRow(d) {
@@ -26996,7 +27284,8 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
       plants.push(plant);
     }
     editingId = null;
-    save(); plantsCloseModal(); render();
+    try{save();}catch(e){alert('La foto es muy grande. Se guardará sin foto.');plant.foto='';if(plants[plants.length-1]&&plants[plants.length-1].id===plant.id)plants[plants.length-1]=plant;else{var fi=plants.findIndex(function(x){return x.id===plant.id;});if(fi>=0)plants[fi]=plant;}try{save();}catch(e2){}}
+    plantsCloseModal(); render();
   };
 
   window.plantsDelete = function(id) {
@@ -28790,74 +29079,105 @@ window.showPage = function(pageId) {
     <div id="univSemSelector"></div>
   </div>
 
-  <!-- Materias -->
-  <div class="univ-block">
-    <div class="univ-block-hdr">
-      <span class="univ-block-title">📚 Materias del semestre</span>
-      <button class="rutina-new-btn" id="univNewMateriaBtn">＋ Materia</button>
-    </div>
-    <div id="univMateriasList"></div>
+  <!-- ── TABS NAV ── -->
+  <div class="univ-tabs-nav" id="univTabsNav">
+    <button class="univ-tab-btn active" data-tab="materias">📚 Materias</button>
+    <button class="univ-tab-btn" data-tab="tareas">📝 Tareas</button>
+    <button class="univ-tab-btn" data-tab="plan">🗓️ Plan</button>
+    <button class="univ-tab-btn" data-tab="historial">📖 Historial</button>
+    <button class="univ-tab-btn" data-tab="futuro">🌟 Mi futuro soñado</button>
   </div>
 
-  <!-- Tareas y entregas -->
-  <div class="univ-block">
-    <div class="univ-block-hdr">
-      <span class="univ-block-title">📝 Tareas y entregas</span>
-      <button class="rutina-new-btn" id="univNewTareaBtn">＋ Tarea</button>
+  <!-- ── TAB: MATERIAS ── -->
+  <div class="univ-tab-panel" id="univTab-materias">
+    <div class="univ-block">
+      <div class="univ-block-hdr">
+        <span class="univ-block-title">📚 Materias del semestre</span>
+        <button class="rutina-new-btn" id="univNewMateriaBtn">＋ Materia</button>
+      </div>
+      <div id="univMateriasList"></div>
     </div>
-    <div id="univTareasList"></div>
   </div>
 
-  <!-- Plan de estudio flexible -->
-  <div class="univ-block" id="univPlanBlock">
-    <div class="univ-block-hdr">
-      <span class="univ-block-title">🗓️ Plan de estudio flexible</span>
-      <button class="rutina-new-btn" id="univGenPlanBtn">✨ Generar plan</button>
+  <!-- ── TAB: TAREAS ── -->
+  <div class="univ-tab-panel" id="univTab-tareas" style="display:none">
+    <div class="univ-block">
+      <div class="univ-block-hdr">
+        <span class="univ-block-title">📝 Tareas y entregas</span>
+        <button class="rutina-new-btn" id="univNewTareaBtn">＋ Tarea</button>
+      </div>
+      <div id="univTareasList"></div>
     </div>
-    <div id="univPlanWrap"></div>
+
+    <div class="univ-block">
+      <div class="univ-block-hdr">
+        <span class="univ-block-title">📅 Próximos exámenes</span>
+        <button class="rutina-new-btn" id="univNewExamenBtn">＋ Examen</button>
+      </div>
+      <div id="univExamenesList"></div>
+    </div>
+
+    <div class="univ-block">
+      <div class="univ-block-hdr">
+        <span class="univ-block-title">🔬 Mis proyectos</span>
+        <button class="rutina-new-btn" id="univNewProyectoBtn" onclick="openProyectoModal(null)">＋ Nuevo proyecto</button>
+      </div>
+      <div id="univProyectosList"></div>
+    </div>
   </div>
 
-  <!-- Exámenes -->
-  <div class="univ-block">
-    <div class="univ-block-hdr">
-      <span class="univ-block-title">📅 Próximos exámenes</span>
-      <button class="rutina-new-btn" id="univNewExamenBtn">＋ Examen</button>
+  <!-- ── TAB: PLAN ── -->
+  <div class="univ-tab-panel" id="univTab-plan" style="display:none">
+    <div class="univ-block" id="univPlanBlock">
+      <div class="univ-block-hdr">
+        <span class="univ-block-title">🗓️ Plan de estudio flexible</span>
+        <button class="rutina-new-btn" id="univGenPlanBtn">✨ Generar plan</button>
+      </div>
+      <div id="univPlanWrap"></div>
     </div>
-    <div id="univExamenesList"></div>
+
+    <div class="univ-block">
+      <div class="univ-block-hdr">
+        <span class="univ-block-title">⏱️ Horas de estudio hoy</span>
+      </div>
+      <div class="univ-horas-wrap" id="univHorasWrap"></div>
+    </div>
   </div>
 
-  <!-- Proyectos académicos -->
-  <div class="univ-block">
-    <div class="univ-block-hdr">
-      <span class="univ-block-title">🔬 Mis proyectos</span>
-      <button class="rutina-new-btn" id="univNewProyectoBtn" onclick="openProyectoModal(null)">＋ Nuevo proyecto</button>
+  <!-- ── TAB: HISTORIAL ── -->
+  <div class="univ-tab-panel" id="univTab-historial" style="display:none">
+    <div class="univ-block" id="univHistorialBlock">
+      <div class="univ-block-hdr">
+        <span class="univ-block-title">📖 Mis semestres</span>
+      </div>
+      <div id="univHistorialList"></div>
     </div>
-    <div id="univProyectosList"></div>
+
+    <div class="univ-block" id="univLinksBlock">
+      <div class="univ-block-hdr">
+        <span class="univ-block-title">🔗 Mis recursos y links</span>
+        <button class="rutina-new-btn" id="univNewLinkBtn">＋ Agregar link</button>
+      </div>
+      <div id="univLinksList"></div>
+    </div>
   </div>
 
-  <!-- Horas de estudio -->
-  <div class="univ-block">
-    <div class="univ-block-hdr">
-      <span class="univ-block-title">⏱️ Horas de estudio hoy</span>
-    </div>
-    <div class="univ-horas-wrap" id="univHorasWrap"></div>
-  </div>
 
-  <!-- Historial de semestres -->
-  <div class="univ-block" id="univHistorialBlock">
-    <div class="univ-block-hdr">
-      <span class="univ-block-title">📖 Mis semestres</span>
+  <!-- ── TAB: MI FUTURO SOÑADO ── -->
+  <div class="univ-tab-panel" id="univTab-futuro" style="display:none">
+    <div class="univ-block">
+      <div class="univ-block-hdr">
+        <span class="univ-block-title">🌟 Mi futuro soñado</span>
+        <button class="rutina-new-btn" onclick="univFuturoAdd()">＋ Agregar imagen</button>
+      </div>
+      <p style="font-size:.8rem;color:var(--muted2);margin:0 0 1rem;font-style:italic;">Visualiza tus sueños y recuerda por qué estudias ✨</p>
+      <div class="vb-grid" id="univFuturoGrid"></div>
+      <div class="vb-add-row" style="margin-top:1rem">
+        <input class="vb-url-input" id="univFuturoUrlInput" placeholder="URL de imagen…" />
+        <input class="vb-label-input" id="univFuturoLabelInput" placeholder="Etiqueta (opc.)" />
+        <button class="vb-add-btn" onclick="univFuturoAdd()">＋ Agregar</button>
+      </div>
     </div>
-    <div id="univHistorialList"></div>
-  </div>
-
-  <!-- Links / Recursos -->
-  <div class="univ-block" id="univLinksBlock">
-    <div class="univ-block-hdr">
-      <span class="univ-block-title">🔗 Mis recursos y links</span>
-      <button class="rutina-new-btn" id="univNewLinkBtn">＋ Agregar link</button>
-    </div>
-    <div id="univLinksList"></div>
   </div>
 
   <!-- Calendario y Recuerdos ocultos — ver sección Historial -->
@@ -31314,6 +31634,7 @@ function habitoGetMeta(h) {
 function habitoIsDone(h, dk) {
   return habitoGetCount(h, dk) >= habitoGetMeta(h);
 }
+window.habitoIsDone = habitoIsDone;
 
 function habitoGetRacha(h) {
   var streak = 0;
@@ -31484,17 +31805,15 @@ function renderHabitos() {
     };
     right.appendChild(timerBtn);
 
-    // Delete btn
+    // Botón ✕ → abre modal de edición (eliminar está dentro del modal)
     var del = document.createElement('button');
     del.className = 'habito-del-btn';
     del.textContent = '✕';
-    del.onclick = function(e) {
+    del.title = 'Editar / eliminar';
+    del.onclick = (function(hid){ return function(e) {
       e.stopPropagation();
-      if (confirm('¿Eliminar "' + h.nombre + '"?')) {
-        habitosData.splice(idx, 1);
-        saveHabitos(); renderHabitos();
-      }
-    };
+      window.openHabitoModal(hid);
+    }; })(h.id);
 
     card.appendChild(iconWrap);
     card.appendChild(info);
@@ -31504,19 +31823,25 @@ function renderHabitos() {
   });
 }
 
-window.openHabitoModal = function() {
-  var selectedImgData = null;
+// editId: si se pasa, es edición; si null, es creación nueva
+window.openHabitoModal = function(editId) {
+  var existingH = editId ? habitosData.find(function(h){ return h.id === editId; }) : null;
+  var selectedImgData = existingH ? (existingH.iconImg || null) : null;
   var ov = document.createElement('div');
   ov.className = 'habito-modal-overlay';
 
+  var previewHtml = selectedImgData
+    ? '<img src="' + selectedImgData + '" alt="">'
+    : '<span class="himg-preview-placeholder">🖼</span>';
+
   ov.innerHTML =
     '<div class="habito-modal">' +
-      '<div class="habito-modal-title">✦ Nuevo hábito</div>' +
+      '<div class="habito-modal-title">' + (existingH ? '✦ Editar hábito' : '✦ Nuevo hábito') + '</div>' +
       '<div class="habito-modal-field">' +
         '<label class="habito-modal-label">Imagen</label>' +
         '<div class="himg-upload-area">' +
-          '<div class="himg-preview-wrap" id="hImgPreview">' +
-            '<span class="himg-preview-placeholder">🖼</span>' +
+          '<div class="himg-preview-wrap' + (selectedImgData ? ' has-img' : '') + '" id="hImgPreview">' +
+            previewHtml +
           '</div>' +
           '<div>' +
             '<label class="himg-upload-btn" for="hImgInput">Subir PNG</label>' +
@@ -31527,28 +31852,28 @@ window.openHabitoModal = function() {
       '</div>' +
       '<div class="habito-modal-field">' +
         '<label class="habito-modal-label">Nombre del hábito</label>' +
-        '<input class="habito-modal-input" id="hModalNombre" placeholder="Ej: Beber 2L de agua">' +
+        '<input class="habito-modal-input" id="hModalNombre" placeholder="Ej: Beber 2L de agua" value="' + (existingH ? existingH.nombre.replace(/"/g,'&quot;') : '') + '">' +
       '</div>' +
       '<div class="habito-modal-field">' +
         '<label class="habito-modal-label">Descripción corta <span style="font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>' +
-        '<input class="habito-modal-input" id="hModalDesc" placeholder="Ej: drink water, breakfast & tea ♡">' +
+        '<input class="habito-modal-input" id="hModalDesc" placeholder="Ej: drink water, breakfast & tea ♡" value="' + (existingH && existingH.desc ? existingH.desc.replace(/"/g,'&quot;') : '') + '">' +
       '</div>' +
       '<div class="habito-modal-field">' +
         '<label class="habito-modal-label">¿Cuántas veces al día?</label>' +
         '<div style="display:flex;align-items:center;gap:.6rem">' +
-          '<input class="habito-modal-input" id="hModalMeta" type="number" min="1" max="20" value="1" style="width:70px;text-align:center">' +
+          '<input class="habito-modal-input" id="hModalMeta" type="number" min="1" max="20" value="' + (existingH ? (existingH.meta || 1) : 1) + '" style="width:70px;text-align:center">' +
           '<span style="font-size:.75rem;color:var(--muted);font-weight:600">veces para que cuente</span>' +
         '</div>' +
         '<div style="font-size:.65rem;color:var(--muted2);font-weight:600;margin-top:.3rem">Si pones 1, funciona como un check normal 🌸</div>' +
       '</div>' +
-      '<button class="habito-modal-save" id="hModalSave">Guardar hábito</button>' +
+      '<button class="habito-modal-save" id="hModalSave">' + (existingH ? 'Guardar cambios' : 'Guardar hábito') + '</button>' +
+      (existingH ? '<button id="hModalDel" style="margin-top:.5rem;width:100%;padding:.6rem;border:1.5px solid var(--rosa);border-radius:12px;background:none;color:var(--rosa);font-family:var(--font-body);font-size:.8rem;font-weight:700;cursor:pointer">🗑️ Eliminar hábito</button>' : '') +
     '</div>';
 
   ov.onclick = function(e) { if (e.target === ov) document.body.removeChild(ov); };
   document.body.appendChild(ov);
 
   setTimeout(function() {
-    // Image upload logic
     var fileInput = document.getElementById('hImgInput');
     var preview   = document.getElementById('hImgPreview');
     if (fileInput) {
@@ -31571,16 +31896,36 @@ window.openHabitoModal = function() {
       var desc   = (document.getElementById('hModalDesc').value || '').trim();
       var meta   = parseInt(document.getElementById('hModalMeta').value) || 1;
       if (!nombre) { document.getElementById('hModalNombre').focus(); return; }
-      habitosData.push({
-        id: 'h_' + Date.now(),
-        nombre: nombre,
-        desc: desc || undefined,
-        iconImg: selectedImgData || undefined,
-        meta: meta > 1 ? meta : undefined,
-        completions: {}
-      });
+      if (existingH) {
+        // Edición: actualizar en el array
+        var hIdx = habitosData.findIndex(function(h){ return h.id === editId; });
+        if (hIdx > -1) {
+          habitosData[hIdx].nombre = nombre;
+          habitosData[hIdx].desc = desc || undefined;
+          if (selectedImgData) habitosData[hIdx].iconImg = selectedImgData;
+          habitosData[hIdx].meta = meta > 1 ? meta : undefined;
+        }
+      } else {
+        // Creación nueva
+        habitosData.push({
+          id: 'h_' + Date.now(),
+          nombre: nombre,
+          desc: desc || undefined,
+          iconImg: selectedImgData || undefined,
+          meta: meta > 1 ? meta : undefined,
+          completions: {}
+        });
+      }
       saveHabitos(); renderHabitos();
       document.body.removeChild(ov);
+    };
+    var delBtn = document.getElementById('hModalDel');
+    if (delBtn) delBtn.onclick = function() {
+      if (confirm('¿Eliminar "' + existingH.nombre + '"?')) {
+        habitosData = habitosData.filter(function(x){ return x.id !== editId; });
+        saveHabitos(); renderHabitos();
+        document.body.removeChild(ov);
+      }
     };
     document.getElementById('hModalNombre').focus();
   }, 50);
@@ -32662,19 +33007,21 @@ function aplicarAdaptacionUniv(estado) {
   );
   secUniv.classList.add('univ-modo-' + _univEstadoActual);
 
-  // Mostrar/ocultar bloques según estado
-  var bloques = {
-    materias:   secUniv.querySelector('.univ-block:nth-of-type(2)'),   // materias
-    tareas:     secUniv.querySelector('.univ-block:nth-of-type(3)'),   // tareas
-    plan:       document.getElementById('univPlanBlock'),
-    examenes:   secUniv.querySelector('.univ-block:nth-of-type(5)'),   // examenes
-    proyectos:  document.getElementById('univHistorialBlock') ? secUniv.querySelector('.univ-block:nth-of-type(6)') : null,
-    horas:      secUniv.querySelector('#univHorasWrap') ? secUniv.querySelector('#univHorasWrap').closest('.univ-block') : null,
-    historial:  document.getElementById('univHistorialBlock'),
-    links:      document.getElementById('univLinksBlock'),
-  };
+  // Con tabs, operamos a nivel de tab-btn (ocultando/mostrando tabs enteros)
+  // Los bloques individuales dentro de los tabs siguen siendo accesibles por ID
+  var tabPlan      = document.querySelector('.univ-tab-btn[data-tab="plan"]');
+  var tabHistorial = document.querySelector('.univ-tab-btn[data-tab="historial"]');
+  var tabTareas    = document.querySelector('.univ-tab-btn[data-tab="tareas"]');
 
-  // Banner de modo (si no existe, lo creamos)
+  function mostrarTab(btn) { if (btn) btn.style.display = ''; }
+  function ocultarTab(btn) {
+    if (!btn) return;
+    btn.style.display = 'none';
+    // Si ese tab está activo, redirigir a materias
+    if (btn.classList.contains('active')) switchUnivTab('materias', false);
+  }
+
+  // Banner de modo
   var banner = document.getElementById('univEstadoBanner');
   if (!banner) {
     banner = document.createElement('div');
@@ -32686,85 +33033,61 @@ function aplicarAdaptacionUniv(estado) {
     }
   }
 
-  function mostrar(el) { if (el) el.style.display = ''; }
-  function ocultar(el) { if (el) el.style.display = 'none'; }
-
   switch (_univEstadoActual) {
 
     case 'agotada':
+      banner.style.display = 'flex';
       banner.style.background = 'var(--rosa-soft,#fce4ec)';
       banner.style.color = 'var(--rosa,#e91e8c)';
       banner.innerHTML = '🫧 Modo suave — solo lo esencial. Descansar también es avanzar.';
-      mostrar(bloques.materias);
-      mostrar(bloques.tareas);
-      ocultar(bloques.plan);
-      mostrar(bloques.examenes);
-      ocultar(bloques.proyectos);
-      ocultar(bloques.horas);
-      ocultar(bloques.historial);
-      ocultar(bloques.links);
-      // Límites aplicados en renderUnivMaterias/Tareas
+      mostrarTab(tabTareas);
+      ocultarTab(tabPlan);
+      ocultarTab(tabHistorial);
       break;
 
     case 'bloqueada':
+      banner.style.display = 'flex';
       banner.style.background = 'var(--azul-soft,#e3f2fd)';
       banner.style.color = '#1565c0';
       banner.innerHTML = '🧊 Empecemos con algo pequeño. Un paso es suficiente.';
-      mostrar(bloques.materias);
-      mostrar(bloques.tareas);
-      mostrar(bloques.plan);
-      mostrar(bloques.examenes);
-      ocultar(bloques.proyectos);
-      ocultar(bloques.horas);
-      ocultar(bloques.historial);
-      ocultar(bloques.links);
+      mostrarTab(tabTareas);
+      mostrarTab(tabPlan);
+      ocultarTab(tabHistorial);
       break;
 
     case 'dispersa':
+      banner.style.display = 'flex';
       banner.style.background = '#f3e8ff';
       banner.style.color = '#6b21a8';
       banner.innerHTML = '🌀 Modo enfoque — pocas tareas, más claridad.';
-      mostrar(bloques.materias);
-      mostrar(bloques.tareas);
-      mostrar(bloques.plan);
-      mostrar(bloques.examenes);
-      ocultar(bloques.proyectos);
-      ocultar(bloques.horas);
-      ocultar(bloques.historial);
-      ocultar(bloques.links);
+      mostrarTab(tabTareas);
+      mostrarTab(tabPlan);
+      ocultarTab(tabHistorial);
       break;
 
     case 'sobreestimulada':
+      banner.style.display = 'flex';
       banner.style.background = '#fff8e1';
       banner.style.color = '#e65100';
       banner.innerHTML = '🌊 Menos es más — vista simplificada.';
-      mostrar(bloques.materias);
-      mostrar(bloques.tareas);
-      ocultar(bloques.plan);
-      ocultar(bloques.examenes);
-      ocultar(bloques.proyectos);
-      ocultar(bloques.horas);
-      ocultar(bloques.historial);
-      ocultar(bloques.links);
+      mostrarTab(tabTareas);
+      ocultarTab(tabPlan);
+      ocultarTab(tabHistorial);
       break;
 
     case 'enfocada':
     default:
       if (_univEstadoActual === 'enfocada') {
+        banner.style.display = 'flex';
         banner.style.background = '#e8f5e9';
         banner.style.color = '#2e7d32';
         banner.innerHTML = '⚡ Modo completo — ¡estás en flujo!';
       } else {
         banner.style.display = 'none';
       }
-      mostrar(bloques.materias);
-      mostrar(bloques.tareas);
-      mostrar(bloques.plan);
-      mostrar(bloques.examenes);
-      mostrar(bloques.proyectos);
-      mostrar(bloques.horas);
-      mostrar(bloques.historial);
-      mostrar(bloques.links);
+      mostrarTab(tabTareas);
+      mostrarTab(tabPlan);
+      mostrarTab(tabHistorial);
       break;
   }
 
@@ -32796,6 +33119,171 @@ function renderUniv() {
   aplicarAdaptacionUniv(_univEstadoActual);
   // Re-renderizar botón empezar
   if (typeof window.renderEmpezarBtn === 'function') window.renderEmpezarBtn();
+  // Inicializar tabs
+  initUnivTabs();
+}
+
+// ── TABS internos de Universidad ────────────────────────────────────────────
+// ══ UNIV: MI FUTURO SOÑADO ══
+(function(){
+  var univFuturoItems = [];
+
+  function univFuturoSave(){
+    try{ localStorage.setItem('univ_futuro_items', JSON.stringify(univFuturoItems)); }catch(e){}
+    if(window.cloudSave) window.cloudSave('univ_futuro_items', univFuturoItems);
+  }
+  function univFuturoLoad(){
+    if(window._univFuturoItems){ univFuturoItems = window._univFuturoItems; return; }
+    try{ univFuturoItems = JSON.parse(localStorage.getItem('univ_futuro_items') || '[]'); }catch(e){ univFuturoItems=[]; }
+  }
+
+  var VB_POS = [
+    {label:'↖',x:'0%',y:'0%'},{label:'⬆',x:'50%',y:'0%'},{label:'↗',x:'100%',y:'0%'},
+    {label:'⬅',x:'0%',y:'50%'},{label:'⊙',x:'50%',y:'50%'},{label:'➡',x:'100%',y:'50%'},
+    {label:'↙',x:'0%',y:'100%'},{label:'⬇',x:'50%',y:'100%'},{label:'↘',x:'100%',y:'100%'},
+  ];
+
+  function univFuturoRender(){
+    var grid = document.getElementById('univFuturoGrid'); if(!grid) return;
+    grid.innerHTML = '';
+    if(univFuturoItems.length === 0){
+      var emp = document.createElement('div');
+      emp.className = 'vb-card vb-empty-card';
+      emp.innerHTML = '<span style="font-size:1.5rem">🌟</span>Agrega imágenes que representen tu futuro soñado';
+      grid.appendChild(emp);
+      return;
+    }
+    univFuturoItems.forEach(function(item, idx){
+      var card = document.createElement('div'); card.className = 'vb-card';
+      var img = document.createElement('img'); img.src = item.url; img.alt = item.label || '';
+      var px = item.posX || '50%'; var py = item.posY || '50%';
+      img.style.objectPosition = px + ' ' + py;
+      img.onerror = function(){ card.style.background='var(--surface)'; img.style.display='none'; };
+      card.appendChild(img);
+      if(item.label){
+        var lbl = document.createElement('div'); lbl.className = 'vb-card-label'; lbl.textContent = item.label;
+        card.appendChild(lbl);
+      }
+      var del = document.createElement('button'); del.className = 'vb-card-del'; del.textContent = '✕';
+      del.onclick = (function(i){ return function(e){ e.stopPropagation(); if(window.innerWidth<=768) return; univFuturoDelete(i); }; })(idx);
+      card.appendChild(del);
+      card.onclick = (function(i){ return function(e){ if(e.target===del) return; if(window.innerWidth<=768) return; univFuturoOpenEdit(i); }; })(idx);
+      grid.appendChild(card);
+    });
+  }
+
+  function univFuturoOpenEdit(idx){
+    var old = document.getElementById('univFuturoEditModal'); if(old) old.remove();
+    var item = univFuturoItems[idx];
+    var selX = item.posX || '50%'; var selY = item.posY || '50%';
+    var backdrop = document.createElement('div');
+    backdrop.className = 'vb-modal-backdrop'; backdrop.id = 'univFuturoEditModal';
+    backdrop.onclick = function(e){ if(e.target===backdrop) backdrop.remove(); };
+    var box = document.createElement('div'); box.className = 'vb-modal-box';
+    var title = document.createElement('div'); title.className = 'vb-modal-title';
+    title.textContent = '✨ Editar imagen';
+    box.appendChild(title);
+    var prevWrap = document.createElement('div'); prevWrap.className = 'vb-preview-wrap';
+    var prevImg = document.createElement('img'); prevImg.className = 'vb-preview-img';
+    prevImg.src = item.url; prevImg.style.objectPosition = selX + ' ' + selY;
+    prevWrap.appendChild(prevImg); box.appendChild(prevWrap);
+    var hint = document.createElement('div'); hint.className = 'vb-focus-hint';
+    hint.textContent = 'Elige el área que quieres mostrar en la tarjeta 👇';
+    box.appendChild(hint);
+    var posGrid = document.createElement('div'); posGrid.className = 'vb-pos-grid';
+    VB_POS.forEach(function(opt){
+      var btn = document.createElement('button'); btn.className = 'vb-pos-btn';
+      if(opt.x===selX && opt.y===selY) btn.classList.add('selected');
+      btn.textContent = opt.label; btn.title = opt.name;
+      btn.onclick = function(){
+        selX=opt.x; selY=opt.y;
+        prevImg.style.objectPosition = selX+' '+selY;
+        posGrid.querySelectorAll('.vb-pos-btn').forEach(function(b){ b.classList.remove('selected'); });
+        btn.classList.add('selected');
+      };
+      posGrid.appendChild(btn);
+    });
+    box.appendChild(posGrid);
+    var lblField = document.createElement('div'); lblField.className = 'config-field';
+    var lblLabel = document.createElement('label'); lblLabel.className = 'config-label'; lblLabel.textContent = 'Etiqueta';
+    var lblInp = document.createElement('input'); lblInp.className = 'config-input';
+    lblInp.value = item.label || ''; lblInp.placeholder = 'Ej: mi carrera, mis sueños, mi futuro…';
+    lblField.appendChild(lblLabel); lblField.appendChild(lblInp); box.appendChild(lblField);
+    var btns = document.createElement('div'); btns.className = 'modal-btns'; btns.style.marginTop = '.8rem';
+    var cancelBtn = document.createElement('button'); cancelBtn.className = 'modal-btn-cancel';
+    cancelBtn.textContent = 'Cancelar'; cancelBtn.onclick = function(){ backdrop.remove(); };
+    var saveBtn = document.createElement('button'); saveBtn.className = 'modal-btn-save';
+    saveBtn.textContent = 'Guardar 🌸';
+    saveBtn.onclick = function(){
+      univFuturoItems[idx].posX = selX; univFuturoItems[idx].posY = selY;
+      univFuturoItems[idx].label = lblInp.value.trim();
+      univFuturoSave(); univFuturoRender(); backdrop.remove();
+    };
+    btns.appendChild(cancelBtn); btns.appendChild(saveBtn);
+    box.appendChild(btns);
+    backdrop.appendChild(box);
+    document.body.appendChild(backdrop);
+  }
+
+  window.univFuturoAdd = function(){
+    var url = document.getElementById('univFuturoUrlInput');
+    var lbl = document.getElementById('univFuturoLabelInput');
+    if(!url || !url.value.trim()) return;
+    univFuturoItems.push({url: url.value.trim(), label: lbl.value.trim(), posX:'50%', posY:'50%'});
+    url.value = ''; lbl.value = '';
+    univFuturoSave(); univFuturoRender();
+  };
+
+  window.univFuturoDelete = function(idx){
+    var doDelete = function(){ univFuturoItems.splice(idx,1); univFuturoSave(); univFuturoRender(); };
+    if(window.kittyConfirm){ kittyConfirm('¿Eliminar esta imagen?', doDelete); }
+    else if(confirm('¿Eliminar esta imagen?')){ doDelete(); }
+  };
+
+  document.addEventListener('DOMContentLoaded', function(){
+    var inp = document.getElementById('univFuturoUrlInput');
+    if(inp) inp.addEventListener('keydown', function(e){ if(e.key==='Enter') window.univFuturoAdd(); });
+    univFuturoLoad();
+    univFuturoRender();
+  });
+
+  univFuturoLoad();
+  setTimeout(univFuturoRender, 300);
+})();
+
+var _univTabActivo = localStorage.getItem('univ_tab_activo') || 'materias';
+
+function initUnivTabs() {
+  var nav = document.getElementById('univTabsNav');
+  if (!nav) return;
+  // Activar el tab guardado
+  switchUnivTab(_univTabActivo, false);
+  // Listeners
+  nav.querySelectorAll('.univ-tab-btn').forEach(function(btn) {
+    btn.onclick = function() {
+      switchUnivTab(btn.dataset.tab, true);
+    };
+  });
+}
+
+function switchUnivTab(tabId, save) {
+  // Ocultar todos los paneles
+  document.querySelectorAll('.univ-tab-panel').forEach(function(p) {
+    p.style.display = 'none';
+  });
+  // Quitar active de todos los botones
+  document.querySelectorAll('.univ-tab-btn').forEach(function(b) {
+    b.classList.remove('active');
+  });
+  // Mostrar panel activo
+  var panel = document.getElementById('univTab-' + tabId);
+  if (panel) { panel.style.display = ''; }
+  // Marcar botón activo
+  var btn = document.querySelector('.univ-tab-btn[data-tab="' + tabId + '"]');
+  if (btn) { btn.classList.add('active'); }
+  // Persistir
+  _univTabActivo = tabId;
+  if (save) { try { localStorage.setItem('univ_tab_activo', tabId); } catch(e){} }
 }
 
 // ── Motivación
@@ -35962,6 +36450,13 @@ function interesesShowTab(idx) {
 
   @media(max-width:600px){ .wl-grid{grid-template-columns:1fr 1fr;} }
   .wl-card-clas { font-size:.6rem;font-weight:800;padding:.14rem .5rem;border-radius:20px;background:var(--pink-light);color:var(--rosa);display:inline-block;width:fit-content;margin-top:.1rem; }
+  .wl-card-img { width:100%;height:110px;object-fit:cover;border-radius:10px;margin-bottom:.2rem;display:block; }
+  .wl-card.libro-card { flex-direction:row;gap:.7rem;align-items:flex-start;padding:.75rem; }
+  .wl-card.libro-card .wl-book-cover { width:72px;min-width:72px;height:108px;border-radius:8px;object-fit:cover;display:block;flex-shrink:0; }
+  .wl-card.libro-card .wl-book-cover-empty { width:72px;min-width:72px;height:108px;border-radius:8px;background:var(--surface);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0; }
+  .wl-card.libro-card .wl-book-info { flex:1;display:flex;flex-direction:column;gap:.35rem;min-width:0; }
+  .wl-img-modal-preview { width:100%;height:90px;border-radius:10px;overflow:hidden;background:var(--surface);border:1px solid var(--border);margin-bottom:.3rem;display:none;align-items:center;justify-content:center; }
+  .wl-img-modal-preview img { width:100%;height:100%;object-fit:cover; }
   .wl-clas-label { font-size:.62rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted2);margin-right:.2rem; }
 </style>
 
@@ -36199,51 +36694,62 @@ function interesesShowTab(idx) {
     }
     filtered.slice().reverse().forEach(function(item){
       var cat=WL_CATS.find(function(c){return c.id===item.cat;})||WL_CATS[0];
-      var card=document.createElement('div'); card.className='wl-card';
+      var isLibro = item.cat === 'libro';
+      var card=document.createElement('div'); card.className='wl-card' + (isLibro ? ' libro-card' : '');
 
       // Delete btn
       var delBtn=document.createElement('button'); delBtn.className='wl-card-del'; delBtn.textContent='✕';
       delBtn.onclick=(function(id){return function(){wlDelete(id);};})(item.id);
       card.appendChild(delBtn);
 
-      // Category
-      var catEl=document.createElement('div'); catEl.className='wl-card-cat'; catEl.textContent=cat.label;
-      card.appendChild(catEl);
-
-      // Title
-      var titleEl=document.createElement('div'); titleEl.className='wl-card-title'; titleEl.textContent=item.title;
-      card.appendChild(titleEl);
-
-      // Clasificación badge
-      if(item.clasificacion){
-        var clasEl=document.createElement('div'); clasEl.className='wl-card-clas'; clasEl.textContent='🏷 '+item.clasificacion;
-        card.appendChild(clasEl);
-      }
-
-      // Status select
-      var sel=document.createElement('select');
-      sel.style.cssText='font-size:.65rem;border:1px solid var(--border);border-radius:8px;padding:.15rem .3rem;background:var(--bg);color:var(--text);font-family:var(--font-body);font-weight:700;cursor:pointer';
-      WL_STATUSES.forEach(function(s){
-        var opt=document.createElement('option'); opt.value=s.id; opt.textContent=s.label;
-        if(item.status===s.id) opt.selected=true;
-        sel.appendChild(opt);
-      });
-      sel.onchange=(function(id){return function(){wlSetStatus(id,sel.value);};})(item.id);
-      card.appendChild(sel);
-
-      // Stars (solo si terminado)
-      if(item.status==='terminado'){
-        var starsEl=document.createElement('div'); starsEl.className='wl-stars';
-        for(var i=1;i<=5;i++){
-          var star=document.createElement('span'); star.className='wl-star'+(i<=(item.rating||0)?' filled':'');
-          star.textContent='★';
-          star.onclick=(function(id,n){return function(){wlSetRating(id,n);};})(item.id,i);
-          starsEl.appendChild(star);
+      if (isLibro) {
+        // Layout libro: portada a la izquierda, info a la derecha
+        var coverEl = document.createElement(item.imgUrl ? 'img' : 'div');
+        if (item.imgUrl) {
+          coverEl.className = 'wl-book-cover';
+          coverEl.src = item.imgUrl;
+          coverEl.onerror = function(){ this.style.display='none'; };
+        } else {
+          coverEl.className = 'wl-book-cover-empty';
+          coverEl.textContent = '📚';
         }
-        card.appendChild(starsEl);
+        card.appendChild(coverEl);
+
+        var info = document.createElement('div'); info.className = 'wl-book-info';
+        var catEl=document.createElement('div'); catEl.className='wl-card-cat'; catEl.textContent=cat.label;
+        info.appendChild(catEl);
+        var titleEl=document.createElement('div'); titleEl.className='wl-card-title'; titleEl.textContent=item.title;
+        info.appendChild(titleEl);
+        if(item.clasificacion){ var clasEl=document.createElement('div'); clasEl.className='wl-card-clas'; clasEl.textContent='🏷 '+item.clasificacion; info.appendChild(clasEl); }
+        var sel=document.createElement('select');
+        sel.style.cssText='font-size:.65rem;border:1px solid var(--border);border-radius:8px;padding:.15rem .3rem;background:var(--bg);color:var(--text);font-family:var(--font-body);font-weight:700;cursor:pointer;margin-top:.2rem';
+        WL_STATUSES.forEach(function(s){ var opt=document.createElement('option'); opt.value=s.id; opt.textContent=s.label; if(item.status===s.id) opt.selected=true; sel.appendChild(opt); });
+        sel.onchange=(function(id){return function(){wlSetStatus(id,sel.value);};})(item.id);
+        info.appendChild(sel);
+        if(item.status==='terminado'){ var starsEl=document.createElement('div'); starsEl.className='wl-stars'; for(var i=1;i<=5;i++){ var star=document.createElement('span'); star.className='wl-star'+(i<=(item.rating||0)?' filled':''); star.textContent='★'; star.onclick=(function(id,n){return function(){wlSetRating(id,n);};})(item.id,i); starsEl.appendChild(star); } info.appendChild(starsEl); }
+        card.appendChild(info);
+      } else {
+        // Layout normal: imagen arriba (si existe)
+        if (item.imgUrl) {
+          var imgEl = document.createElement('img'); imgEl.className = 'wl-card-img';
+          imgEl.src = item.imgUrl;
+          imgEl.onerror = function(){ this.style.display='none'; };
+          card.appendChild(imgEl);
+        }
+        var catEl=document.createElement('div'); catEl.className='wl-card-cat'; catEl.textContent=cat.label;
+        card.appendChild(catEl);
+        var titleEl=document.createElement('div'); titleEl.className='wl-card-title'; titleEl.textContent=item.title;
+        card.appendChild(titleEl);
+        if(item.clasificacion){ var clasEl=document.createElement('div'); clasEl.className='wl-card-clas'; clasEl.textContent='🏷 '+item.clasificacion; card.appendChild(clasEl); }
+        var sel=document.createElement('select');
+        sel.style.cssText='font-size:.65rem;border:1px solid var(--border);border-radius:8px;padding:.15rem .3rem;background:var(--bg);color:var(--text);font-family:var(--font-body);font-weight:700;cursor:pointer';
+        WL_STATUSES.forEach(function(s){ var opt=document.createElement('option'); opt.value=s.id; opt.textContent=s.label; if(item.status===s.id) opt.selected=true; sel.appendChild(opt); });
+        sel.onchange=(function(id){return function(){wlSetStatus(id,sel.value);};})(item.id);
+        card.appendChild(sel);
+        if(item.status==='terminado'){ var starsEl=document.createElement('div'); starsEl.className='wl-stars'; for(var i=1;i<=5;i++){ var star=document.createElement('span'); star.className='wl-star'+(i<=(item.rating||0)?' filled':''); star.textContent='★'; star.onclick=(function(id,n){return function(){wlSetRating(id,n);};})(item.id,i); starsEl.appendChild(star); } card.appendChild(starsEl); }
       }
 
-      // Click para editar (excepto botón eliminar, select de status y estrellas)
+      // Click para editar
       card.style.cursor = 'pointer';
       card.onclick = (function(id){ return function(e){
         if(e.target===delBtn || e.target===sel || e.target.classList.contains('wl-star')) return;
@@ -36288,11 +36794,37 @@ function interesesShowTab(idx) {
       +'<input class="modal-input" id="wlNewClasInput" placeholder="O escribe una nueva clasificación…" style="flex:1;font-size:.75rem">'
       +'<button type="button" class="modal-btn-save" id="wlAddClasBtn" style="padding:.35rem .7rem;font-size:.75rem">＋</button>'
       +'</div></div>'
+      +'<div class="modal-field"><label class="modal-label">Imagen <span style="font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>'
+      +'<div id="wlImgPreview" class="wl-img-modal-preview"'+(existing&&existing.imgUrl?' style="display:flex"':'')+'>'      +(existing&&existing.imgUrl?'<img src="'+existing.imgUrl+'" alt="">':'')+'</div>'
+      +'<input class="modal-input" id="wlImgUrlInput" placeholder="URL de imagen (poster, portada…)" style="margin-bottom:.35rem" value="'+(existing&&existing.imgUrl?existing.imgUrl.replace(/"/g,'&quot;'):'')+'">'
+      +'<label style="display:flex;align-items:center;gap:.5rem;font-size:.72rem;font-weight:700;color:var(--muted);cursor:pointer"><span style="background:var(--surface);border:1.5px solid var(--border);border-radius:8px;padding:.3rem .7rem;font-size:.72rem;font-weight:700">📁 Subir imagen</span>'
+      +'<input type="file" id="wlImgFileInput" accept="image/*" style="display:none"></label>'
+      +'</div>'
       +'<div class="modal-btns" style="margin-top:.8rem">'
       +'<button class="modal-btn-cancel" onclick="document.getElementById(&quot;wlModal&quot;).remove()">Cancelar</button>'
       +'<button class="modal-btn-save" id="wlSaveBtn">Guardar</button></div>';
     backdrop.appendChild(box); document.body.appendChild(backdrop);
     // Agregar nueva clasificación desde el modal
+    // Imagen: URL input con preview
+    var imgPreview = document.getElementById('wlImgPreview');
+    var imgUrlInp = document.getElementById('wlImgUrlInput');
+    var imgFileInp = document.getElementById('wlImgFileInput');
+    var _selectedImg = (existing && existing.imgUrl) ? existing.imgUrl : null;
+    function updateImgPreview(src) {
+      if (src) { imgPreview.style.display='flex'; imgPreview.innerHTML='<img src="'+src+'" alt="" onerror="this.parentElement.style.display=\'none\'">'; }
+      else { imgPreview.style.display='none'; imgPreview.innerHTML=''; }
+    }
+    imgUrlInp.oninput = function() {
+      _selectedImg = imgUrlInp.value.trim() || null;
+      updateImgPreview(_selectedImg);
+    };
+    imgFileInp.onchange = function() {
+      var file = imgFileInp.files[0]; if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(ev) { _selectedImg = ev.target.result; imgUrlInp.value=''; updateImgPreview(_selectedImg); };
+      reader.readAsDataURL(file);
+    };
+
     document.getElementById('wlAddClasBtn').onclick=function(){
       var nombre=document.getElementById('wlNewClasInput').value.trim(); if(!nombre) return;
       if(!wlClasificaciones.includes(nombre)){ wlClasificaciones.push(nombre); wlClaSave(); }
@@ -36309,8 +36841,8 @@ function interesesShowTab(idx) {
       var c=document.getElementById('wlCatInput').value;
       var s=document.getElementById('wlStatusInput').value;
       var cl=document.getElementById('wlClasInput').value;
-      if(existing){existing.title=t;existing.cat=c;existing.status=s;existing.clasificacion=cl;}
-      else{wlItems.push({id:'wl_'+Date.now(),title:t,cat:c,status:s,clasificacion:cl,rating:0});}
+      if(existing){existing.title=t;existing.cat=c;existing.status=s;existing.clasificacion=cl;if(_selectedImg!==null)existing.imgUrl=_selectedImg;}
+      else{wlItems.push({id:'wl_'+Date.now(),title:t,cat:c,status:s,clasificacion:cl,rating:0,imgUrl:_selectedImg||undefined});}
       wlSave(); renderWlGrid(); renderWlClasFilter(); backdrop.remove();
     };
     document.getElementById('wlTitleInput').focus();
@@ -36401,6 +36933,8 @@ function interesesShowTab(idx) {
       return '<div '+cardClick+'background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:.9rem 1rem;display:flex;flex-direction:column;gap:.45rem;position:relative;transition:box-shadow .2s" onmouseover="this.style.boxShadow=\'0 4px 16px rgba(0,0,0,.08)\'" onmouseout="this.style.boxShadow=\'\'">'+
         // Delete btn
         '<button onclick="wshEliminar(\''+it.id+'\');event.stopPropagation()" style="position:absolute;top:.5rem;right:.5rem;background:none;border:none;color:transparent;font-size:.75rem;cursor:pointer;padding:.1rem .3rem;border-radius:6px;transition:color .15s" onmouseover="this.style.color=\'var(--rosa)\'" onmouseout="this.style.color=\'transparent\'" class="wsh-del-btn">✕</button>'+
+        // Preview imagen del producto
+        (hasUrl ? '<div style="width:100%;height:130px;border-radius:10px;overflow:hidden;background:var(--surface);border:1px solid var(--border);margin-bottom:.1rem"><img src="https://image.thum.io/get/width/400/crop/130/noanimate/'+urlVal+'" alt="" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.display=\'none\'"></div>' : '')+
         // Status badge
         '<span style="font-size:.6rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:.18rem .6rem;border-radius:20px;display:inline-block;width:fit-content;background:'+st.bg+';color:'+st.color+'">'+st.label+'</span>'+
         // Nombre
@@ -36545,9 +37079,9 @@ function interesesShowTab(idx) {
   .persona-bday-badge { position:absolute;top:8px;right:8px;background:var(--rosa);color:white;font-size:.58rem;font-weight:800;padding:.15rem .38rem;border-radius:20px;display:none; }
   .persona-add-btn { background:var(--card);border:2px dashed var(--border);border-radius:18px;padding:1rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.4rem;cursor:pointer;transition:all .18s;min-height:130px;color:var(--muted);font-size:.78rem;font-weight:700; }
   .persona-add-btn:hover { border-color:var(--rosa);color:var(--rosa); }
-  .persona-modal-backdrop { display:none;position:fixed;inset:0;background:rgba(244,167,192,.22);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:9100;align-items:center;justify-content:center;padding:1rem; }
+  .persona-modal-backdrop { display:none;position:fixed;inset:0;background:rgba(244,167,192,.22);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:9100;align-items:flex-start;justify-content:center;padding:1rem;padding-top:max(1rem,5vh);overflow-y:auto; }
   .persona-modal-backdrop.open { display:flex; }
-  .persona-modal { background:var(--card);border-radius:22px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto; }
+  .persona-modal { background:var(--card);border-radius:22px;width:100%;max-width:480px;max-height:none;overflow-y:visible;margin:auto 0; }
   .persona-modal-header { display:flex;justify-content:space-between;align-items:center;padding:1.1rem 1.3rem .8rem;border-bottom:1px solid var(--border);font-family:var(--font-title);font-style:italic;font-size:1.05rem;font-weight:700; }
   .persona-modal-body { padding:1rem 1.3rem;display:flex;flex-direction:column;gap:.75rem; }
   .persona-modal-label { font-size:.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.25rem;display:block; }
@@ -36646,7 +37180,25 @@ function interesesShowTab(idx) {
     renderRegalos();document.getElementById('personaModalBackdrop').classList.add('open');
   };
   window.personaCerrarModal=function(){document.getElementById('personaModalBackdrop').classList.remove('open');document.getElementById('personaAvatarFile').value='';};
-  window.personaHandleAvatar=function(input){var file=input.files&&input.files[0];if(!file)return;var r=new FileReader();r.onload=function(e){_avatarTemp=e.target.result;var img=document.getElementById('personaAvatarPreview');var em=document.getElementById('personaAvatarEmoji');img.src=_avatarTemp;img.style.display='';em.style.display='none';};r.readAsDataURL(file);};
+  function compressImage(file, maxSize, quality, callback) {
+    var r = new FileReader();
+    r.onload = function(e) {
+      var image = new Image();
+      image.onload = function() {
+        var w = image.width, h = image.height;
+        var scale = Math.min(1, maxSize / Math.max(w, h));
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.round(w * scale);
+        canvas.height = Math.round(h * scale);
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+        callback(canvas.toDataURL('image/jpeg', quality));
+      };
+      image.src = e.target.result;
+    };
+    r.readAsDataURL(file);
+  }
+  window.personaHandleAvatar=function(input){var file=input.files&&input.files[0];if(!file)return;compressImage(file,400,0.72,function(b64){_avatarTemp=b64;var img=document.getElementById('personaAvatarPreview');var em=document.getElementById('personaAvatarEmoji');img.src=_avatarTemp;img.style.display='';em.style.display='none';});};
   window.personaAddRegalo=function(){var inp=document.getElementById('personaRegaloInput');var v=inp.value.trim();if(!v)return;_regalosTemp.push(v);inp.value='';renderRegalos();};
   window.personaRemoveRegalo=function(i){_regalosTemp.splice(i,1);renderRegalos();};
   window.personaGuardar=function(){
@@ -36654,7 +37206,7 @@ function interesesShowTab(idx) {
     load();
     var obj={id:_editId||uid(),nombre:nombre,relacion:document.getElementById('personaRelacion').value.trim(),cumple:document.getElementById('personaCumple').value,detalles:document.getElementById('personaDetalles').value.trim(),regalos:_regalosTemp.slice(),avatar:_avatarTemp};
     if(_editId){var idx=_personas.findIndex(function(x){return x.id===_editId;});if(idx>-1)_personas[idx]=obj;}else _personas.push(obj);
-    save();render();personaCerrarModal();
+    try{save();}catch(e){alert('La foto es muy grande. Se guardará sin foto.');obj.avatar=null;if(_editId){var idx2=_personas.findIndex(function(x){return x.id===obj.id;});if(idx2>-1)_personas[idx2]=obj;}else _personas[_personas.length-1]=obj;try{save();}catch(e2){}}render();personaCerrarModal();
   };
   window.personaEliminar=function(){if(!_editId)return;load();_personas=_personas.filter(function(x){return x.id!==_editId;});save();render();personaCerrarModal();};
   document.addEventListener('DOMContentLoaded',function(){load();render();});
@@ -37364,15 +37916,24 @@ window.buscarPageShowTab = function(tab) {
     } catch(e) {}
 
     try {
-      var habitosData = JSON.parse(localStorage.getItem('habitos_data') || '[]');
-      var habDone = habitosData.filter(function(h){ return h.log && h.log.indexOf(dk) > -1; });
+      var habitosHist = JSON.parse(localStorage.getItem('habitos_data') || '[]');
+      var habDone = habitosHist.filter(function(h){
+        if (!h.completions) return false;
+        var v = h.completions[dk];
+        if (!v) return false;
+        var meta = h.meta || 1;
+        return (typeof v === 'number' ? v : 1) >= meta;
+      });
       if (habDone.length > 0) {
         hasAnything = true;
         var sec = document.createElement('div'); sec.className = 'hist-rec-section';
-        sec.innerHTML = '<div class="hist-rec-title">🌱 Hábitos</div>';
+        sec.innerHTML = '<div class="hist-rec-title">🌱 Hábitos completados</div>';
         habDone.forEach(function(h) {
+          var meta = h.meta || 1;
+          var count = typeof h.completions[dk] === 'number' ? h.completions[dk] : 1;
           var it = document.createElement('div'); it.className = 'hist-rec-item done';
-          it.textContent = '✓ ' + (h.emoji||'') + ' ' + h.nombre; sec.appendChild(it);
+          it.textContent = '✓ ' + h.nombre + (meta > 1 ? ' (' + count + '/' + meta + ')' : '');
+          sec.appendChild(it);
         });
         panel.appendChild(sec);
       }
@@ -38111,8 +38672,9 @@ window.buscarPageShowTab = function(tab) {
   </div>
 
   <!-- Notificaciones -->
-  <div class="config-block" id="configNotifBlock">
-    <div class="config-block-title">🔔 Notificaciones</div>
+  <div class="config-block config-block-collapsible collapsed" id="configNotifBlock">
+    <div class="config-block-title" onclick="(function(){ var b=document.getElementById('configNotifBlock'); b.classList.toggle('collapsed'); })()">🔔 Notificaciones</div>
+    <div class="theme-collapse-body">
     <p style="font-size:.72rem;color:var(--muted);font-weight:600;margin-bottom:.8rem;line-height:1.5">Recibe avisos mientras la app está abierta 💙</p>
     <button class="config-action-btn" id="notifPermBtn" onclick="notifRequestPermission()">
       <span id="notifPermIcon">🔔</span>
@@ -38139,6 +38701,7 @@ window.buscarPageShowTab = function(tab) {
         <button onclick="customNotifAdd()" style="padding:.5rem .9rem;border-radius:10px;border:none;background:var(--rosa);color:#fff;font-family:var(--font-body);font-size:.8rem;font-weight:800;cursor:pointer">＋</button>
       </div>
     </div>
+    </div><!-- /theme-collapse-body -->
   </div>
 
   <!-- Tema de color -->
@@ -38183,14 +38746,16 @@ window.buscarPageShowTab = function(tab) {
     <div class="theme-collapse-body">
     <p style="font-size:.72rem;color:var(--muted);font-weight:600;margin-bottom:.9rem;line-height:1.5">Elige una imagen de fondo para la app en tu dispositivo móvil 🌸</p>
 
-    <!-- Preview -->\n    <div id="mobileBgPreview" style="width:100%;height:110px;border-radius:14px;overflow:hidden;background:var(--surface);border:1.5px solid var(--border);margin-bottom:.8rem;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer" onclick="document.getElementById('mobileBgFileInput').click()" title="Cambiar imagen de fondo">
+    <!-- Preview -->
+    <div id="mobileBgPreview" style="width:100%;height:110px;border-radius:14px;overflow:hidden;background:var(--surface);border:1.5px solid var(--border);margin-bottom:.8rem;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer" onclick="document.getElementById('mobileBgFileInput').click()" title="Cambiar imagen de fondo">
       <img id="mobileBgPreviewImg" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none;position:absolute;inset:0">
       <span id="mobileBgPreviewEmpty" style="font-size:1.5rem;opacity:.4">🖼️</span>
       <div style="position:absolute;bottom:6px;right:8px;background:rgba(0,0,0,.35);color:white;font-size:.62rem;font-weight:700;padding:.2rem .5rem;border-radius:20px;backdrop-filter:blur(4px)">cambiar</div>
     </div>
     <input type="file" id="mobileBgFileInput" accept="image/*" style="display:none" onchange="mobileBgHandleUpload(this)">
 
-    <!-- Botones -->\n    <div style="display:flex;gap:.5rem;margin-bottom:.9rem">
+    <!-- Botones -->
+    <div style="display:flex;gap:.5rem;margin-bottom:.9rem">
       <button class="config-action-btn" style="flex:1;justify-content:center" onclick="document.getElementById('mobileBgFileInput').click()">
         <span>📁</span>
         <div><div>Subir imagen</div></div>
@@ -38473,6 +39038,34 @@ window.buscarPageShowTab = function(tab) {
   // Init
   renderCitasConfig();
   renderCitaWidget();
+
+  // ── Rotación automática mientras la app está abierta
+  (function() {
+    var _citaAutoTimer = null;
+    function startCitaAutoRotation() {
+      if (_citaAutoTimer) clearInterval(_citaAutoTimer);
+      var dias = getDias();
+      var ms = dias * 24 * 60 * 60 * 1000; // días → ms
+      _citaAutoTimer = setInterval(function() {
+        var citas = getCitas();
+        if (!citas.length) return;
+        var idx = (parseInt(localStorage.getItem(CITAS_IDX_KEY)||'0') + 1) % citas.length;
+        var dk = new Date();
+        var dkStr = dk.getFullYear()+'-'+String(dk.getMonth()+1).padStart(2,'0')+'-'+String(dk.getDate()).padStart(2,'0');
+        localStorage.setItem(CITAS_IDX_KEY, idx);
+        localStorage.setItem(CITAS_LAST_KEY, dkStr);
+        if(window.cloudSave){ window.cloudSave(CITAS_IDX_KEY, idx); window.cloudSave(CITAS_LAST_KEY, dkStr); }
+        renderCitaWidget();
+      }, ms);
+    }
+    // Reiniciar el timer cuando cambie el intervalo de días
+    var _origGuardarDias = window.citasGuardarDias;
+    window.citasGuardarDias = function(v) {
+      if (_origGuardarDias) _origGuardarDias(v);
+      startCitaAutoRotation();
+    };
+    startCitaAutoRotation();
+  })();
 
   // Re-render al entrar config
   var _origShowCitas = window.showPage;
@@ -38938,6 +39531,223 @@ window.buscarPageShowTab = function(tab) {
   });
 })();
 </script>
+
+<!-- ════════════════════════════════════════════════════════
+     PERSONALIZAR SECCIONES — bloque de config
+     ════════════════════════════════════════════════════════ -->
+<style>
+  .sections-group-block {
+    margin-bottom: .55rem;
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--bg);
+  }
+  .sections-group-header {
+    display: flex; align-items: center; gap: .6rem;
+    padding: .65rem 1rem;
+    background: var(--card);
+    font-size: .72rem; font-weight: 800;
+    letter-spacing: .04em; text-transform: uppercase;
+    color: var(--muted); cursor: pointer;
+    user-select: none;
+    border: none; width: 100%; text-align: left;
+    font-family: var(--font-body);
+    transition: background .15s;
+  }
+  .sections-group-header:hover { background: var(--surface); }
+  .sections-group-header .sg-icon { font-size: 1rem; }
+  .sections-group-header .sg-arrow {
+    margin-left: auto; font-size: .75rem; color: var(--muted2);
+    transition: transform .2s;
+  }
+  .sections-group-header.open .sg-arrow { transform: rotate(180deg); }
+  .sections-group-body { display: none; }
+  .sections-group-body.open { display: block; }
+  .section-toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: .8rem;
+    padding: .55rem 1rem;
+    border-top: 1px solid var(--border);
+  }
+  .section-toggle-label {
+    font-size: .8rem; font-weight: 700; color: var(--text);
+    display: flex; align-items: center; gap: .45rem;
+  }
+  .section-toggle-label .stl-icon { font-size: .9rem; opacity: .75; }
+  .section-toggle-btn {
+    width: 40px; height: 22px; min-width: 40px;
+    background: var(--border); border: none; border-radius: 11px;
+    cursor: pointer; position: relative; transition: background .2s; padding: 0;
+  }
+  .section-toggle-btn.on { background: var(--rosa); }
+  .section-toggle-btn::after {
+    content: ''; position: absolute;
+    top: 2px; left: 2px;
+    width: 18px; height: 18px;
+    border-radius: 50%; background: #fff;
+    transition: left .2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,.2);
+  }
+  .section-toggle-btn.on::after { left: 20px; }
+  .sections-reset-link {
+    font-size: .7rem; font-weight: 700; color: var(--muted2);
+    background: none; border: none; cursor: pointer;
+    font-family: var(--font-body); text-decoration: underline;
+    padding: 0; margin-top: .3rem;
+    display: block; text-align: right;
+  }
+  .sections-reset-link:hover { color: var(--rosa); }
+</style>
+
+<!-- HTML del bloque (dentro de config-section) -->
+<div id="sectionVisibilityBlock" style="display:none">
+  <div class="config-block" style="padding-bottom:.8rem">
+    <div class="config-block-title">🗂️ Personalizar secciones</div>
+    <p style="font-size:.72rem;color:var(--muted);font-weight:600;margin-bottom:1rem;line-height:1.5">
+      Activa o desactiva las secciones que aparecen en el menú. Puedes ocultarlas cuando no las necesites 🌸
+    </p>
+    <div id="sectionVisGroups"></div>
+    <button class="sections-reset-link" onclick="yukiSectionsResetAll()">Mostrar todas</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var STORAGE_KEY = 'yuki_sections_hidden'; // JSON array of hidden page ids
+
+  // ── Helpers ──────────────────────────────────────────────
+  function loadHidden() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { return []; }
+  }
+  function saveHidden(arr) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+  }
+
+  // ── Apply visibility to drawer ────────────────────────────
+  function applyToDrawer(hidden) {
+    // Items in top / bottom
+    document.querySelectorAll('.drawer-item').forEach(function(btn) {
+      var pg = btn.dataset.page;
+      if (!pg) return;
+      // Never hide Inicio, Buscar, Config
+      if (pg === 'page-inicio' || pg === 'page-buscar' || pg === 'page-config') return;
+      btn.style.display = hidden.indexOf(pg) !== -1 ? 'none' : '';
+    });
+
+    // Groups: hide group entirely if ALL items hidden
+    document.querySelectorAll('.drawer-group').forEach(function(group) {
+      var items = group.querySelectorAll('.drawer-item');
+      var anyVisible = false;
+      items.forEach(function(btn) {
+        if (btn.style.display !== 'none') anyVisible = true;
+      });
+      group.style.display = anyVisible ? '' : 'none';
+    });
+  }
+
+  // ── Render the toggle UI ───────────────────────────────────
+  function render() {
+    var wrap = document.getElementById('sectionVisGroups');
+    if (!wrap) return;
+    var hidden = loadHidden();
+    wrap.innerHTML = '';
+
+    // Secciones de grupos del drawer
+    var groups = (typeof DRAWER_STRUCTURE !== 'undefined') ? DRAWER_STRUCTURE.groups : [];
+    groups.forEach(function(group) {
+      var block = document.createElement('div');
+      block.className = 'sections-group-block';
+
+      // Header
+      var header = document.createElement('button');
+      header.className = 'sections-group-header';
+      header.innerHTML =
+        '<span class="sg-icon">' + group.icon + '</span>' +
+        '<span>' + group.label + '</span>' +
+        '<span class="sg-arrow">▾</span>';
+
+      var body = document.createElement('div');
+      body.className = 'sections-group-body';
+
+      // Toggle para cada ítem
+      group.items.forEach(function(item) {
+        var isOn = hidden.indexOf(item.page) === -1;
+        var row = document.createElement('div');
+        row.className = 'section-toggle-row';
+        row.innerHTML =
+          '<span class="section-toggle-label">' +
+            '<span class="stl-icon">' + item.icon + '</span>' +
+            item.label +
+          '</span>' +
+          '<button class="section-toggle-btn' + (isOn ? ' on' : '') + '" ' +
+            'data-page="' + item.page + '" ' +
+            'title="' + (isOn ? 'Ocultar' : 'Mostrar') + ' ' + item.label + '">' +
+          '</button>';
+
+        var btn = row.querySelector('.section-toggle-btn');
+        btn.onclick = function() {
+          var h = loadHidden();
+          var idx = h.indexOf(item.page);
+          if (idx !== -1) { h.splice(idx, 1); } // show
+          else { h.push(item.page); }            // hide
+          saveHidden(h);
+          btn.classList.toggle('on', h.indexOf(item.page) === -1);
+          applyToDrawer(h);
+          // If active page got hidden, redirect to inicio
+          if (h.indexOf(item.page) !== -1 && typeof activePage !== 'undefined' && activePage === item.page) {
+            if (typeof showPage === 'function') showPage('page-inicio');
+          }
+        };
+        body.appendChild(row);
+      });
+
+      // Toggle group open/close
+      header.onclick = function() {
+        var open = body.classList.toggle('open');
+        header.classList.toggle('open', open);
+      };
+
+      block.appendChild(header);
+      block.appendChild(body);
+      wrap.appendChild(block);
+    });
+
+    applyToDrawer(hidden);
+  }
+
+  // ── Reset all ─────────────────────────────────────────────
+  window.yukiSectionsResetAll = function() {
+    saveHidden([]);
+    render();
+    applyToDrawer([]);
+  };
+
+  // ── Init: show block & apply on page load ─────────────────
+  document.addEventListener('DOMContentLoaded', function() {
+    var block = document.getElementById('sectionVisibilityBlock');
+    // Move the block inside config-section (just before its closing tag)
+    var section = document.querySelector('.config-section');
+    if (section && block) section.appendChild(block);
+    if (block) block.style.display = '';
+    applyToDrawer(loadHidden());
+  });
+
+  // ── Re-render when config page opens ─────────────────────
+  var _origShowSec = window.showPage;
+  window.showPage = function(pageId) {
+    if (_origShowSec) _origShowSec(pageId);
+    if (pageId === 'page-config') {
+      setTimeout(render, 80);
+    }
+  };
+
+  // ── Apply immediately on script exec (for already-open state) ──
+  setTimeout(function(){ applyToDrawer(loadHidden()); }, 400);
+
+})();
+</script>
+
 </div><!-- end page-config -->
 <script>
 // ============================================================
@@ -44497,9 +45307,7 @@ function addEnergiaBadgeToPill(pill, en) {
   var taskId = pill.dataset.taskId;
   var task = (window.recurringTasks||[]).find(function(t){ return t.id===taskId; });
   if (!task || !task.energia) return;
-  var txt = pill.querySelector('.pill-text');
-  if (txt) txt.insertAdjacentHTML('afterend', energiaBadgesHtml(task.energia));
-  // Marcar si no encaja
+  // No insertar badges dentro del pill para no romper el layout
   var fits = taskFitsEnergy(task, en);
   pill.classList.toggle('energia-sobrecarga', !fits);
   pill.title = fits ? '⏱ Toca para abrir el timer' : '⚠️ Esta tarea requiere más energía de la que tienes ahora';
