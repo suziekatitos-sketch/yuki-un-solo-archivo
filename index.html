@@ -20201,6 +20201,7 @@ function loadData() {
   window.SLOTS          = SLOTS;
   window.recurringTasks = recurringTasks;
   window.taskVisibleOnDate = taskVisibleOnDate;
+  window.agendaRender   = render;
 }
 
 function resetWeek() {
@@ -21066,6 +21067,52 @@ setInterval(function() {
     closeBtn.textContent = '✕';
     closeBtn.onclick = closeTimerModal;
 
+    // Mark as done btn (top-left corner)
+    var markDoneBtn = document.createElement('button');
+    markDoneBtn.id = 'yktMarkDoneBtn';
+    markDoneBtn.title = 'Marcar tarea como completada';
+    markDoneBtn.style.cssText = 'position:absolute;top:1rem;left:1rem;background:none;border:1.5px solid var(--border);border-radius:50%;width:28px;height:28px;font-size:.75rem;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:all .15s;z-index:2';
+    markDoneBtn.textContent = '✓';
+    markDoneBtn.onmouseenter = function(){ markDoneBtn.style.borderColor='var(--rosa)';markDoneBtn.style.color='var(--rosa)'; };
+    markDoneBtn.onmouseleave = function(){
+      if (!markDoneBtn.dataset.done) { markDoneBtn.style.borderColor='var(--border)';markDoneBtn.style.color='var(--muted)'; }
+    };
+    markDoneBtn.onclick = function() {
+      if (markDoneBtn.dataset.done) return;
+      // Mark as done
+      if (_timerTaskDate && _timerTaskId && window.completions !== undefined) {
+        var cKey2 = _timerTaskId + '|' + (function(d){
+          return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+        })(_timerTaskDate);
+        window.completions[cKey2] = true;
+        if (window.saveData) window.saveData();
+        if (window.updateProgress) window.updateProgress();
+        // Re-render agenda cells
+        var dateStr2 = (function(d){
+          return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+        })(_timerTaskDate);
+        document.querySelectorAll('.cell[data-date="'+dateStr2+'"]').forEach(function(liveCell) {
+          var slotId = liveCell.dataset.slot;
+          var slot = window.SLOTS ? window.SLOTS.find(function(s){ return s.id === slotId; }) : null;
+          if (slot && window.renderCell) window.renderCell(liveCell, slot, _timerTaskDate);
+        });
+        if (window.renderWidgets) window.renderWidgets();
+        // Refrescar vista de agenda (mes o semana)
+        if (window.agendaRender) window.agendaRender();
+      }
+      markDoneBtn.dataset.done = '1';
+      markDoneBtn.textContent = '✓';
+      markDoneBtn.style.cssText = 'position:absolute;top:1rem;left:1rem;background:var(--rosa);border:1.5px solid var(--rosa);border-radius:50%;width:28px;height:28px;font-size:.75rem;cursor:default;color:#fff;display:flex;align-items:center;justify-content:center;z-index:2';
+      if (window.yukiAddXP) window.yukiAddXP(5, 'Tarea completada');
+      if (window.yukiAddSakura) window.yukiAddSakura(1);
+      // Mini feedback
+      var fb = document.createElement('div');
+      fb.style.cssText = 'position:absolute;top:2.6rem;left:.5rem;font-size:.6rem;color:var(--rosa);font-weight:700;white-space:nowrap;animation:fadeUp .3s ease both;pointer-events:none';
+      fb.textContent = '¡Marcada! 🌸';
+      box.appendChild(fb);
+      setTimeout(function(){ if(fb.parentNode) fb.remove(); }, 1800);
+    };
+
     // Header
     var hdr = document.createElement('div');
     hdr.className = 'ykt-header';
@@ -21252,6 +21299,17 @@ setInterval(function() {
 
     // Assemble
     box.appendChild(closeBtn);
+    box.appendChild(markDoneBtn);
+    // If already completed, show it
+    if (_timerTaskDate && _timerTaskId && window.completions !== undefined) {
+      var _cKeyCheck = _timerTaskId + '|' + (function(d){
+        return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+      })(_timerTaskDate);
+      if (window.completions[_cKeyCheck]) {
+        markDoneBtn.dataset.done = '1';
+        markDoneBtn.style.cssText = 'position:absolute;top:1rem;left:1rem;background:var(--rosa);border:1.5px solid var(--rosa);border-radius:50%;width:28px;height:28px;font-size:.75rem;cursor:default;color:#fff;display:flex;align-items:center;justify-content:center;z-index:2';
+      }
+    }
     box.appendChild(hdr);
     box.appendChild(emojiWrap);
     box.appendChild(strip);
@@ -21493,6 +21551,14 @@ setInterval(function() {
         if (slot && window.renderCell) window.renderCell(liveCell, slot, _timerTaskDate);
       });
       if (window.renderWidgets) window.renderWidgets();
+      // Actualizar botón de marcar como hecha en el timer
+      var mdb = document.getElementById('yktMarkDoneBtn');
+      if (mdb) {
+        mdb.dataset.done = '1';
+        mdb.style.cssText = 'position:absolute;top:1rem;left:1rem;background:var(--rosa);border:1.5px solid var(--rosa);border-radius:50%;width:28px;height:28px;font-size:.75rem;cursor:default;color:#fff;display:flex;align-items:center;justify-content:center;z-index:2';
+      }
+      // Refrescar vista de agenda (mes o semana) si está activa
+      if (window.agendaRender) window.agendaRender();
     }
 
     try { new Notification('🌸 Yuki — ¡Tarea completada!', { body: _timerTaskText + ' ¡Lo lograste! 💗' }); } catch(e){}
@@ -37961,9 +38027,8 @@ window.buscarPageShowTab = function(tab) {
     </div>
     <div class="config-field">
       <label class="config-label">Nombre que se muestra</label>
-      <input class="config-input" id="configDisplayName" placeholder="¿Cómo te llamas?">
+      <input class="config-input" id="configDisplayName" placeholder="¿Cómo te llamas?" oninput="configSaveProfile()">
     </div>
-    <button class="config-save-btn" onclick="configSaveProfile()">Guardar cambios</button>
     <span class="config-save-ok" id="configProfileOk">✓ Guardado</span>
   </div>
 
@@ -38077,7 +38142,7 @@ window.buscarPageShowTab = function(tab) {
   </div>
 
   <!-- Tema de color -->
-  <div class="config-block config-block-collapsible" id="themeConfigBlock">
+  <div class="config-block config-block-collapsible collapsed" id="themeConfigBlock">
     <div class="config-block-title" onclick="(function(){ var b=document.getElementById('themeConfigBlock'); b.classList.toggle('collapsed'); })()">🎨 Tema de color</div>
     <div class="theme-collapse-body">
       <div class="theme-section-header">Color único</div>
@@ -38548,7 +38613,7 @@ window.buscarPageShowTab = function(tab) {
     if (bigEmail) bigEmail.textContent = user ? (user.email||'') : '';
     if (bigAvatar) {
       var src = customAvatar || (user ? user.photoURL : '');
-      if (src) bigAvatar.innerHTML = '<img src="'+src+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%"><div class="config-avatar-overlay">📷</div>';
+      if (src) bigAvatar.innerHTML = '<img src="'+src+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.parentElement.innerHTML=\'🌸<div class=&quot;config-avatar-overlay&quot;>📷</div>\'"><div class="config-avatar-overlay">📷</div>';
       else bigAvatar.innerHTML = '🌸<div class="config-avatar-overlay">📷</div>';
     }
   }
