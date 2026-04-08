@@ -14677,15 +14677,13 @@ function openEjModal(templateId) {
   imgInput.onchange = function() {
     var file = imgInput.files[0];
     if (!file) return;
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      currentImgBase64 = e.target.result;
+    window.yukiCompressImage(file, function(b64) {
+      currentImgBase64 = b64;
       imgPreview.src = currentImgBase64;
       imgPreview.style.display = 'block';
       box.querySelector('.ej-img-upload-btn').textContent = '📷 Cambiar imagen';
       imgUrlInput.value = '';
-    };
-    reader.readAsDataURL(file);
+    }, 600, 0.75);
   };
   
   // URL input handler
@@ -18923,15 +18921,13 @@ window.journalShowTab = function(tab) {
   window.diarioHandlePhoto = function(input) {
     var file = input.files && input.files[0];
     if (!file) return;
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      document.getElementById('diarioPhotoData').value = e.target.result;
+    window.yukiCompressImage(file, function(b64) {
+      document.getElementById('diarioPhotoData').value = b64;
       var img = document.getElementById('diarioPhotoImg');
-      img.src = e.target.result; img.style.display='';
+      img.src = b64; img.style.display='';
       document.getElementById('diarioPhotoPlaceholder').style.display='none';
       document.getElementById('diarioPhotoRemove').style.display='';
-    };
-    reader.readAsDataURL(file);
+    }, 800, 0.75);
   };
 
   window.diarioRemovePhoto = function() {
@@ -28675,14 +28671,12 @@ function openRecetaEditModal(editId) {
   imgInput.onchange = function() {
     var file = imgInput.files[0];
     if (!file) return;
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      currentB64 = e.target.result;
+    window.yukiCompressImage(file, function(b64) {
+      currentB64 = b64;
       imgPreview.src = currentB64;
       imgPreview.style.display = 'block';
       box.querySelector('.rec-img-upload-btn').textContent = '📷 Cambiar imagen';
-    };
-    reader.readAsDataURL(file);
+    }, 600, 0.75);
   };
 
   document.getElementById('recEditCancel').onclick = function() { back.remove(); };
@@ -31602,6 +31596,30 @@ loadMens();     renderMens();
 //  TRACKER DE HÁBITOS
 // ============================================================
 
+// ── Compresión global de imágenes ─────────────────────────────
+// Redimensiona y convierte a JPEG para evitar que imágenes grandes
+// rompan el guardado en Firebase/localStorage.
+// maxPx: lado máximo en px | qual: calidad JPEG 0-1
+window.yukiCompressImage = function(file, cb, maxPx, qual) {
+  maxPx = maxPx || 600;
+  qual  = qual  || 0.72;
+  var rd = new FileReader();
+  rd.onload = function(e) {
+    var im = new Image();
+    im.onload = function() {
+      var sc = Math.min(1, maxPx / Math.max(im.width, im.height));
+      var cv = document.createElement('canvas');
+      cv.width  = Math.round(im.width  * sc);
+      cv.height = Math.round(im.height * sc);
+      cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
+      cb(cv.toDataURL('image/jpeg', qual));
+    };
+    im.src = e.target.result;
+  };
+  rd.readAsDataURL(file);
+};
+// ─────────────────────────────────────────────────────────────
+
 var habitosData = []; 
 // cada hábito: { id, nombre, emoji, completions:{} }
 // completions: { 'YYYY-MM-DD': true }
@@ -31881,13 +31899,11 @@ window.openHabitoModal = function(editId) {
       fileInput.addEventListener('change', function() {
         var file = fileInput.files[0];
         if (!file) return;
-        var reader = new FileReader();
-        reader.onload = function(ev) {
-          selectedImgData = ev.target.result;
+        window.yukiCompressImage(file, function(b64) {
+          selectedImgData = b64;
           preview.innerHTML = '<img src="' + selectedImgData + '" alt="">';
           preview.classList.add('has-img');
-        };
-        reader.readAsDataURL(file);
+        }, 400, 0.72);
       });
     }
 
@@ -36821,9 +36837,7 @@ function interesesShowTab(idx) {
     };
     imgFileInp.onchange = function() {
       var file = imgFileInp.files[0]; if (!file) return;
-      var reader = new FileReader();
-      reader.onload = function(ev) { _selectedImg = ev.target.result; imgUrlInp.value=''; updateImgPreview(_selectedImg); };
-      reader.readAsDataURL(file);
+      window.yukiCompressImage(file, function(b64) { _selectedImg = b64; imgUrlInp.value=''; updateImgPreview(_selectedImg); }, 500, 0.72);
     };
 
     document.getElementById('wlAddClasBtn').onclick=function(){
@@ -39215,9 +39229,7 @@ window.buscarPageShowTab = function(tab) {
   window.configHandleAvatarUpload = function(input) {
     var file = input.files && input.files[0];
     if (!file) return;
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      var base64 = e.target.result;
+    window.yukiCompressImage(file, function(base64) {
       localStorage.setItem('config_avatar_url', base64);
       if (window.cloudSave) window.cloudSave('config_avatar_url', base64);
       // Update avatar preview
@@ -39229,8 +39241,7 @@ window.buscarPageShowTab = function(tab) {
       var headerAvatar = document.getElementById('user-avatar');
       if (dai) { dai.src = base64; dai.style.display = ''; if (dap) dap.style.display = 'none'; }
       if (headerAvatar) headerAvatar.src = base64;
-    };
-    reader.readAsDataURL(file);
+    }, 300, 0.80);
   };
 
   window.configSaveProfile = function() {
@@ -39461,10 +39472,8 @@ window.buscarPageShowTab = function(tab) {
   window.mobileBgHandleUpload = function(input) {
     var file = input.files && input.files[0];
     if (!file) return;
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      var dataUrl = e.target.result;
-      var opacity = parseInt(localStorage.getItem(BG_OPACITY_KEY) || '18', 10);
+    var opacity = parseInt(localStorage.getItem(BG_OPACITY_KEY) || '18', 10);
+    window.yukiCompressImage(file, function(dataUrl) {
       // Guardar en galería si no existe ya
       var gallery = loadGallery();
       var exists  = gallery.some(function(g) { return g.src === dataUrl; });
@@ -39476,8 +39485,7 @@ window.buscarPageShowTab = function(tab) {
       applyBg(dataUrl, opacity);
       syncUI(dataUrl, opacity);
       renderGallery();
-    };
-    reader.readAsDataURL(file);
+    }, 1200, 0.78);
     input.value = '';
   };
 
