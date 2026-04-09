@@ -17515,360 +17515,6 @@ window.syncFromCloud = function() {
 })();
 </script>
 
-<!-- CÁPSULA DEL TIEMPO -->
-<style>
-  .capsula-section { max-width:860px;margin:2.5rem auto 0;padding:0 1rem 1rem;animation:fadeUp .5s .35s ease both;opacity:0;animation-fill-mode:both; }
-  .capsula-list { display:flex;flex-direction:column;gap:.75rem;margin-top:1rem; }
-  .capsula-card { background:var(--card);border:1.5px solid var(--border);border-radius:18px;padding:1.1rem 1.3rem;transition:all .18s;position:relative;overflow:hidden; }
-  .capsula-card.locked { background:linear-gradient(135deg,var(--card),var(--surface)); }
-  .capsula-card.unlocked { border-color:var(--rosa);cursor:pointer; }
-  .capsula-card.unlocked:hover { transform:translateY(-2px);box-shadow:0 4px 18px rgba(244,167,192,.2); }
-  .capsula-card-header { display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem; }
-  .capsula-card-title { font-family:var(--font-title);font-style:italic;font-size:.98rem;font-weight:700;color:var(--text); }
-  .capsula-card-date { font-size:.65rem;font-weight:700;color:var(--muted);flex-shrink:0;text-align:right; }
-  .capsula-card-preview { font-size:.78rem;color:var(--muted);font-weight:600;line-height:1.5;margin-top:.4rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
-  .capsula-lock-badge { display:inline-flex;align-items:center;gap:.3rem;background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:.2rem .6rem;font-size:.65rem;font-weight:700;color:var(--muted);margin-top:.5rem; }
-  .capsula-unlock-badge { display:inline-flex;align-items:center;gap:.3rem;background:var(--rosa);color:white;border-radius:20px;padding:.2rem .6rem;font-size:.65rem;font-weight:700;margin-top:.5rem; }
-  .capsula-type-badge { display:inline-flex;align-items:center;gap:.25rem;border-radius:20px;padding:.15rem .55rem;font-size:.6rem;font-weight:800;margin-right:.3rem;margin-top:.5rem; }
-  .capsula-type-audio { background:rgba(139,92,246,.15);color:#7c3aed; }
-  .capsula-type-logro { background:rgba(245,158,11,.12);color:#b45309; }
-  .capsula-type-pred { background:rgba(59,130,246,.12);color:#1d4ed8; }
-  .capsula-nueva-btn { display:inline-flex;align-items:center;gap:.5rem;background:var(--rosa);border:none;border-radius:20px;padding:.55rem 1.2rem;font-size:.82rem;font-weight:700;color:white;cursor:pointer;font-family:var(--font-body);margin-bottom:1rem;transition:opacity .15s; }
-  .capsula-nueva-btn:hover { opacity:.88; }
-  /* Modales cápsula */
-  .capsula-modal-backdrop { display:none;position:fixed;inset:0;background:rgba(244,167,192,.22);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:9100;align-items:flex-end;justify-content:center; }
-  .capsula-modal-backdrop.open { display:flex; }
-  .capsula-modal { background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:600px;max-height:92vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,1rem); }
-  .capsula-modal-header { display:flex;justify-content:space-between;align-items:center;padding:1.1rem 1.3rem .8rem;border-bottom:1px solid var(--border);font-family:var(--font-title);font-style:italic;font-size:1.05rem;font-weight:700; }
-  .capsula-modal-body { padding:1rem 1.3rem;display:flex;flex-direction:column;gap:.8rem; }
-  .capsula-modal-label { font-size:.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.25rem;display:block; }
-  .capsula-modal-input { width:100%;border:1.5px solid var(--border);border-radius:10px;padding:.5rem .7rem;font-family:var(--font-body);font-size:.88rem;color:var(--text);background:var(--surface);outline:none;box-sizing:border-box;font-weight:600;transition:border-color .2s; }
-  .capsula-modal-input:focus { border-color:var(--rosa); }
-  .capsula-modal-textarea { width:100%;border:1.5px solid var(--border);border-radius:10px;padding:.6rem .7rem;font-family:var(--font-body);font-size:.85rem;color:var(--text);background:var(--surface);outline:none;box-sizing:border-box;resize:none;min-height:120px;font-weight:600;line-height:1.6;transition:border-color .2s; }
-  .capsula-modal-textarea:focus { border-color:var(--rosa); }
-  .capsula-modal-footer { display:flex;justify-content:space-between;align-items:center;padding:.9rem 1.3rem;border-top:1px solid var(--border); }
-  .capsula-read-content { background:linear-gradient(135deg,var(--surface),var(--card));border:1.5px solid var(--border);border-radius:14px;padding:1.2rem;font-size:.88rem;color:var(--text);font-weight:600;line-height:1.8;white-space:pre-wrap;margin-top:.5rem;font-family:var(--font-body); }
-  /* Tabs tipo cápsula */
-  .capsula-tipo-tabs { display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.2rem; }
-  .capsula-tipo-tab { flex:1;min-width:0;border:1.5px solid var(--border);border-radius:14px;padding:.5rem .4rem;font-size:.7rem;font-weight:800;cursor:pointer;font-family:var(--font-body);background:var(--surface);color:var(--muted);transition:all .18s;text-align:center;white-space:nowrap; }
-  .capsula-tipo-tab.active { background:var(--rosa);color:white;border-color:var(--rosa); }
-  /* Audio recorder */
-  .capsula-audio-ui { display:flex;flex-direction:column;align-items:center;gap:.8rem;padding:.5rem 0; }
-  .capsula-rec-btn { width:64px;height:64px;border-radius:50%;border:none;cursor:pointer;font-size:1.5rem;display:flex;align-items:center;justify-content:center;transition:all .2s;background:var(--rosa);color:white;box-shadow:0 2px 12px rgba(244,167,192,.4); }
-  .capsula-rec-btn.recording { background:#e53e3e;animation:capsulaRecPulse 1s infinite; }
-  @keyframes capsulaRecPulse { 0%,100%{box-shadow:0 0 0 0 rgba(229,62,62,.4);} 50%{box-shadow:0 0 0 10px rgba(229,62,62,0);} }
-  .capsula-rec-timer { font-size:1.4rem;font-weight:800;font-family:var(--font-title);color:var(--text);letter-spacing:.05em; }
-  .capsula-rec-status { font-size:.72rem;font-weight:700;color:var(--muted); }
-  .capsula-audio-player { width:100%;border-radius:10px;margin-top:.3rem; }
-  /* Logros imágenes */
-  .capsula-img-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-top:.3rem; }
-  .capsula-img-thumb { aspect-ratio:1;border-radius:10px;object-fit:cover;width:100%;border:1.5px solid var(--border); }
-  .capsula-img-add { aspect-ratio:1;border-radius:10px;border:1.5px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:1.5rem;cursor:pointer;background:var(--surface);transition:border-color .18s; }
-  .capsula-img-add:hover { border-color:var(--rosa); }
-  /* Predicciones */
-  .capsula-pred-q { display:flex;flex-direction:column;gap:.25rem; }
-  .capsula-pred-label { font-size:.72rem;font-weight:800;color:var(--rosa);margin-bottom:.15rem; }
-  /* Read modal extras */
-  .capsula-read-audio { width:100%;border-radius:10px;margin:.5rem 0; }
-  .capsula-read-imgs { display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-top:.5rem; }
-  .capsula-read-img { width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1.5px solid var(--border); }
-  .capsula-pred-read-item { background:var(--surface);border-radius:12px;padding:.7rem 1rem;margin-top:.5rem; }
-  .capsula-pred-read-q { font-size:.67rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem; }
-  .capsula-pred-read-a { font-size:.88rem;font-weight:700;color:var(--text);line-height:1.5; }
-</style>
-<section class="capsula-section">
-  <span class="section-sub">cartas a mi yo futuro</span>
-  <h2 class="section-title"><em>Cápsula</em> del Tiempo <span style="font-style:normal;font-weight:400">. ݁₊ ⊹ . ݁ ⟡ ݁ . ⊹ ₊ ݁.</span></h2>
-  <p style="font-size:.78rem;color:var(--muted);font-weight:600;line-height:1.6;margin-bottom:.8rem">Escríbete una carta, graba tu voz, guarda momentos de luz o hazte predicciones — solo podrás abrirla cuando llegue la fecha 🔒</p>
-  <button class="capsula-nueva-btn" onclick="capsulaAbrirNueva()">✉️ Nueva cápsula</button>
-  <div class="capsula-list" id="capsulaList"></div>
-</section>
-
-<!-- Modal nueva cápsula -->
-<div class="capsula-modal-backdrop" id="capsulaNuevaBackdrop" onclick="if(event.target===this)capsulasCerrarNueva()">
-  <div class="capsula-modal">
-    <div class="capsula-modal-header">
-      <span id="capsulaNuevaTitle">Nueva cápsula ✉️</span>
-      <button onclick="capsulasCerrarNueva()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">✕</button>
-    </div>
-    <div class="capsula-modal-body">
-      <!-- Selector de tipo -->
-      <div>
-        <label class="capsula-modal-label">✨ Tipo de cápsula</label>
-        <div class="capsula-tipo-tabs">
-          <button class="capsula-tipo-tab active" onclick="capsulaSwitchTipo('carta')" id="tab-carta">✍️ Carta</button>
-          <button class="capsula-tipo-tab" onclick="capsulaSwitchTipo('audio')" id="tab-audio">🎙️ Audio</button>
-          <button class="capsula-tipo-tab" onclick="capsulaSwitchTipo('logro')" id="tab-logro">🌟 Logros</button>
-          <button class="capsula-tipo-tab" onclick="capsulaSwitchTipo('pred')" id="tab-pred">🔮 Predicciones</button>
-        </div>
-      </div>
-
-      <!-- Título (siempre visible) -->
-      <div><label class="capsula-modal-label">Título</label><input class="capsula-modal-input" id="capsulaTitulo" placeholder="Ej: Para mi yo de dentro de un año…"></div>
-
-      <!-- Panel: Carta -->
-      <div id="panel-carta">
-        <label class="capsula-modal-label">✍️ Tu carta</label>
-        <textarea class="capsula-modal-textarea" id="capsulaTexto" placeholder="Querida yo… ¿qué quieres contarle a tu yo futuro?"></textarea>
-      </div>
-
-      <!-- Panel: Audio -->
-      <div id="panel-audio" style="display:none">
-        <label class="capsula-modal-label">🎙️ Graba tu voz (máx. 30 s)</label>
-        <div class="capsula-audio-ui">
-          <div class="capsula-rec-timer" id="recTimer">00:00</div>
-          <button class="capsula-rec-btn" id="recBtn" onclick="capsulaToggleRec()">🎙️</button>
-          <div class="capsula-rec-status" id="recStatus">Pulsa para grabar</div>
-          <audio id="recPreview" class="capsula-audio-player" controls style="display:none"></audio>
-        </div>
-        <div style="font-size:.67rem;color:var(--muted);font-weight:600;margin-top:.2rem;text-align:center">Tu voz se guarda solo en este dispositivo 🔒</div>
-      </div>
-
-      <!-- Panel: Logros Invisibles -->
-      <div id="panel-logro" style="display:none">
-        <label class="capsula-modal-label">🌟 Momentos de luz — fotos, capturas, dibujos</label>
-        <div class="capsula-img-grid" id="logroGrid">
-          <div class="capsula-img-add" onclick="document.getElementById('logroInput').click()">+</div>
-        </div>
-        <input type="file" id="logroInput" accept="image/*" multiple style="display:none" onchange="capsulaAddImgs(this)">
-        <div style="font-size:.67rem;color:var(--muted);font-weight:600;margin-top:.4rem">Se abrirá automáticamente en 6 meses 🗓️</div>
-        <label class="capsula-modal-label" style="margin-top:.5rem">Nota opcional</label>
-        <textarea class="capsula-modal-textarea" id="logroNota" style="min-height:70px" placeholder="Ej: Este mes fue difícil pero también hubo momentos bonitos…"></textarea>
-      </div>
-
-      <!-- Panel: Predicciones -->
-      <div id="panel-pred" style="display:none">
-        <label class="capsula-modal-label">🔮 Responde estas 3 preguntas hoy</label>
-        <div style="display:flex;flex-direction:column;gap:.6rem">
-          <div class="capsula-pred-q">
-            <div class="capsula-pred-label">¿Quién es tu mejor amiga hoy?</div>
-            <input class="capsula-modal-input" id="predQ1" placeholder="Su nombre o cómo la describirías…">
-          </div>
-          <div class="capsula-pred-q">
-            <div class="capsula-pred-label">¿Qué te da miedo ahora mismo?</div>
-            <input class="capsula-modal-input" id="predQ2" placeholder="Sé honesta contigo misma…">
-          </div>
-          <div class="capsula-pred-q">
-            <div class="capsula-pred-label">¿Cuál es tu meta principal en este momento?</div>
-            <input class="capsula-modal-input" id="predQ3" placeholder="Lo que más quieres lograr…">
-          </div>
-        </div>
-        <div style="font-size:.67rem;color:var(--muted);font-weight:600;margin-top:.5rem">Cuando la cápsula se abra verás cómo han cambiado tus prioridades 🌱</div>
-      </div>
-
-      <!-- Fecha (siempre visible) -->
-      <div id="capsulaFechaWrap">
-        <label class="capsula-modal-label">📅 Revelar el</label>
-        <input class="capsula-modal-input" id="capsulaFecha" type="date">
-        <div style="font-size:.67rem;color:var(--muted);font-weight:600;margin-top:.3rem" id="capsulaFechaHint">No podrás leerla hasta esta fecha 🔒</div>
-      </div>
-    </div>
-    <div class="capsula-modal-footer">
-      <div></div>
-      <div style="display:flex;gap:.6rem">
-        <button onclick="capsulasCerrarNueva()" style="background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:.45rem 1.1rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:var(--muted)">Cancelar</button>
-        <button onclick="capsulaGuardar()" style="background:var(--rosa);border:none;border-radius:20px;padding:.45rem 1.2rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:white">Sellar 🔒</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Modal leer cápsula -->
-<div class="capsula-modal-backdrop" id="capsulaReadBackdrop" onclick="if(event.target===this)capsulasCerrarRead()">
-  <div class="capsula-modal">
-    <div class="capsula-modal-header">
-      <span id="capsulaReadTitle">Mi cápsula</span>
-      <button onclick="capsulasCerrarRead()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">✕</button>
-    </div>
-    <div class="capsula-modal-body">
-      <div style="text-align:center;padding:.5rem 0;font-size:.75rem;color:var(--muted);font-weight:600" id="capsulaReadMeta"></div>
-      <div id="capsulaReadBody"></div>
-    </div>
-    <div class="capsula-modal-footer">
-      <button id="capsulaReadDeleteBtn" onclick="capsulaEliminar()" style="background:none;border:none;color:#e07;font-size:.78rem;font-weight:700;cursor:pointer">🗑️ Eliminar</button>
-      <button onclick="capsulasCerrarRead()" style="background:var(--rosa);border:none;border-radius:20px;padding:.45rem 1.2rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:white;margin-left:auto">Cerrar</button>
-    </div>
-  </div>
-</div>
-
-<script>
-(function(){
-  var KEY='yuki_capsulas';var _capsulas=[];var _readId=null;
-  var _tipoActual='carta';
-  var _mediaRec=null;var _recChunks=[];var _recTimer=null;var _recSecs=0;var _audioB64=null;
-  var _logroImgs=[];
-  function load(){try{_capsulas=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){_capsulas=[];}}
-  function save(){localStorage.setItem(KEY,JSON.stringify(_capsulas));}
-  function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
-  function fmtDate(d){if(!d)return '';var p=d.split('-');if(p.length<3)return d;var m=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return p[2]+' de '+m[parseInt(p[1],10)-1]+' de '+p[0];}
-  function isUnlocked(c){return !c.revelar||new Date().toISOString().slice(0,10)>=c.revelar;}
-  function tipoLabel(t){return {carta:'✍️ Carta',audio:'🎙️ Audio',logro:'🌟 Logros',pred:'🔮 Predicciones'}[t]||'✉️';}
-  function tipoClass(t){return {carta:'',audio:'capsula-type-audio',logro:'capsula-type-logro',pred:'capsula-type-pred'}[t]||'';}
-  function render(){
-    load();var list=document.getElementById('capsulaList');if(!list)return;
-    var sorted=_capsulas.slice().sort(function(a,b){return(a.revelar||'').localeCompare(b.revelar||'');});
-    if(!sorted.length){list.innerHTML='<div style="text-align:center;padding:2rem 1rem;color:var(--muted);font-size:.82rem;font-weight:600">✉️ Aún no hay cápsulas — ¡crea tu primera!</div>';return;}
-    list.innerHTML='';
-    sorted.forEach(function(c){
-      var unlocked=isUnlocked(c);
-      var card=document.createElement('div');card.className='capsula-card '+(unlocked?'unlocked':'locked');
-      var badge=unlocked?'<span class="capsula-unlock-badge">🔓 ¡Lista para abrir!</span>':'<span class="capsula-lock-badge">🔒 se revela el '+fmtDate(c.revelar)+'</span>';
-      var typeBadge='<span class="capsula-type-badge '+tipoClass(c.tipo)+'">'+tipoLabel(c.tipo)+'</span>';
-      var preview='';
-      if(c.tipo==='audio'){
-        preview=unlocked?'<div class="capsula-card-preview">🎙️ Audio guardado — escucha tu voz de entonces</div>':'<div class="capsula-card-preview" style="filter:blur(3.5px);user-select:none">🎙️ Audio sellado...</div>';
-      } else if(c.tipo==='logro'){
-        var n=c.imagenes?c.imagenes.length:0;
-        preview=unlocked?'<div class="capsula-card-preview">🌟 '+n+' momento'+(n!==1?'s':'')+' de luz guardado'+(n!==1?'s':'')+'</div>':'<div class="capsula-card-preview" style="filter:blur(3.5px);user-select:none">🌟 Momentos sellados...</div>';
-      } else if(c.tipo==='pred'){
-        preview=unlocked?'<div class="capsula-card-preview">🔮 Tus predicciones de entonces — ¿cuántas acertaste?</div>':'<div class="capsula-card-preview" style="filter:blur(3.5px);user-select:none">🔮 Predicciones selladas...</div>';
-      } else {
-        var txt=c.texto||'';
-        preview=unlocked?'<div class="capsula-card-preview">'+txt.slice(0,100)+'…</div>':'<div class="capsula-card-preview" style="filter:blur(3.5px);user-select:none">'+txt.slice(0,80)+'</div>';
-      }
-      card.innerHTML='<div class="capsula-card-header"><div><div class="capsula-card-title">'+(c.titulo||'Mi cápsula')+'</div>'+typeBadge+'</div><div class="capsula-card-date">Sellada el<br>'+fmtDate(c.creada)+'</div></div>'+preview+badge;
-      if(unlocked)card.onclick=function(){capsulaAbrirRead(c.id);};
-      list.appendChild(card);
-    });
-  }
-  // ── Switch tipo ──
-  window.capsulaSwitchTipo=function(tipo){
-    _tipoActual=tipo;
-    ['carta','audio','logro','pred'].forEach(function(t){
-      var p=document.getElementById('panel-'+t);if(p)p.style.display=t===tipo?'':'none';
-      var tab=document.getElementById('tab-'+t);if(tab)tab.classList.toggle('active',t===tipo);
-    });
-    if(tipo==='logro'){
-      var d=new Date();d.setMonth(d.getMonth()+6);
-      document.getElementById('capsulaFecha').value=d.toISOString().slice(0,10);
-      document.getElementById('capsulaFechaHint').textContent='Los logros invisibles se abren en 6 meses 🗓️';
-    } else {
-      document.getElementById('capsulaFechaHint').textContent='No podrás leerla hasta esta fecha 🔒';
-    }
-    if(tipo!=='audio') capsulaStopRec(true);
-  };
-  // ── Audio recorder ──
-  window.capsulaToggleRec=function(){
-    if(_mediaRec&&_mediaRec.state==='recording'){capsulaStopRec(false);return;}
-    if(_audioB64){_audioB64=null;var p2=document.getElementById('recPreview');if(p2){p2.style.display='none';p2.src='';}document.getElementById('recStatus').textContent='Pulsa para grabar de nuevo';}
-    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){document.getElementById('recStatus').textContent='Tu navegador no soporta grabación 😔';return;}
-    navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
-      _recChunks=[];_recSecs=0;
-      _mediaRec=new MediaRecorder(stream);
-      _mediaRec.ondataavailable=function(e){if(e.data.size>0)_recChunks.push(e.data);};
-      _mediaRec.onstop=function(){
-        var blob=new Blob(_recChunks,{type:'audio/webm'});
-        var reader=new FileReader();
-        reader.onload=function(){_audioB64=reader.result;var prev=document.getElementById('recPreview');if(prev){prev.src=_audioB64;prev.style.display='block';}};
-        reader.readAsDataURL(blob);
-        stream.getTracks().forEach(function(t){t.stop();});
-      };
-      _mediaRec.start();
-      var btn=document.getElementById('recBtn');if(btn){btn.classList.add('recording');btn.textContent='⏹️';}
-      document.getElementById('recStatus').textContent='Grabando… (máx. 30 s)';
-      _recTimer=setInterval(function(){
-        _recSecs++;
-        var m=Math.floor(_recSecs/60);var s=_recSecs%60;
-        var t=document.getElementById('recTimer');if(t)t.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
-        if(_recSecs>=30)capsulaStopRec(false);
-      },1000);
-    }).catch(function(){document.getElementById('recStatus').textContent='No se pudo acceder al micrófono 😔';});
-  };
-  function capsulaStopRec(silent){
-    if(_recTimer){clearInterval(_recTimer);_recTimer=null;}
-    if(_mediaRec&&_mediaRec.state==='recording')_mediaRec.stop();
-    _mediaRec=null;
-    var btn=document.getElementById('recBtn');if(btn){btn.classList.remove('recording');btn.textContent='🎙️';}
-    var st=document.getElementById('recStatus');if(st&&!silent)st.textContent='¡Grabado! Pulsa ▶ para escuchar';
-    if(silent){_audioB64=null;_recSecs=0;var t=document.getElementById('recTimer');if(t)t.textContent='00:00';var p=document.getElementById('recPreview');if(p){p.style.display='none';p.src='';}}
-  }
-  // ── Logro imágenes ──
-  window.capsulaAddImgs=function(input){
-    Array.from(input.files).forEach(function(file){
-      if(_logroImgs.length>=6)return;
-      var r=new FileReader();
-      r.onload=function(e){_logroImgs.push(e.target.result);renderLogroGrid();};
-      r.readAsDataURL(file);
-    });
-    input.value='';
-  };
-  function renderLogroGrid(){
-    var grid=document.getElementById('logroGrid');if(!grid)return;
-    grid.innerHTML='';
-    _logroImgs.forEach(function(src,i){
-      var img=document.createElement('img');img.className='capsula-img-thumb';img.src=src;
-      img.title='Toca para eliminar';img.onclick=function(){_logroImgs.splice(i,1);renderLogroGrid();};
-      grid.appendChild(img);
-    });
-    if(_logroImgs.length<6){var add=document.createElement('div');add.className='capsula-img-add';add.textContent='+';add.onclick=function(){document.getElementById('logroInput').click();};grid.appendChild(add);}
-  }
-  // ── Abrir modal nueva ──
-  window.capsulaAbrirNueva=function(){
-    document.getElementById('capsulaTitulo').value='';
-    document.getElementById('capsulaTexto').value='';
-    document.getElementById('logroNota').value='';
-    document.getElementById('predQ1').value='';document.getElementById('predQ2').value='';document.getElementById('predQ3').value='';
-    _logroImgs=[];renderLogroGrid();
-    _audioB64=null;_recSecs=0;
-    var t=document.getElementById('recTimer');if(t)t.textContent='00:00';
-    var p=document.getElementById('recPreview');if(p){p.style.display='none';p.src='';}
-    var s=document.getElementById('recStatus');if(s)s.textContent='Pulsa para grabar';
-    var d=new Date();d.setFullYear(d.getFullYear()+1);
-    document.getElementById('capsulaFecha').value=d.toISOString().slice(0,10);
-    capsulaSwitchTipo('carta');
-    document.getElementById('capsulaNuevaBackdrop').classList.add('open');
-  };
-  window.capsulasCerrarNueva=function(){capsulaStopRec(true);document.getElementById('capsulaNuevaBackdrop').classList.remove('open');};
-  // ── Guardar ──
-  window.capsulaGuardar=function(){
-    var titulo=document.getElementById('capsulaTitulo').value.trim()||'Mi cápsula';
-    var fecha=document.getElementById('capsulaFecha').value;
-    var obj={id:uid(),tipo:_tipoActual,titulo:titulo,revelar:fecha,creada:new Date().toISOString().slice(0,10)};
-    if(_tipoActual==='carta'){
-      var texto=document.getElementById('capsulaTexto').value.trim();
-      if(!texto){document.getElementById('capsulaTexto').focus();return;}
-      obj.texto=texto;
-    } else if(_tipoActual==='audio'){
-      if(!_audioB64){document.getElementById('recStatus').textContent='Graba un audio primero 🎙️';return;}
-      obj.audio=_audioB64;
-    } else if(_tipoActual==='logro'){
-      if(!_logroImgs.length&&!document.getElementById('logroNota').value.trim()){document.getElementById('logroNota').focus();return;}
-      obj.imagenes=_logroImgs.slice();obj.texto=document.getElementById('logroNota').value.trim();
-    } else if(_tipoActual==='pred'){
-      var q1=document.getElementById('predQ1').value.trim();var q2=document.getElementById('predQ2').value.trim();var q3=document.getElementById('predQ3').value.trim();
-      if(!q1&&!q2&&!q3){document.getElementById('predQ1').focus();return;}
-      obj.predicciones=[q1,q2,q3];
-    }
-    load();_capsulas.push(obj);save();render();capsulaStopRec(true);capsulasCerrarNueva();
-  };
-  // ── Leer cápsula ──
-  window.capsulaAbrirRead=function(id){
-    load();_readId=id;var c=_capsulas.find(function(x){return x.id===id;});if(!c)return;
-    document.getElementById('capsulaReadTitle').textContent=c.titulo||'Mi cápsula';
-    document.getElementById('capsulaReadMeta').textContent='Sellada el '+fmtDate(c.creada)+(c.revelar?' · revelada el '+fmtDate(c.revelar):'');
-    var body=document.getElementById('capsulaReadBody');body.innerHTML='';
-    if(c.tipo==='audio'&&c.audio){
-      var aud=document.createElement('audio');aud.className='capsula-read-audio';aud.controls=true;aud.src=c.audio;body.appendChild(aud);
-      var hint=document.createElement('div');hint.style.cssText='font-size:.75rem;color:var(--muted);font-weight:600;text-align:center;margin-top:.4rem';hint.textContent='🎙️ Tu voz de hace un tiempo — escúchala con calma';body.appendChild(hint);
-    } else if(c.tipo==='logro'){
-      if(c.imagenes&&c.imagenes.length){var grid=document.createElement('div');grid.className='capsula-read-imgs';c.imagenes.forEach(function(src){var img=document.createElement('img');img.className='capsula-read-img';img.src=src;grid.appendChild(img);});body.appendChild(grid);}
-      if(c.texto){var note=document.createElement('div');note.className='capsula-read-content';note.style.marginTop='.7rem';note.textContent=c.texto;body.appendChild(note);}
-      var hint3=document.createElement('div');hint3.style.cssText='font-size:.72rem;color:var(--muted);font-weight:600;text-align:center;margin-top:.7rem';hint3.textContent='🌟 Aunque te sintieras estancada, hubo momentos de luz';body.appendChild(hint3);
-    } else if(c.tipo==='pred'&&c.predicciones){
-      var pregs=['¿Quién era tu mejor amiga?','¿Qué te daba miedo?','¿Cuál era tu meta principal?'];
-      c.predicciones.forEach(function(resp,i){var item=document.createElement('div');item.className='capsula-pred-read-item';item.innerHTML='<div class="capsula-pred-read-q">'+pregs[i]+'</div><div class="capsula-pred-read-a">'+(resp||'—')+'</div>';body.appendChild(item);});
-      var hint4=document.createElement('div');hint4.style.cssText='font-size:.72rem;color:var(--muted);font-weight:600;text-align:center;margin-top:.8rem';hint4.textContent='🌱 ¿Cuántas cosas han cambiado?';body.appendChild(hint4);
-    } else {
-      var cont=document.createElement('div');cont.className='capsula-read-content';cont.textContent=c.texto||'';body.appendChild(cont);
-    }
-    document.getElementById('capsulaReadBackdrop').classList.add('open');
-  };
-  window.capsulasCerrarRead=function(){document.getElementById('capsulaReadBackdrop').classList.remove('open');};
-  window.capsulaEliminar=function(){if(!_readId)return;load();_capsulas=_capsulas.filter(function(x){return x.id!==_readId;});save();render();capsulasCerrarRead();};
-  document.addEventListener('DOMContentLoaded',function(){load();render();});
-})();
-</script>
-
 </div><!-- end journalTabReflexion -->
 
 <div id="journalTabCuadernos" style="display:none;max-width:780px;margin:0 auto;padding:0 1rem 4rem">
@@ -25128,7 +24774,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
   <!-- 🐱 YUKI PET WIDGET (ya definido arriba) -->
 
-  <div id="ejRutinasContent" style="display:none">
+  <div id="ejRutinasContent" style="display:none;max-width:780px;margin:0 auto;padding:.9rem 1rem 2rem">
     <div class="ejercicio-date-row">
       <button class="nav-btn" id="ejPrevDay">‹</button>
       <span class="ejercicio-date-lbl" id="ejDateLbl"></span>
@@ -25144,7 +24790,7 @@ document.addEventListener('DOMContentLoaded', function(){
     </div>
   </div><!-- end ejRutinasContent -->
 
-  <div id="ejActividadesContent" style="display:none">
+  <div id="ejActividadesContent" style="display:none;max-width:780px;margin:0 auto;padding:.9rem 1rem 2rem">
     <div id="actTrackerWrap"></div>
     <section style="padding:1.2rem 0 0">
       <span class="section-sub">movimiento diario</span>
@@ -26315,27 +25961,57 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
 </script>
 
 <div id="page-limpieza" class="page-section">
-<div id="sec-limpieza-nav" style="scroll-margin-top:60px"></div>
-<section class="limpieza-section" id="sec-limpieza">
+
+<style>
+  .limp-tabs-nav { display:flex; gap:.5rem; max-width:860px; margin:1.5rem auto .2rem; padding:0 1rem; flex-wrap:wrap; }
+  .limp-tab-btn { flex:0 0 auto; padding:.42rem .95rem; border:1.5px solid var(--border); border-radius:20px; background:var(--surface); font-family:var(--font-body); font-size:.78rem; font-weight:700; color:var(--muted); cursor:pointer; transition:all .2s; }
+  .limp-tab-btn.active { background:var(--rosa); color:white; border-color:var(--rosa); }
+  .limp-tab-btn:not(.active):hover { border-color:var(--rosa); color:var(--rosa); }
+  .limp-tab-panel { display:none; }
+  .limp-tab-panel.active { display:block; }
+</style>
+
+<div style="max-width:860px;margin:2rem auto 0;padding:0 1rem .2rem">
   <span class="section-sub">hogar</span>
-  <h2 class="section-title"><em>Mi</em> Limpieza <span style="font-style:normal;font-weight:400">˚˖𓍢ִ໋❀</span></h2>
+  <h1 class="section-title"><em>Limpieza</em> 🧹 <span style="font-style:normal;font-weight:400">˚˖𓍢ִ໋❀</span></h1>
+</div>
+
+<div class="limp-tabs-nav">
+  <button class="limp-tab-btn active" onclick="limpTab('limpieza',this)">🏠 Mi Limpieza</button>
+  <button class="limp-tab-btn" onclick="limpTab('rutinas',this)">📋 Rutinas del hogar</button>
+</div>
+
+<script>
+function limpTab(tab, btn) {
+  document.querySelectorAll('.limp-tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.limp-tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('limp-panel-' + tab).classList.add('active');
+}
+</script>
+
+<!-- Panel: Mi Limpieza -->
+<div id="limp-panel-limpieza" class="limp-tab-panel active">
+<section class="limpieza-section" id="sec-limpieza">
   <p style="font-size:.75rem;color:var(--muted);margin-bottom:1.2rem;font-weight:600">
     Organiza las tareas del hogar por área 🏠
   </p>
   <div id="limpiezaAreas"></div>
   <button class="limpieza-add-area-btn" id="limpiezaAddAreaBtn">＋ Nueva área</button>
 </section>
+</div>
 
-<!-- ── RUTINAS RECURRENTES ── -->
-<section class="limpieza-section" id="sec-limp-rutinas" style="margin-top:1.5rem">
-  <span class="section-sub">rutinas recurrentes</span>
-  <h2 class="section-title"><em>Rutinas</em> del hogar <span style="font-style:normal;font-weight:400">˚˖𓍢ִ໋❀</span></h2>
+<!-- Panel: Rutinas del hogar -->
+<div id="limp-panel-rutinas" class="limp-tab-panel">
+<section class="limpieza-section" id="sec-limp-rutinas">
   <p style="font-size:.75rem;color:var(--muted);margin-bottom:1.2rem;font-weight:600">
     Crea rutinas con pasos en orden que se repiten automáticamente 📋
   </p>
   <div id="limpRutinasWrap"></div>
   <button class="limpieza-add-area-btn" id="limpRutinaAddBtn">＋ Nueva rutina recurrente</button>
 </section>
+</div>
+
 </div><!-- end page-limpieza -->
 <!-- ══════════════════════════════════════════
      PÁGINA · ARMARIO 👗
@@ -27452,11 +27128,395 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
      PÁGINA · MASCOTAS 🐾
 ══════════════════════════════════════════ -->
 <div id="page-mascotas" class="page-section">
+
+<!-- Tabs nav -->
+<style>
+  .vinculos-tabs-nav { display:flex; gap:.5rem; max-width:860px; margin:1.5rem auto .2rem; padding:0 1rem; flex-wrap:wrap; }
+  .vinculos-tab-btn { flex:0 0 auto; padding:.42rem .95rem; border:1.5px solid var(--border); border-radius:20px; background:var(--surface); font-family:var(--font-body); font-size:.78rem; font-weight:700; color:var(--muted); cursor:pointer; transition:all .2s; }
+  .vinculos-tab-btn.active { background:var(--rosa); color:white; border-color:var(--rosa); }
+  .vinculos-tab-btn:not(.active):hover { border-color:var(--rosa); color:var(--rosa); }
+  .vinculos-tab-panel { display:none; }
+  .vinculos-tab-panel.active { display:block; }
+</style>
+
+<div style="max-width:860px;margin:2rem auto 0;padding:0 1rem .5rem">
+  <span class="section-sub">mis vínculos</span>
+  <h1 class="section-title"><em>Vínculos</em> 🧡 <span style="font-style:normal;font-weight:400">₍ᐢ. .ᐢ₎ ₊˚⊹♡</span></h1>
+</div>
+
+<div class="vinculos-tabs-nav">
+  <button class="vinculos-tab-btn active" onclick="vinculosTab('personas',this)">🧡 Personas</button>
+  <button class="vinculos-tab-btn" onclick="vinculosTab('pareja',this)">💗 Mi Pareja</button>
+  <button class="vinculos-tab-btn" onclick="vinculosTab('mascotas',this)">🐾 Mascotas</button>
+</div>
+
+<script>
+function vinculosTab(tab, btn) {
+  document.querySelectorAll('.vinculos-tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.vinculos-tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('vinculos-panel-' + tab).classList.add('active');
+}
+</script>
+
+<!-- Panel: Mi Pareja -->
+<div id="vinculos-panel-pareja" class="vinculos-tab-panel">
+<style>
+  .pareja-section { max-width:860px; margin:0 auto; padding:1rem 1rem 4rem; }
+  .pareja-block { background:var(--card); border:1.5px solid var(--border); border-radius:20px; padding:1.2rem 1.3rem; margin-bottom:1rem; }
+  .pareja-block-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:.8rem; }
+  .pareja-block-title { font-family:var(--font-title); font-style:italic; font-size:1rem; font-weight:700; color:var(--text); }
+  .pareja-add-btn { display:inline-flex; align-items:center; gap:.4rem; background:var(--rosa); border:none; border-radius:20px; padding:.42rem 1rem; font-size:.78rem; font-weight:700; color:white; cursor:pointer; font-family:var(--font-body); transition:opacity .15s; }
+  .pareja-add-btn:hover { opacity:.88; }
+  .pareja-note { background:var(--surface); border-radius:14px; padding:.85rem 1rem; margin-bottom:.6rem; position:relative; }
+  .pareja-note-text { font-size:.87rem; font-weight:600; color:var(--text); line-height:1.65; white-space:pre-wrap; }
+  .pareja-note-date { font-size:.62rem; font-weight:700; color:var(--muted); margin-top:.35rem; }
+  .pareja-note-del { position:absolute; top:.6rem; right:.7rem; background:none; border:none; color:var(--muted); font-size:.8rem; cursor:pointer; opacity:.5; }
+  .pareja-note-del:hover { opacity:1; color:#ef4444; }
+  .pareja-empty { font-size:.82rem; color:var(--muted); font-weight:600; font-style:italic; }
+  .pareja-single-text { font-size:.88rem; font-weight:600; color:var(--text); line-height:1.7; white-space:pre-wrap; }
+  .pareja-edit-btn { background:none; border:1.5px solid var(--border); border-radius:12px; padding:.3rem .7rem; font-size:.75rem; font-weight:700; color:var(--muted); cursor:pointer; font-family:var(--font-body); transition:all .18s; }
+  .pareja-edit-btn:hover { border-color:var(--rosa); color:var(--rosa); }
+  .pareja-ultima-info { display:flex; align-items:center; gap:.7rem; flex-wrap:wrap; }
+  .pareja-ultima-date { font-family:var(--font-title); font-style:italic; font-size:1.05rem; font-weight:700; color:var(--rosa); }
+  .pareja-ultima-days { font-size:.75rem; font-weight:700; color:var(--muted); }
+  .pareja-bday-info { display:flex; flex-direction:column; gap:.2rem; }
+  .pareja-bday-date { font-family:var(--font-title); font-style:italic; font-size:1.05rem; font-weight:700; color:var(--rosa); }
+  .pareja-bday-days { font-size:.75rem; font-weight:700; color:var(--muted); }
+  .pareja-chip { display:inline-flex; align-items:center; gap:.35rem; background:var(--surface); border:1.5px solid var(--border); border-radius:20px; padding:.3rem .75rem; font-size:.78rem; font-weight:700; color:var(--text); margin:.25rem .2rem; }
+  .pareja-chip-del { background:none; border:none; cursor:pointer; color:var(--muted); font-size:.72rem; padding:0; line-height:1; }
+  .pareja-chip-del:hover { color:#ef4444; }
+  .pareja-meta { background:var(--surface); border-radius:14px; padding:.85rem 1rem; margin-bottom:.6rem; display:flex; align-items:flex-start; gap:.7rem; }
+  .pareja-meta-check { width:18px; height:18px; border-radius:50%; border:2px solid var(--border); flex-shrink:0; cursor:pointer; margin-top:.15rem; display:flex; align-items:center; justify-content:center; transition:all .18s; }
+  .pareja-meta-check.done { background:var(--rosa); border-color:var(--rosa); }
+  .pareja-meta-text { font-size:.87rem; font-weight:600; color:var(--text); line-height:1.6; flex:1; white-space:pre-wrap; }
+  .pareja-meta-text.done { text-decoration:line-through; color:var(--muted); }
+  .pareja-meta-del { background:none; border:none; color:var(--muted); font-size:.8rem; cursor:pointer; opacity:.5; flex-shrink:0; }
+  .pareja-meta-del:hover { opacity:1; color:#ef4444; }
+  .pareja-amor-chips { display:flex; flex-wrap:wrap; gap:.4rem; margin-bottom:.5rem; }
+  .pareja-amor-chip { padding:.38rem .85rem; border-radius:20px; border:2px solid var(--border); background:var(--surface); font-size:.78rem; font-weight:700; color:var(--muted); cursor:pointer; transition:all .18s; font-family:var(--font-body); }
+  .pareja-amor-chip.selected { background:var(--rosa); border-color:var(--rosa); color:white; }
+  .pareja-modal-backdrop { display:none; position:fixed; inset:0; background:rgba(244,167,192,.22); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); z-index:9100; align-items:center; justify-content:center; padding:1rem; overflow-y:auto; }
+  .pareja-modal-backdrop.open { display:flex; }
+  .pareja-modal { background:var(--card); border-radius:22px; width:100%; max-width:520px; margin:auto; max-height:90vh; overflow-y:auto; }
+  .pareja-modal-header { display:flex; justify-content:space-between; align-items:center; padding:1.1rem 1.3rem .8rem; border-bottom:1px solid var(--border); font-family:var(--font-title); font-style:italic; font-size:1rem; font-weight:700; position:sticky; top:0; background:var(--card); z-index:1; }
+  .pareja-modal-body { padding:1rem 1.3rem 1.5rem; display:flex; flex-direction:column; gap:.75rem; }
+  .pareja-modal-label { font-size:.65rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; margin-bottom:.25rem; display:block; }
+  .pareja-modal-textarea { width:100%; border:1.5px solid var(--border); border-radius:10px; padding:.55rem .7rem; font-family:var(--font-body); font-size:.87rem; color:var(--text); background:var(--surface); outline:none; box-sizing:border-box; resize:none; min-height:90px; font-weight:600; transition:border-color .2s; }
+  .pareja-modal-textarea:focus { border-color:var(--rosa); }
+  .pareja-modal-input { width:100%; border:1.5px solid var(--border); border-radius:10px; padding:.5rem .7rem; font-family:var(--font-body); font-size:.87rem; color:var(--text); background:var(--surface); outline:none; box-sizing:border-box; font-weight:600; transition:border-color .2s; }
+  .pareja-modal-input:focus { border-color:var(--rosa); }
+  .pareja-modal-save { width:100%; background:var(--rosa); border:none; border-radius:12px; padding:.65rem; font-family:var(--font-body); font-size:.88rem; font-weight:700; color:white; cursor:pointer; transition:opacity .15s; }
+  .pareja-modal-save:hover { opacity:.88; }
+</style>
+
+<section class="pareja-section">
+
+  <!-- 🎂 Cumpleaños -->
+  <div class="pareja-block">
+    <div class="pareja-block-header">
+      <span class="pareja-block-title">🎂 Cumpleaños</span>
+      <button class="pareja-edit-btn" onclick="parejaAbrirModal('bday')">✏️ Editar</button>
+    </div>
+    <div id="parejaBday"><p class="pareja-empty">Agrega su cumpleaños 🎂</p></div>
+  </div>
+
+  <!-- 💌 Notas de amor -->
+  <div class="pareja-block">
+    <div class="pareja-block-header">
+      <span class="pareja-block-title">💌 Notas de amor</span>
+      <button class="pareja-add-btn" onclick="parejaAbrirModal('nota')">＋ Agregar</button>
+    </div>
+    <div id="parejaNotas"><p class="pareja-empty">Escribe algo lindo sobre él/ella 💌</p></div>
+  </div>
+
+  <!-- 🎁 Ideas de regalos -->
+  <div class="pareja-block">
+    <div class="pareja-block-header">
+      <span class="pareja-block-title">🎁 Ideas de regalos</span>
+      <button class="pareja-add-btn" onclick="parejaAbrirModal('regalo')">＋ Agregar</button>
+    </div>
+    <div id="parejaRegalos"><p class="pareja-empty">Guarda ideas para sorprenderle 🎁</p></div>
+  </div>
+
+  <!-- 🌟 Sus gustos -->
+  <div class="pareja-block">
+    <div class="pareja-block-header">
+      <span class="pareja-block-title">🌟 Sus gustos</span>
+      <button class="pareja-add-btn" onclick="parejaAbrirModal('gusto')">＋ Agregar</button>
+    </div>
+    <div id="parejaGustos"><p class="pareja-empty">Comida, música, lugares, cosas que le encantan ✨</p></div>
+  </div>
+
+  <!-- 🌙 Sus deseos -->
+  <div class="pareja-block">
+    <div class="pareja-block-header">
+      <span class="pareja-block-title">🌙 Sus deseos y sueños</span>
+      <button class="pareja-add-btn" onclick="parejaAbrirModal('deseo')">＋ Agregar</button>
+    </div>
+    <div id="parejaDeseos"><p class="pareja-empty">Lo que anhela, sus sueños más profundos 🌙</p></div>
+  </div>
+
+  <!-- 😔 Sus preocupaciones -->
+  <div class="pareja-block">
+    <div class="pareja-block-header">
+      <span class="pareja-block-title">😔 Sus preocupaciones</span>
+      <button class="pareja-add-btn" onclick="parejaAbrirModal('preocupacion')">＋ Agregar</button>
+    </div>
+    <div id="parejaPreocupaciones"><p class="pareja-empty">Lo que le pesa, para orar por él/ella con intención 🙏</p></div>
+  </div>
+
+  <!-- 🌿 Sus valores e ideales -->
+  <div class="pareja-block">
+    <div class="pareja-block-header">
+      <span class="pareja-block-title">🌿 Sus valores e ideales</span>
+      <button class="pareja-add-btn" onclick="parejaAbrirModal('valor')">＋ Agregar</button>
+    </div>
+    <div id="parejaValores"><p class="pareja-empty">Lo que más le importa en la vida 🌿</p></div>
+  </div>
+
+  <!-- 💬 Lenguaje del amor -->
+  <div class="pareja-block">
+    <div class="pareja-block-header">
+      <span class="pareja-block-title">💬 Su lenguaje del amor</span>
+      <button class="pareja-edit-btn" onclick="parejaAbrirModal('amor')">✏️ Editar</button>
+    </div>
+    <div id="parejaAmor"><p class="pareja-empty">¿Cómo se siente más amado/a? 💬</p></div>
+  </div>
+
+  <!-- 📖 Lo que está aprendiendo -->
+  <div class="pareja-block">
+    <div class="pareja-block-header">
+      <span class="pareja-block-title">📖 Lo que está aprendiendo</span>
+      <button class="pareja-add-btn" onclick="parejaAbrirModal('aprendiendo')">＋ Agregar</button>
+    </div>
+    <div id="parejaAprendiendo"><p class="pareja-empty">Libros, temas, su crecimiento personal 📖</p></div>
+  </div>
+
+  <!-- 💡 Cómo puedo servirle mejor -->
+  <div class="pareja-block">
+    <div class="pareja-block-header">
+      <span class="pareja-block-title">💡 Cómo puedo servirle mejor</span>
+      <button class="pareja-add-btn" onclick="parejaAbrirModal('servir')">＋ Agregar</button>
+    </div>
+    <div id="parejaServir"><p class="pareja-empty">Acciones concretas que lo/la hacen sentir amado/a 💡</p></div>
+  </div>
+
+  <!-- 🎯 Sus metas -->
+  <div class="pareja-block">
+    <div class="pareja-block-header">
+      <span class="pareja-block-title">🎯 Sus metas</span>
+      <button class="pareja-add-btn" onclick="parejaAbrirModal('metaEl')">＋ Agregar</button>
+    </div>
+    <div id="parejaMetas"><p class="pareja-empty">Lo que está persiguiendo en la vida 🎯</p></div>
+  </div>
+
+  <!-- 📸 Momentos favoritos -->
+  <div class="pareja-block">
+    <div class="pareja-block-header">
+      <span class="pareja-block-title">📸 Momentos favoritos juntos</span>
+      <button class="pareja-add-btn" onclick="parejaAbrirModal('momento')">＋ Agregar</button>
+    </div>
+    <div id="parejaMomentos"><p class="pareja-empty">Recuerdos que quieres guardar para siempre 📸</p></div>
+  </div>
+
+  <!-- 🙏 Oración -->
+  <div class="pareja-block">
+    <div class="pareja-block-header">
+      <span class="pareja-block-title">🙏 Oración por él/ella</span>
+      <button class="pareja-edit-btn" onclick="parejaAbrirModal('oracion')">✏️ Editar</button>
+    </div>
+    <div id="parejaOracion"><p class="pareja-empty">Aún no has escrito tu oración 🙏</p></div>
+  </div>
+
+  <!-- 📅 Última vez -->
+  <div class="pareja-block">
+    <div class="pareja-block-header">
+      <span class="pareja-block-title">📅 Última vez que lo/la vi</span>
+      <button class="pareja-edit-btn" onclick="parejaAbrirModal('ultima')">✏️ Editar</button>
+    </div>
+    <div id="parejaUltima"><p class="pareja-empty">Aún no registrado 📅</p></div>
+  </div>
+
+  <!-- 🌱 Crecer juntos -->
+  <div class="pareja-block">
+    <div class="pareja-block-header">
+      <span class="pareja-block-title">🌱 Cómo quiero crecer con él/ella</span>
+      <button class="pareja-add-btn" onclick="parejaAbrirModal('crecer')">＋ Agregar</button>
+    </div>
+    <div id="parejaCrecer"><p class="pareja-empty">Intenciones y metas para esta relación 🌱</p></div>
+  </div>
+
+</section>
+
+<!-- Modal pareja -->
+<div class="pareja-modal-backdrop" id="parejaModalBackdrop" onclick="if(event.target===this)parejaCerrarModal()">
+  <div class="pareja-modal">
+    <div class="pareja-modal-header">
+      <span id="parejaModalTitle">Agregar</span>
+      <button onclick="parejaCerrarModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div class="pareja-modal-body" id="parejaModalBody"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var KEY = 'yuki_pareja_v2';
+  var d = { bday:'', notas:[], regalos:[], gustos:[], deseos:[], preocupaciones:[], valores:[], amor:[], aprendiendo:[], servir:[], metaEl:[], momentos:[], oracion:'', ultima:null, crecer:[] };
+
+  function load(){ try{ var s=JSON.parse(localStorage.getItem(KEY)||'{}'); Object.keys(d).forEach(function(k){ if(s[k]!==undefined) d[k]=s[k]; }); }catch(e){} }
+  function save(){ localStorage.setItem(KEY, JSON.stringify(d)); }
+
+  function daysSince(ds){ if(!ds) return null; return Math.floor((Date.now()-new Date(ds).getTime())/86400000); }
+  function daysUntilBday(ds){
+    if(!ds) return null;
+    var parts = ds.split('-'); if(parts.length<2) return null;
+    var now = new Date(); var month = parseInt(parts[0])-1; var day = parseInt(parts[1]);
+    var next = new Date(now.getFullYear(), month, day);
+    if(next < now) next.setFullYear(now.getFullYear()+1);
+    return Math.ceil((next-now)/86400000);
+  }
+  var MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+  // Render helpers
+  function renderSingle(id, val, empty){
+    var el=document.getElementById(id); if(!el) return;
+    el.innerHTML = val ? '<div class="pareja-single-text">'+val.replace(/</g,'&lt;')+'</div>' : '<p class="pareja-empty">'+empty+'</p>';
+  }
+  function renderChips(id, arr, tipo, empty){
+    var el=document.getElementById(id); if(!el) return;
+    if(!arr.length){ el.innerHTML='<p class="pareja-empty">'+empty+'</p>'; return; }
+    el.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:.3rem">'+arr.map(function(item,i){
+      return '<span class="pareja-chip">'+item.replace(/</g,"&lt;")+ '<button class="pareja-chip-del" onclick="parejaDelChip(\''+ tipo +'\','+i+')">✕</button></span>';
+    }).join('')+'</div>';
+  }
+  function renderNotas(){
+    var el=document.getElementById('parejaNotas'); if(!el) return;
+    if(!d.notas.length){ el.innerHTML='<p class="pareja-empty">Escribe algo lindo sobre él/ella 💌</p>'; return; }
+    el.innerHTML=d.notas.slice().reverse().map(function(n,i){
+      var ri=d.notas.length-1-i;
+      return '<div class="pareja-note"><button class="pareja-note-del" onclick="parejaDelNota('+ri+')">✕</button><div class="pareja-note-text">'+n.texto.replace(/</g,'&lt;')+'</div><div class="pareja-note-date">'+n.fecha+'</div></div>';
+    }).join('');
+  }
+  function renderCrecer(){
+    var el=document.getElementById('parejaCrecer'); if(!el) return;
+    if(!d.crecer.length){ el.innerHTML='<p class="pareja-empty">Intenciones y metas para esta relación 🌱</p>'; return; }
+    el.innerHTML=d.crecer.map(function(m,i){
+      return '<div class="pareja-meta"><div class="pareja-meta-check'+(m.done?' done':'')+'" onclick="parejaToggleCrecer('+i+')">'+(m.done?'<span style="color:white;font-size:.7rem">✓</span>':'')+'</div><div class="pareja-meta-text'+(m.done?' done':'')+'">'+ m.texto.replace(/</g,"&lt;")+'</div><button class="pareja-meta-del" onclick="parejaDelCrecer('+i+')">✕</button></div>';
+    }).join('');
+  }
+  function renderBday(){
+    var el=document.getElementById('parejaBday'); if(!el) return;
+    if(!d.bday){ el.innerHTML='<p class="pareja-empty">Agrega su cumpleaños 🎂</p>'; return; }
+    var parts=d.bday.split('-'); var monthName=MONTHS[parseInt(parts[0])-1]||''; var day=parts[1];
+    var days=daysUntilBday(d.bday);
+    var label = days===0?'🎉 ¡Hoy es su cumpleaños!':days===1?'¡Mañana es su cumple! 🎂':'Faltan '+days+' días 🎂';
+    el.innerHTML='<div class="pareja-bday-info"><div class="pareja-bday-date">'+day+' de '+monthName+'</div><div class="pareja-bday-days">'+label+'</div></div>';
+  }
+  function renderAmor(){
+    var el=document.getElementById('parejaAmor'); if(!el) return;
+    if(!d.amor.length){ el.innerHTML='<p class="pareja-empty">¿Cómo se siente más amado/a? 💬</p>'; return; }
+    el.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:.35rem">'+d.amor.map(function(a){
+      return '<span class="pareja-chip">'+a+'</span>';
+    }).join('')+'</div>';
+  }
+  function renderUltima(){
+    var el=document.getElementById('parejaUltima'); if(!el) return;
+    if(!d.ultima){ el.innerHTML='<p class="pareja-empty">Aún no registrado 📅</p>'; return; }
+    var days=daysSince(d.ultima);
+    var label=days===0?'¡Hoy! 🎉':days===1?'Hace 1 día':'Hace '+days+' días';
+    var fecha=new Date(d.ultima).toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
+    el.innerHTML='<div class="pareja-ultima-info"><div><div class="pareja-ultima-date">'+fecha+'</div><div class="pareja-ultima-days">'+label+'</div></div></div>';
+  }
+  function renderAll(){
+    renderBday(); renderNotas();
+    renderChips('parejaRegalos',d.regalos,'regalos','Guarda ideas para sorprenderle 🎁');
+    renderChips('parejaGustos',d.gustos,'gustos','Comida, música, lugares, cosas que le encantan ✨');
+    renderChips('parejaDeseos',d.deseos,'deseos','Lo que anhela, sus sueños más profundos 🌙');
+    renderChips('parejaPreocupaciones',d.preocupaciones,'preocupaciones','Lo que le pesa, para orar por él/ella con intención 🙏');
+    renderChips('parejaValores',d.valores,'valores','Lo que más le importa en la vida 🌿');
+    renderAmor();
+    renderChips('parejaAprendiendo',d.aprendiendo,'aprendiendo','Libros, temas, su crecimiento personal 📖');
+    renderChips('parejaServir',d.servir,'servir','Acciones concretas que lo/la hacen sentir amado/a 💡');
+    renderChips('parejaMetas',d.metaEl,'metaEl','Lo que está persiguiendo en la vida 🎯');
+    renderChips('parejaMomentos',d.momentos,'momentos','Recuerdos que quieres guardar para siempre 📸');
+    renderSingle('parejaOracion',d.oracion,'Aún no has escrito tu oración 🙏');
+    renderUltima(); renderCrecer();
+  }
+
+  var _tipo='';
+  var AMOR_OPTS = ['💬 Palabras de afirmación','⏰ Tiempo de calidad','🤝 Actos de servicio','🎁 Regalos','🤗 Contacto físico'];
+
+  window.parejaAbrirModal=function(tipo){
+    _tipo=tipo;
+    var titles={bday:'🎂 Cumpleaños',nota:'💌 Nota de amor',regalo:'🎁 Idea de regalo',gusto:'🌟 Un gusto suyo',deseo:'🌙 Un deseo o sueño',preocupacion:'😔 Una preocupación',valor:'🌿 Un valor o ideal',amor:'💬 Lenguaje del amor',aprendiendo:'📖 Lo que está aprendiendo',servir:'💡 Cómo servirle mejor',metaEl:'🎯 Una meta suya',momento:'📸 Momento favorito',oracion:'🙏 Oración por él/ella',ultima:'📅 Última vez que lo/la vi',crecer:'🌱 Crecer juntos'};
+    document.getElementById('parejaModalTitle').textContent=titles[tipo]||'Agregar';
+    var body=document.getElementById('parejaModalBody');
+    if(tipo==='bday'){
+      body.innerHTML='<div><label class="pareja-modal-label">Mes y día de su cumpleaños</label><div style="display:flex;gap:.5rem"><select class="pareja-modal-input" id="parejaInputMes" style="flex:1">'+MONTHS.map(function(m,i){var v=String(i+1).padStart(2,'0');return'<option value="'+v+'"'+(d.bday&&d.bday.startsWith(v)?' selected':'')+'>'+m.charAt(0).toUpperCase()+m.slice(1)+'</option>';}).join('')+'</select><input class="pareja-modal-input" id="parejaInputDia" type="number" min="1" max="31" placeholder="Día" value="'+(d.bday?d.bday.split('-')[1]:'')+'" style="width:80px"></div></div><button class="pareja-modal-save" onclick="parejaGuardar()">Guardar</button>';
+    } else if(tipo==='amor'){
+      var sel=d.amor.slice();
+      body.innerHTML='<div><label class="pareja-modal-label">Selecciona uno o varios</label><div class="pareja-amor-chips" id="amorChips">'+AMOR_OPTS.map(function(o){return'<button class="pareja-amor-chip'+(sel.indexOf(o)>=0?' selected':'')+'" data-opt="'+o.replace(/"/g,'&quot;')+'" onclick="parejaToggleAmor(this)">'+o+'</button>';}).join('')+'</div></div><button class="pareja-modal-save" onclick="parejaGuardar()">Guardar</button>';
+    } else if(tipo==='oracion'){
+      body.innerHTML='<div><label class="pareja-modal-label">Tu oración 🙏</label><textarea class="pareja-modal-textarea" id="parejaInput" style="min-height:130px" placeholder="Señor, te pido por él/ella…">'+( d.oracion||'' )+'</textarea></div><button class="pareja-modal-save" onclick="parejaGuardar()">Guardar</button>';
+    } else if(tipo==='ultima'){
+      var hoy=new Date().toISOString().split('T')[0];
+      body.innerHTML='<div><label class="pareja-modal-label">¿Cuándo fue? 📅</label><input class="pareja-modal-input" id="parejaInput" type="date" value="'+(d.ultima||hoy)+'"></div><button class="pareja-modal-save" onclick="parejaGuardar()">Guardar</button>';
+    } else if(tipo==='nota'){
+      body.innerHTML='<div><label class="pareja-modal-label">Escribe algo lindo 💌</label><textarea class="pareja-modal-textarea" id="parejaInput" placeholder="Un momento bonito, por qué lo/la quieres…"></textarea></div><button class="pareja-modal-save" onclick="parejaGuardar()">Guardar</button>';
+    } else if(tipo==='crecer'){
+      body.innerHTML='<div><label class="pareja-modal-label">Intención o meta 🌱</label><textarea class="pareja-modal-textarea" id="parejaInput" placeholder="Quiero orar juntos, crecer en paciencia…"></textarea></div><button class="pareja-modal-save" onclick="parejaGuardar()">Guardar</button>';
+    } else {
+      var ph={regalo:'Una idea de regalo…',gusto:'Algo que le encanta…',deseo:'Un sueño o anhelo suyo…',preocupacion:'Algo que le preocupa…',valor:'Un valor que lo/la define…',aprendiendo:'Un libro, tema o habilidad…',servir:'Una acción concreta…',metaEl:'Una meta que persigue…',momento:'Un recuerdo especial juntos…'};
+      body.innerHTML='<div><label class="pareja-modal-label">Escribe</label><textarea class="pareja-modal-textarea" id="parejaInput" placeholder="'+(ph[tipo]||'Escribe aquí…')+'"></textarea></div><button class="pareja-modal-save" onclick="parejaGuardar()">Guardar</button>';
+    }
+    document.getElementById('parejaModalBackdrop').classList.add('open');
+    setTimeout(function(){var el=document.getElementById('parejaInput');if(el)el.focus();},100);
+  };
+
+  window.parejaCerrarModal=function(){ document.getElementById('parejaModalBackdrop').classList.remove('open'); };
+
+  window.parejaToggleAmor=function(btn){ btn.classList.toggle('selected'); };
+
+  window.parejaGuardar=function(){
+    if(_tipo==='bday'){
+      var mes=document.getElementById('parejaInputMes').value;
+      var dia=String(parseInt(document.getElementById('parejaInputDia').value)||1).padStart(2,'0');
+      d.bday=mes+'-'+dia; save(); renderBday(); parejaCerrarModal(); return;
+    }
+    if(_tipo==='amor'){
+      d.amor=Array.from(document.querySelectorAll('.pareja-amor-chip.selected')).map(function(b){return b.dataset.opt||b.textContent;});
+      save(); renderAmor(); parejaCerrarModal(); return;
+    }
+    var el=document.getElementById('parejaInput'); if(!el) return;
+    var val=el.value.trim(); if(!val) return;
+    if(_tipo==='oracion'){ d.oracion=val; }
+    else if(_tipo==='ultima'){ d.ultima=val; }
+    else if(_tipo==='nota'){ d.notas.push({texto:val,fecha:new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'})}); }
+    else if(_tipo==='crecer'){ d.crecer.push({texto:val,done:false}); }
+    else if(d[_tipo]!==undefined){ d[_tipo].push(val); }
+    save(); renderAll(); parejaCerrarModal();
+  };
+
+  window.parejaDelNota=function(i){ if(!confirm('¿Eliminar?'))return; d.notas.splice(i,1); save(); renderNotas(); };
+  window.parejaDelChip=function(tipo,i){ if(!confirm('¿Eliminar?'))return; d[tipo].splice(i,1); save(); renderChips('pareja'+tipo.charAt(0).toUpperCase()+tipo.slice(1),d[tipo],tipo,''); };
+  window.parejaToggleCrecer=function(i){ d.crecer[i].done=!d.crecer[i].done; save(); renderCrecer(); };
+  window.parejaDelCrecer=function(i){ if(!confirm('¿Eliminar?'))return; d.crecer.splice(i,1); save(); renderCrecer(); };
+
+  load(); renderAll();
+  if(window._watchCloud) window._watchCloud(KEY,function(v){if(v){Object.keys(d).forEach(function(k){if(v[k]!==undefined)d[k]=v[k];});renderAll();}});
+})();
+</script>
+</div><!-- end panel pareja -->
+
+<!-- Panel: Mascotas -->
+<div id="vinculos-panel-mascotas" class="vinculos-tab-panel">
 <section class="pets-section">
   <div class="pets-header">
     <div>
       <span class="section-sub">hogar</span>
-      <h1 class="section-title"><em>Mis</em> Mascotas 🐾 <span style="font-style:normal;font-weight:400">₍ᐢ. .ᐢ₎ ₊˚⊹♡</span></h1>
+      <h2 class="section-title"><em>Mis</em> Mascotas 🐾 <span style="font-style:normal;font-weight:400">₍ᐢ. .ᐢ₎ ₊˚⊹♡</span></h2>
     </div>
     <button class="pets-add-btn" onclick="petsOpenModal()">+ agregar</button>
   </div>
@@ -27469,6 +27529,7 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
     </div>
   </div>
 </section>
+</div><!-- end panel mascotas -->
 
 <!-- Modal mascotas -->
 <div class="pets-modal-backdrop" id="petsModalBackdrop" style="display:none" onclick="if(event.target===this)petsCloseModal()">
@@ -27821,6 +27882,17 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
   if (window._watchCloud) window._watchCloud(PETS_KEY, function(val){ pets = val||[]; render(); });
 })();
 </script>
+<!-- Panel: Personas -->
+<div id="vinculos-panel-personas" class="vinculos-tab-panel active">
+<section class="personas-section" style="padding-top:1rem">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+    <span class="section-sub">mis vínculos</span>
+    <button class="pets-add-btn" onclick="personaAbrirModal()">+ agregar</button>
+  </div>
+  <div class="personas-grid" id="personasGrid"></div>
+</section>
+</div><!-- end panel personas -->
+
 </div><!-- end page-mascotas -->
 
 
@@ -28704,8 +28776,8 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
   .insumo-btn:hover { background: var(--surface); }
 
   /* MODAL */
-  .paste-backdrop { position: fixed; inset: 0; background: rgba(200,150,170,.18); backdrop-filter: blur(3px); z-index: 9000; display: flex; align-items: center; justify-content: center; padding: 1rem; }
-  .paste-modal { background: var(--card); border-radius: 20px; width: 100%; max-width: 500px; max-height: 88vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,.18); }
+  .paste-backdrop { position: fixed; inset: 0; background: rgba(200,150,170,.18); backdrop-filter: blur(3px); z-index: 9000; display: flex; align-items: center; justify-content: center; padding: 1rem; overflow-y: auto; }
+  .paste-modal { background: var(--card); border-radius: 20px; width: 100%; max-width: 500px; max-height: 88vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,.18); margin: auto; }
   .paste-modal-hdr { display: flex; justify-content: space-between; align-items: center; padding: 1.1rem 1.3rem .8rem; font-family: var(--font-title); font-style: italic; font-size: 1.05rem; font-weight: 700; border-bottom: 1px solid var(--border); }
   .paste-modal-close { background: none; border: none; font-size: 1.1rem; cursor: pointer; color: var(--muted); }
   .paste-modal-body { padding: 1rem 1.3rem; display: flex; flex-direction: column; gap: .7rem; }
@@ -34365,6 +34437,7 @@ const NAV_PAGES = [
   { icon:'💪', label:'Ejercicio',      page:'page-ejercicio'    },
   { icon:'🚀', label:'Logros',          page:'page-logros'       },
   { icon:'🙏', label:'Fe',              page:'page-fe'           },
+  { icon:'🌱', label:'Raíz & Flor',    page:'page-raiz-flor'    },
   { icon:'👥', label:'Personas',        page:'page-personas'     },
   { icon:'💙', label:'Universidad',     page:'page-univ'         },
   { icon:'🦄', label:'Intereses',       page:'page-intereses'    },
@@ -34374,8 +34447,8 @@ const NAV_PAGES = [
   { icon:'🌿', label:'Mi Nutrición',    page:'page-recetario'    },
   { icon:'🧺', label:'Despensa',        page:'page-despensa'     },
   { icon:'🧹', label:'Limpieza',        page:'page-limpieza'     },
-  { icon:'🐾', label:'Mascotas',        page:'page-mascotas'     },
-  { icon:'🪴', label:'Plantas',         page:'page-plantas'      },
+  { icon:'🐾', label:'Vínculos',        page:'page-mascotas'     },
+  { icon:'🪴', label:'Mi jardín',        page:'page-plantas'      },
   { icon:'🎂', label:'Pastelería',      page:'page-pasteleria'   },
   { icon:'💸', label:'Finanzas',        page:'page-finanzas'     },
   { icon:'📋', label:'Listas',          page:'page-listas'       },
@@ -34389,7 +34462,7 @@ const DRAWER_STRUCTURE = {
     { icon:'🔍', label:'Buscar',    page:'page-buscar' },
   ],
   groups: [
-    { id:'hoy', icon:'🌸', label:'Mi Día', items: [
+    { id:'hoy', icon:'☁️', label:'Mi Día', items: [
       { icon:'♡', label:'Tareas',          page:'page-tareas'       },
       { icon:'♡', label:'Agenda',       page:'page-semana'       },
       { icon:'♡', label:'Horario',         page:'page-horario'      },
@@ -34403,28 +34476,28 @@ const DRAWER_STRUCTURE = {
       { icon:'♡', label:'Braindump',       page:'page-braindump'    },
       { icon:'♡', label:'Mi Plan de Vida', page:'page-plan-vida'    },
     ]},
-    { id:'yo', icon:'☁️', label:'Yo', items: [
+    { id:'yo', icon:'🌸', label:'Florecer', items: [
+      { icon:'♡', label:'Fe',              page:'page-fe'           },
+      { icon:'♡', label:'Raíz & Flor',    page:'page-raiz-flor'    },
       { icon:'♡', label:'Selfcare',        page:'page-selfcare'     },
       { icon:'♡', label:'Salud',           page:'page-salud'        },
       { icon:'♡', label:'Ejercicio',       page:'page-ejercicio'    },
       { icon:'♡', label:'Logros',          page:'page-logros'       },
-      { icon:'♡', label:'Fe',              page:'page-fe'           },
-      { icon:'♡', label:'Personas',        page:'page-personas'     },
-      { icon:'♡', label:'Atelier',          page:'page-estudio'      },
     ]},
     { id:'crear', icon:'🍓', label:'Crear & Aprender', items: [
       { icon:'♡', label:'Universidad',     page:'page-univ'         },
       { icon:'♡', label:'Intereses',       page:'page-intereses'    },
       { icon:'♡', label:'Biblioteca',      page:'page-biblioteca'   },
+      { icon:'♡', label:'Atelier',         page:'page-estudio'      },
+      { icon:'♡', label:'Pastelería',      page:'page-pasteleria'   },
+      { icon:'♡', label:'Mi jardín',       page:'page-plantas'      },
     ]},
-    { id:'mundo', icon:'💌', label:'Mi Mundo', items: [
+    { id:'mundo', icon:'💌', label:'Mi Espacio', items: [
       { icon:'♡', label:'Armario',         page:'page-armario'      },
       { icon:'♡', label:'Mi Nutrición',    page:'page-recetario'    },
       { icon:'♡', label:'Despensa',        page:'page-despensa'     },
       { icon:'♡', label:'Limpieza',        page:'page-limpieza'     },
-      { icon:'♡', label:'Mascotas',        page:'page-mascotas'     },
-      { icon:'♡', label:'Plantas',         page:'page-plantas'      },
-      { icon:'♡', label:'Pastelería',      page:'page-pasteleria'   },
+      { icon:'♡', label:'Vínculos',        page:'page-mascotas'     },
       { icon:'♡', label:'Finanzas',        page:'page-finanzas'     },
       { icon:'♡', label:'Listas',          page:'page-listas'       },
     ]},
@@ -38155,11 +38228,97 @@ function interesesShowTab(idx) {
   margin-bottom: 2rem;
 }
 .plv-intro {
-  font-size: .82rem;
+  font-size: .78rem;
   color: var(--muted);
   font-weight: 600;
   margin-top: .3rem;
+  margin-bottom: 1.4rem;
   line-height: 1.5;
+}
+.plv-vision {
+  font-size: .85rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.55;
+  margin-top: .5rem;
+  border-left: 3px solid var(--rosa);
+  padding-left: .75rem;
+  font-style: italic;
+}
+
+/* Misión card */
+.plv-mision-card {
+  background: linear-gradient(135deg, var(--rosa-soft,#fde8f0) 0%, var(--surface) 100%);
+  border: 1.5px solid var(--rosa);
+  border-radius: 20px;
+  padding: 1.2rem 1.25rem 1.1rem;
+  margin: 1.2rem 0 1rem;
+  position: relative;
+}
+.plv-mision-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .7rem;
+  gap: .6rem;
+}
+.plv-mision-label {
+  font-size: .63rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--rosa);
+}
+.plv-mision-text {
+  font-size: .83rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.65;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+/* ── Tabs de fases ── */
+.plv-tabs-bar {
+  display: flex;
+  gap: .35rem;
+  overflow-x: auto;
+  padding: .9rem 0 .5rem;
+  scrollbar-width: none;
+  border-bottom: 1.5px solid var(--border);
+  margin-bottom: 1.2rem;
+}
+.plv-tabs-bar::-webkit-scrollbar { display: none; }
+.plv-fase-tab {
+  flex-shrink: 0;
+  padding: .42rem .85rem;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  font-family: var(--font-body);
+  font-size: .73rem;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+}
+.plv-fase-tab:hover { border-color: var(--rosa); color: var(--rosa-dark, #e07898); }
+.plv-fase-tab.activa-tab  { background: var(--rosa); border-color: var(--rosa); color: #fff; }
+.plv-fase-tab.completa-tab { background: var(--verde-soft,#d1fae5); border-color: #6ee7b7; color: #059669; }
+.plv-fase-tab .plv-tab-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: currentColor; opacity: .6; flex-shrink: 0;
+}
+/* Tab seleccionado siempre en rosa sin importar status */
+.plv-fase-tab.active {
+  background: var(--rosa) !important;
+  border-color: var(--rosa) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 12px rgba(244,167,192,.35);
 }
 
 /* Fase card */
@@ -38483,10 +38642,22 @@ function interesesShowTab(idx) {
 
 <div class="plv-wrap">
   <div class="plv-header">
-    <span class="section-sub">visión a largo plazo</span>
-    <h1 class="section-title"><em>Mi</em> Plan de Vida <span style="font-style:normal;font-weight:400">🌱</span></h1>
-    <p class="plv-intro">Tu camino, fase por fase. Las barras avanzan solas con el tiempo — edita cualquier cosa cuando algo cambie. 🌸</p>
+    <span class="section-sub">plan de vida completo de susan</span>
+    <h1 class="section-title"><em>El Jardín</em> de los 8 Remedios <span style="font-style:normal;font-weight:400">🌱</span></h1>
+    <p class="plv-vision" id="plvVisionText">Ser una Nutrióloga Naturópata, Esposa y Madre que honra a Dios criando a sus hijos en una casa de campo, aplicando los 8 Remedios Naturales, y siendo el Huerto Cerrado de su esposo.</p>
   </div>
+
+  <!-- Declaración de misión -->
+  <div class="plv-mision-card" id="plvMisionCard">
+    <div class="plv-mision-top">
+      <span class="plv-mision-label">✦ Declaración de Misión · Leer cada mañana</span>
+      <button class="plv-edit-btn" id="plvEditMisionBtn">✏️ Editar</button>
+    </div>
+    <p class="plv-mision-text" id="plvMisionText"></p>
+  </div>
+
+  <!-- Tabs de fases -->
+  <div class="plv-tabs-bar" id="plvTabsBar"></div>
   <div id="plvRoot"></div>
 </div>
 
@@ -38494,7 +38665,44 @@ function interesesShowTab(idx) {
 (function(){
 'use strict';
 
-var PLV_KEY = 'yuki_plan_vida_v1';
+var PLV_KEY     = 'yuki_plan_vida_v1';
+var PLV_MIS_KEY = 'yuki_plan_vida_mision_v1';
+
+var PLV_MISION_DEFAULT = "Soy Susan, una mujer amada por Dios, diseñada con un cerebro neurodivergente para la Profundidad y la Maravilla. Mi misión es Regular mi Sistema Nervioso en la presencia de Dios para convertirme en una Nutrióloga Naturópata que sana con los 8 Remedios Naturales. Anhelo ser Esposa y Madre en un Huerto Cerrado, criando a mis hijos en el campo y decorando mi hogar con flores y pasteles veganos. Hoy, Fase 0, cultivo mi jardín interior con agua, sol y oración. Un día a la vez. Para la gloria de Dios y el bien de mi futura familia.";
+
+function loadMision() {
+  return localStorage.getItem(PLV_MIS_KEY) || PLV_MISION_DEFAULT;
+}
+function saveMision(txt) {
+  localStorage.setItem(PLV_MIS_KEY, txt);
+}
+function renderMision() {
+  var el = document.getElementById('plvMisionText');
+  if (el) el.textContent = loadMision();
+}
+function openMisionModal() {
+  var cur = loadMision();
+  var back = document.createElement('div');
+  back.className = 'plv-modal-back';
+  back.innerHTML =
+    '<div class="plv-modal-box">' +
+      '<div class="plv-modal-title"><em>Editar</em> Declaración de Misión</div>' +
+      '<label class="plv-modal-label">Tu declaración (puedes reescribirla cuando necesites)</label>' +
+      '<textarea class="plv-modal-textarea" id="plvMisTxt" style="min-height:200px">' + cur.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</textarea>' +
+      '<div class="plv-modal-btns">' +
+        '<button class="plv-btn-cancel" id="plvMisCancel">Cancelar</button>' +
+        '<button class="plv-btn-save" id="plvMisSave">Guardar</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(back);
+  back.addEventListener('click', function(e){ if(e.target===back) document.body.removeChild(back); });
+  back.querySelector('#plvMisCancel').addEventListener('click', function(){ document.body.removeChild(back); });
+  back.querySelector('#plvMisSave').addEventListener('click', function(){
+    var val = back.querySelector('#plvMisTxt').value.trim();
+    if (val) { saveMision(val); renderMision(); }
+    document.body.removeChild(back);
+  });
+}
 
 var PLV_DEFAULT = [
   {
@@ -38607,59 +38815,91 @@ function getStatus(inicio, fin) {
 var STATUS_LABEL = { futura:'✦ Por venir', activa:'✦ En curso', completa:'✓ Completada' };
 
 /* ── Render principal ── */
+var _plvActiveTab = 0;
+
+function renderTabsBar(data) {
+  var bar = document.getElementById('plvTabsBar');
+  if (!bar) return;
+  bar.innerHTML = '';
+  data.forEach(function(fase, idx) {
+    var status = getStatus(fase.inicio, fase.fin);
+    var btn = document.createElement('button');
+    btn.className = 'plv-fase-tab' +
+      (status === 'activa'   ? ' activa-tab'   : '') +
+      (status === 'completa' ? ' completa-tab' : '') +
+      (idx === _plvActiveTab ? ' active'       : '');
+    // dot solo si activa o completa
+    var dot = (status !== 'futura') ? '<span class="plv-tab-dot"></span>' : '';
+    btn.innerHTML = dot + fase.num;
+    if (idx === _plvActiveTab) btn.style.cssText = btn.getAttribute('style') || '';
+    btn.addEventListener('click', function() {
+      _plvActiveTab = idx;
+      render();
+    });
+    bar.appendChild(btn);
+  });
+}
+
+function renderFase(fase, idx) {
+  var pct    = calcPct(fase.inicio, fase.fin);
+  var status = getStatus(fase.inicio, fase.fin);
+
+  var card = document.createElement('div');
+  card.className = 'plv-fase';
+  card.style.animation = 'planFade .22s ease both';
+
+  var partes = fase.nombre.split(' ');
+  var nombreHTML = partes[0] + ' <em>' + partes.slice(1).join(' ') + '</em>';
+
+  card.innerHTML =
+    '<div class="plv-fase-top">' +
+      '<div class="plv-fase-left">' +
+        '<div class="plv-fase-num">' + fase.num + '</div>' +
+        '<div class="plv-fase-nombre">' + nombreHTML + '</div>' +
+        '<div class="plv-fase-periodo">' + fase.periodo + '</div>' +
+      '</div>' +
+      '<button class="plv-edit-btn" data-idx="' + idx + '">✏️ Editar</button>' +
+    '</div>' +
+    '<div class="plv-objetivo"><span>Objetivo:</span> ' + fase.objetivo + '</div>' +
+    '<div class="plv-progress-wrap">' +
+      '<div class="plv-progress-label">' +
+        '<span class="plv-progress-title">Progreso</span>' +
+        '<span class="plv-progress-pct">' + pct + '%</span>' +
+      '</div>' +
+      '<div class="plv-bar-bg"><div class="plv-bar-fill ' + status + '" style="width:' + pct + '%"></div></div>' +
+      '<span class="plv-status-badge ' + status + '">' + STATUS_LABEL[status] + '</span>' +
+    '</div>' +
+    '<table class="plv-tabla">' +
+      (fase.areas[0] && fase.areas[0].exito !== undefined
+        ? '<tr class="plv-tabla-hdr"><th>Área</th><th>Objetivo</th><th>¿Cómo se mide el éxito?</th></tr>' +
+          fase.areas.map(function(a) {
+            return '<tr><td>' + a.area + '</td><td>' + (a.objetivo||'') + '</td><td>' + (a.exito||'') + '</td></tr>';
+          }).join('')
+        : fase.areas.map(function(a) {
+            return '<tr><td>' + a.area + '</td><td>' + (a.plan||'') + '</td></tr>';
+          }).join('')
+      ) +
+    '</table>';
+
+  card.querySelector('.plv-edit-btn').addEventListener('click', function() {
+    openModal(idx);
+  });
+
+  return card;
+}
+
 function render() {
   var data = loadData();
   var root = document.getElementById('plvRoot');
   if (!root) return;
+
+  // Clamp active tab
+  if (_plvActiveTab >= data.length) _plvActiveTab = 0;
+
+  renderTabsBar(data);
+
   root.innerHTML = '';
-
-  data.forEach(function(fase, idx) {
-    var pct    = calcPct(fase.inicio, fase.fin);
-    var status = getStatus(fase.inicio, fase.fin);
-
-    var card = document.createElement('div');
-    card.className = 'plv-fase';
-
-    /* nombre partes: primera palabra normal, resto em */
-    var partes = fase.nombre.split(' ');
-    var nombreHTML = partes[0] + ' <em>' + partes.slice(1).join(' ') + '</em>';
-
-    card.innerHTML =
-      '<div class="plv-fase-top">' +
-        '<div class="plv-fase-left">' +
-          '<div class="plv-fase-num">' + fase.num + '</div>' +
-          '<div class="plv-fase-nombre">' + nombreHTML + '</div>' +
-          '<div class="plv-fase-periodo">' + fase.periodo + '</div>' +
-        '</div>' +
-        '<button class="plv-edit-btn" data-idx="' + idx + '">✏️ Editar</button>' +
-      '</div>' +
-      '<div class="plv-objetivo"><span>Objetivo:</span> ' + fase.objetivo + '</div>' +
-      '<div class="plv-progress-wrap">' +
-        '<div class="plv-progress-label">' +
-          '<span class="plv-progress-title">Progreso</span>' +
-          '<span class="plv-progress-pct">' + pct + '%</span>' +
-        '</div>' +
-        '<div class="plv-bar-bg"><div class="plv-bar-fill ' + status + '" style="width:' + pct + '%"></div></div>' +
-        '<span class="plv-status-badge ' + status + '">' + STATUS_LABEL[status] + '</span>' +
-      '</div>' +
-      '<table class="plv-tabla">' +
-        (fase.areas[0] && fase.areas[0].exito !== undefined
-          ? '<tr class="plv-tabla-hdr"><th>Área</th><th>Objetivo</th><th>¿Cómo se mide el éxito?</th></tr>' +
-            fase.areas.map(function(a) {
-              return '<tr><td>' + a.area + '</td><td>' + (a.objetivo||'') + '</td><td>' + (a.exito||'') + '</td></tr>';
-            }).join('')
-          : fase.areas.map(function(a) {
-              return '<tr><td>' + a.area + '</td><td>' + (a.plan||'') + '</td></tr>';
-            }).join('')
-        ) +
-      '</table>';
-
-    card.querySelector('.plv-edit-btn').addEventListener('click', function() {
-      openModal(idx);
-    });
-
-    root.appendChild(card);
-  });
+  root.appendChild(renderFase(data[_plvActiveTab], _plvActiveTab));
 }
 
 /* ── Modal de edición ── */
@@ -38806,7 +39046,12 @@ function escH(s) {
 
 /* ── Init ── */
 document.addEventListener('DOMContentLoaded', function() {
-  if (document.getElementById('plvRoot')) render();
+  if (document.getElementById('plvRoot')) {
+    render();
+    renderMision();
+    var btn = document.getElementById('plvEditMisionBtn');
+    if (btn) btn.addEventListener('click', openMisionModal);
+  }
 });
 
 /* Render al mostrar la página */
@@ -38814,6 +39059,12 @@ var _plvObs = new MutationObserver(function() {
   var pg = document.getElementById('page-plan-vida');
   if (pg && pg.classList.contains('active') && document.getElementById('plvRoot')) {
     render();
+    renderMision();
+    var btn = document.getElementById('plvEditMisionBtn');
+    if (btn && !btn._plvBound) {
+      btn.addEventListener('click', openMisionModal);
+      btn._plvBound = true;
+    }
   }
 });
 document.addEventListener('DOMContentLoaded', function() {
@@ -40066,7 +40317,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <section class="personas-section">
   <span class="section-sub">mis vínculos</span>
   <h2 class="section-title"><em>Personas</em> Importantes <span style="font-style:normal;font-weight:400">₍ᐢ. .ᐢ₎ ₊˚⊹♡</span></h2>
-  <div class="personas-grid" id="personasGrid"></div>
+  <div class="personas-grid" id="personasGrid-legacy"></div>
 </section>
 
 <div class="persona-modal-backdrop" id="personaModalBackdrop" onclick="if(event.target===this)personaCerrarModal()">
@@ -43688,6 +43939,690 @@ window.showPage = function(pageId) {
 
 
 
+
+
+<!-- ══════════════════════════════════════════
+     PÁGINA · RAÍZ & FLOR 🌱🌸
+══════════════════════════════════════════ -->
+<div id="page-raiz-flor" class="page-section">
+
+<style>
+  .rf-tabs-nav { display:flex; gap:.5rem; max-width:860px; margin:1.5rem auto .2rem; padding:0 1rem; flex-wrap:wrap; }
+  .rf-tab-btn { flex:0 0 auto; padding:.42rem .95rem; border:1.5px solid var(--border); border-radius:20px; background:var(--surface); font-family:var(--font-body); font-size:.78rem; font-weight:700; color:var(--muted); cursor:pointer; transition:all .2s; }
+  .rf-tab-btn.active { background:var(--rosa); color:white; border-color:var(--rosa); }
+  .rf-tab-btn:not(.active):hover { border-color:var(--rosa); color:var(--rosa); }
+  .rf-tab-panel { display:none; }
+  .rf-tab-panel.active { display:block; }
+  .rf-section { max-width:860px; margin:0 auto; padding:1rem 1rem 4rem; }
+  /* Raíz cards */
+  .raiz-card { background:var(--card); border:1.5px solid var(--border); border-radius:18px; padding:1.1rem 1.3rem; margin-bottom:.85rem; position:relative; }
+  .raiz-card-label { font-size:.62rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; margin-bottom:.35rem; }
+  .raiz-card-text { font-size:.88rem; font-weight:600; color:var(--text); line-height:1.6; white-space:pre-wrap; }
+  .raiz-card-del { position:absolute; top:.7rem; right:.8rem; background:none; border:none; color:var(--muted); font-size:.85rem; cursor:pointer; opacity:.6; }
+  .raiz-card-del:hover { opacity:1; color:#ef4444; }
+  .raiz-add-btn { display:inline-flex; align-items:center; gap:.4rem; background:var(--rosa); border:none; border-radius:20px; padding:.5rem 1.1rem; font-size:.8rem; font-weight:700; color:white; cursor:pointer; font-family:var(--font-body); margin-top:.3rem; transition:opacity .15s; }
+  .raiz-add-btn:hover { opacity:.88; }
+  .raiz-modal-backdrop { display:none; position:fixed; inset:0; background:rgba(244,167,192,.22); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); z-index:9100; align-items:center; justify-content:center; padding:1rem; overflow-y:auto; }
+  .raiz-modal-backdrop.open { display:flex; }
+  .raiz-modal { background:var(--card); border-radius:22px 22px 0 0; width:100%; max-width:560px; padding:1.3rem 1.3rem 2rem; margin:auto; }
+  .raiz-modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; font-family:var(--font-title); font-style:italic; font-size:1rem; font-weight:700; }
+  .raiz-modal-label { font-size:.65rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; margin-bottom:.3rem; display:block; }
+  .raiz-modal-select { width:100%; border:1.5px solid var(--border); border-radius:10px; padding:.5rem .7rem; font-family:var(--font-body); font-size:.88rem; color:var(--text); background:var(--surface); outline:none; margin-bottom:.75rem; font-weight:600; }
+  .raiz-modal-textarea { width:100%; border:1.5px solid var(--border); border-radius:10px; padding:.55rem .7rem; font-family:var(--font-body); font-size:.88rem; color:var(--text); background:var(--surface); outline:none; box-sizing:border-box; resize:none; min-height:100px; font-weight:600; transition:border-color .2s; }
+  .raiz-modal-textarea:focus { border-color:var(--rosa); }
+  .raiz-save-btn { width:100%; background:var(--rosa); border:none; border-radius:12px; padding:.65rem; font-family:var(--font-body); font-size:.88rem; font-weight:700; color:white; cursor:pointer; margin-top:.75rem; transition:opacity .15s; }
+  .raiz-save-btn:hover { opacity:.88; }
+  /* Flor cards */
+  .flor-category { margin-bottom:1.5rem; }
+  .flor-category-title { font-size:.65rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; margin-bottom:.5rem; display:flex; align-items:center; gap:.4rem; }
+  .flor-card { background:var(--card); border:1.5px solid var(--border); border-radius:18px; padding:1rem 1.2rem; margin-bottom:.6rem; position:relative; }
+  .flor-card-text { font-size:.88rem; font-weight:600; color:var(--text); line-height:1.6; white-space:pre-wrap; }
+  .flor-card-del { position:absolute; top:.65rem; right:.75rem; background:none; border:none; color:var(--muted); font-size:.82rem; cursor:pointer; opacity:.6; }
+  .flor-card-del:hover { opacity:1; color:#ef4444; }
+  /* Reflexiones */
+  .ref-period-tabs { display:flex; gap:.4rem; margin-bottom:1.2rem; }
+  .ref-period-btn { flex:1; padding:.45rem; border:1.5px solid var(--border); border-radius:12px; background:var(--surface); font-family:var(--font-body); font-size:.75rem; font-weight:700; color:var(--muted); cursor:pointer; transition:all .18s; }
+  .ref-period-btn.active { background:var(--rosa); color:white; border-color:var(--rosa); }
+  .ref-entry { background:var(--card); border:1.5px solid var(--border); border-radius:18px; padding:1.1rem 1.3rem; margin-bottom:.85rem; }
+  .ref-entry-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:.8rem; }
+  .ref-entry-date { font-size:.68rem; font-weight:800; color:var(--muted); }
+  .ref-entry-del { background:none; border:none; color:var(--muted); font-size:.82rem; cursor:pointer; opacity:.6; }
+  .ref-entry-del:hover { opacity:1; color:#ef4444; }
+  .ref-q { font-size:.65rem; font-weight:800; color:var(--rosa); text-transform:uppercase; letter-spacing:.06em; margin-bottom:.25rem; margin-top:.6rem; }
+  .ref-a { font-size:.87rem; font-weight:600; color:var(--text); line-height:1.6; white-space:pre-wrap; }
+  .ref-new-btn { display:inline-flex; align-items:center; gap:.4rem; background:var(--rosa); border:none; border-radius:20px; padding:.5rem 1.1rem; font-size:.8rem; font-weight:700; color:white; cursor:pointer; font-family:var(--font-body); margin-bottom:1rem; transition:opacity .15s; }
+  .ref-new-btn:hover { opacity:.88; }
+  .ref-modal-backdrop { display:none; position:fixed; inset:0; background:rgba(244,167,192,.22); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); z-index:9100; align-items:center; justify-content:center; padding:1rem; overflow-y:auto; }
+  .ref-modal-backdrop.open { display:flex; }
+  .ref-modal { background:var(--card); border-radius:22px; width:100%; max-width:560px; margin:auto; }
+  .ref-modal-header { display:flex; justify-content:space-between; align-items:center; padding:1.1rem 1.3rem .8rem; border-bottom:1px solid var(--border); font-family:var(--font-title); font-style:italic; font-size:1rem; font-weight:700; }
+  .ref-modal-body { padding:1rem 1.3rem 1.5rem; display:flex; flex-direction:column; gap:.75rem; }
+  .ref-modal-label { font-size:.65rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; margin-bottom:.25rem; display:block; }
+  .ref-modal-textarea { width:100%; border:1.5px solid var(--border); border-radius:10px; padding:.5rem .7rem; font-family:var(--font-body); font-size:.86rem; color:var(--text); background:var(--surface); outline:none; box-sizing:border-box; resize:none; min-height:72px; font-weight:600; transition:border-color .2s; }
+  .ref-modal-textarea:focus { border-color:var(--rosa); }
+  .ref-modal-save { width:100%; background:var(--rosa); border:none; border-radius:12px; padding:.65rem; font-family:var(--font-body); font-size:.88rem; font-weight:700; color:white; cursor:pointer; transition:opacity .15s; }
+  .ref-modal-save:hover { opacity:.88; }
+</style>
+
+<div style="max-width:860px;margin:2rem auto 0;padding:0 1rem .2rem">
+  <span class="section-sub">florecer</span>
+  <h1 class="section-title"><em>Raíz</em> & Flor <span style="font-style:normal;font-weight:400">🌱🌸</span></h1>
+</div>
+
+<div class="rf-tabs-nav">
+  <button class="rf-tab-btn active" onclick="rfTab('raiz',this)">🌱 Raíz</button>
+  <button class="rf-tab-btn" onclick="rfTab('flor',this)">🌸 Flor</button>
+  <button class="rf-tab-btn" onclick="rfTab('reflexiones',this)">📖 Reflexiones</button>
+</div>
+
+<script>
+function rfTab(tab, btn) {
+  document.querySelectorAll('.rf-tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.rf-tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('rf-panel-' + tab).classList.add('active');
+}
+</script>
+
+<!-- ── PANEL: RAÍZ ── -->
+<div id="rf-panel-raiz" class="rf-tab-panel active">
+<section class="rf-section">
+  <p style="font-size:.75rem;color:var(--muted);font-weight:600;margin-bottom:1.2rem;line-height:1.6">Lo que estás soltando, los patrones que quieres romper, tus miedos y lo que Dios te está enseñando 🌱</p>
+  <button class="raiz-add-btn" onclick="raizAbrirModal()">＋ Agregar</button>
+  <div id="raizList" style="margin-top:1rem"></div>
+</section>
+</div>
+
+<!-- ── PANEL: FLOR ── -->
+<div id="rf-panel-flor" class="rf-tab-panel">
+<section class="rf-section">
+  <p style="font-size:.75rem;color:var(--muted);font-weight:600;margin-bottom:1.2rem;line-height:1.6">Tus valores, quién quieres ser, tus fortalezas y cartas a tu yo futura 🌸</p>
+  <!-- Categorías Flor -->
+  <div class="flor-category">
+    <div class="flor-category-title">🌟 Mis valores</div>
+    <div id="florValores"></div>
+    <button class="raiz-add-btn" style="margin-top:.3rem" onclick="florAgregar('valores')">＋ Agregar</button>
+  </div>
+  <div class="flor-category">
+    <div class="flor-category-title">💪 Mis fortalezas</div>
+    <div id="florFortalezas"></div>
+    <button class="raiz-add-btn" style="margin-top:.3rem" onclick="florAgregar('fortalezas')">＋ Agregar</button>
+  </div>
+  <div class="flor-category">
+    <div class="flor-category-title">✨ Quién quiero ser</div>
+    <div id="florQuienSer"></div>
+    <button class="raiz-add-btn" style="margin-top:.3rem" onclick="florAgregar('quienSer')">＋ Agregar</button>
+  </div>
+  <!-- Cápsula del tiempo -->
+  <div class="flor-category" style="margin-top:2rem">
+    <div class="flor-category-title">✉️ Cartas a mi yo futura</div>
+
+<!-- CÁPSULA DEL TIEMPO -->
+<style>
+  .capsula-section { max-width:860px;margin:2.5rem auto 0;padding:0 1rem 1rem;animation:fadeUp .5s .35s ease both;opacity:0;animation-fill-mode:both; }
+  .capsula-list { display:flex;flex-direction:column;gap:.75rem;margin-top:1rem; }
+  .capsula-card { background:var(--card);border:1.5px solid var(--border);border-radius:18px;padding:1.1rem 1.3rem;transition:all .18s;position:relative;overflow:hidden; }
+  .capsula-card.locked { background:linear-gradient(135deg,var(--card),var(--surface)); }
+  .capsula-card.unlocked { border-color:var(--rosa);cursor:pointer; }
+  .capsula-card.unlocked:hover { transform:translateY(-2px);box-shadow:0 4px 18px rgba(244,167,192,.2); }
+  .capsula-card-header { display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem; }
+  .capsula-card-title { font-family:var(--font-title);font-style:italic;font-size:.98rem;font-weight:700;color:var(--text); }
+  .capsula-card-date { font-size:.65rem;font-weight:700;color:var(--muted);flex-shrink:0;text-align:right; }
+  .capsula-card-preview { font-size:.78rem;color:var(--muted);font-weight:600;line-height:1.5;margin-top:.4rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
+  .capsula-lock-badge { display:inline-flex;align-items:center;gap:.3rem;background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:.2rem .6rem;font-size:.65rem;font-weight:700;color:var(--muted);margin-top:.5rem; }
+  .capsula-unlock-badge { display:inline-flex;align-items:center;gap:.3rem;background:var(--rosa);color:white;border-radius:20px;padding:.2rem .6rem;font-size:.65rem;font-weight:700;margin-top:.5rem; }
+  .capsula-type-badge { display:inline-flex;align-items:center;gap:.25rem;border-radius:20px;padding:.15rem .55rem;font-size:.6rem;font-weight:800;margin-right:.3rem;margin-top:.5rem; }
+  .capsula-type-audio { background:rgba(139,92,246,.15);color:#7c3aed; }
+  .capsula-type-logro { background:rgba(245,158,11,.12);color:#b45309; }
+  .capsula-type-pred { background:rgba(59,130,246,.12);color:#1d4ed8; }
+  .capsula-nueva-btn { display:inline-flex;align-items:center;gap:.5rem;background:var(--rosa);border:none;border-radius:20px;padding:.55rem 1.2rem;font-size:.82rem;font-weight:700;color:white;cursor:pointer;font-family:var(--font-body);margin-bottom:1rem;transition:opacity .15s; }
+  .capsula-nueva-btn:hover { opacity:.88; }
+  /* Modales cápsula */
+  .capsula-modal-backdrop { display:none;position:fixed;inset:0;background:rgba(244,167,192,.22);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:9100;align-items:flex-end;justify-content:center; }
+  .capsula-modal-backdrop.open { display:flex; }
+  .capsula-modal { background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:600px;max-height:92vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,1rem); }
+  .capsula-modal-header { display:flex;justify-content:space-between;align-items:center;padding:1.1rem 1.3rem .8rem;border-bottom:1px solid var(--border);font-family:var(--font-title);font-style:italic;font-size:1.05rem;font-weight:700; }
+  .capsula-modal-body { padding:1rem 1.3rem;display:flex;flex-direction:column;gap:.8rem; }
+  .capsula-modal-label { font-size:.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.25rem;display:block; }
+  .capsula-modal-input { width:100%;border:1.5px solid var(--border);border-radius:10px;padding:.5rem .7rem;font-family:var(--font-body);font-size:.88rem;color:var(--text);background:var(--surface);outline:none;box-sizing:border-box;font-weight:600;transition:border-color .2s; }
+  .capsula-modal-input:focus { border-color:var(--rosa); }
+  .capsula-modal-textarea { width:100%;border:1.5px solid var(--border);border-radius:10px;padding:.6rem .7rem;font-family:var(--font-body);font-size:.85rem;color:var(--text);background:var(--surface);outline:none;box-sizing:border-box;resize:none;min-height:120px;font-weight:600;line-height:1.6;transition:border-color .2s; }
+  .capsula-modal-textarea:focus { border-color:var(--rosa); }
+  .capsula-modal-footer { display:flex;justify-content:space-between;align-items:center;padding:.9rem 1.3rem;border-top:1px solid var(--border); }
+  .capsula-read-content { background:linear-gradient(135deg,var(--surface),var(--card));border:1.5px solid var(--border);border-radius:14px;padding:1.2rem;font-size:.88rem;color:var(--text);font-weight:600;line-height:1.8;white-space:pre-wrap;margin-top:.5rem;font-family:var(--font-body); }
+  /* Tabs tipo cápsula */
+  .capsula-tipo-tabs { display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.2rem; }
+  .capsula-tipo-tab { flex:1;min-width:0;border:1.5px solid var(--border);border-radius:14px;padding:.5rem .4rem;font-size:.7rem;font-weight:800;cursor:pointer;font-family:var(--font-body);background:var(--surface);color:var(--muted);transition:all .18s;text-align:center;white-space:nowrap; }
+  .capsula-tipo-tab.active { background:var(--rosa);color:white;border-color:var(--rosa); }
+  /* Audio recorder */
+  .capsula-audio-ui { display:flex;flex-direction:column;align-items:center;gap:.8rem;padding:.5rem 0; }
+  .capsula-rec-btn { width:64px;height:64px;border-radius:50%;border:none;cursor:pointer;font-size:1.5rem;display:flex;align-items:center;justify-content:center;transition:all .2s;background:var(--rosa);color:white;box-shadow:0 2px 12px rgba(244,167,192,.4); }
+  .capsula-rec-btn.recording { background:#e53e3e;animation:capsulaRecPulse 1s infinite; }
+  @keyframes capsulaRecPulse { 0%,100%{box-shadow:0 0 0 0 rgba(229,62,62,.4);} 50%{box-shadow:0 0 0 10px rgba(229,62,62,0);} }
+  .capsula-rec-timer { font-size:1.4rem;font-weight:800;font-family:var(--font-title);color:var(--text);letter-spacing:.05em; }
+  .capsula-rec-status { font-size:.72rem;font-weight:700;color:var(--muted); }
+  .capsula-audio-player { width:100%;border-radius:10px;margin-top:.3rem; }
+  /* Logros imágenes */
+  .capsula-img-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-top:.3rem; }
+  .capsula-img-thumb { aspect-ratio:1;border-radius:10px;object-fit:cover;width:100%;border:1.5px solid var(--border); }
+  .capsula-img-add { aspect-ratio:1;border-radius:10px;border:1.5px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:1.5rem;cursor:pointer;background:var(--surface);transition:border-color .18s; }
+  .capsula-img-add:hover { border-color:var(--rosa); }
+  /* Predicciones */
+  .capsula-pred-q { display:flex;flex-direction:column;gap:.25rem; }
+  .capsula-pred-label { font-size:.72rem;font-weight:800;color:var(--rosa);margin-bottom:.15rem; }
+  /* Read modal extras */
+  .capsula-read-audio { width:100%;border-radius:10px;margin:.5rem 0; }
+  .capsula-read-imgs { display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-top:.5rem; }
+  .capsula-read-img { width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1.5px solid var(--border); }
+  .capsula-pred-read-item { background:var(--surface);border-radius:12px;padding:.7rem 1rem;margin-top:.5rem; }
+  .capsula-pred-read-q { font-size:.67rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem; }
+  .capsula-pred-read-a { font-size:.88rem;font-weight:700;color:var(--text);line-height:1.5; }
+</style>
+<section class="capsula-section">
+  <span class="section-sub">cartas a mi yo futuro</span>
+  <h2 class="section-title"><em>Cápsula</em> del Tiempo <span style="font-style:normal;font-weight:400">. ݁₊ ⊹ . ݁ ⟡ ݁ . ⊹ ₊ ݁.</span></h2>
+  <p style="font-size:.78rem;color:var(--muted);font-weight:600;line-height:1.6;margin-bottom:.8rem">Escríbete una carta, graba tu voz, guarda momentos de luz o hazte predicciones — solo podrás abrirla cuando llegue la fecha 🔒</p>
+  <button class="capsula-nueva-btn" onclick="capsulaAbrirNueva()">✉️ Nueva cápsula</button>
+  <div class="capsula-list" id="capsulaList"></div>
+</section>
+
+<!-- Modal nueva cápsula -->
+<div class="capsula-modal-backdrop" id="capsulaNuevaBackdrop" onclick="if(event.target===this)capsulasCerrarNueva()">
+  <div class="capsula-modal">
+    <div class="capsula-modal-header">
+      <span id="capsulaNuevaTitle">Nueva cápsula ✉️</span>
+      <button onclick="capsulasCerrarNueva()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div class="capsula-modal-body">
+      <!-- Selector de tipo -->
+      <div>
+        <label class="capsula-modal-label">✨ Tipo de cápsula</label>
+        <div class="capsula-tipo-tabs">
+          <button class="capsula-tipo-tab active" onclick="capsulaSwitchTipo('carta')" id="tab-carta">✍️ Carta</button>
+          <button class="capsula-tipo-tab" onclick="capsulaSwitchTipo('audio')" id="tab-audio">🎙️ Audio</button>
+          <button class="capsula-tipo-tab" onclick="capsulaSwitchTipo('logro')" id="tab-logro">🌟 Logros</button>
+          <button class="capsula-tipo-tab" onclick="capsulaSwitchTipo('pred')" id="tab-pred">🔮 Predicciones</button>
+        </div>
+      </div>
+
+      <!-- Título (siempre visible) -->
+      <div><label class="capsula-modal-label">Título</label><input class="capsula-modal-input" id="capsulaTitulo" placeholder="Ej: Para mi yo de dentro de un año…"></div>
+
+      <!-- Panel: Carta -->
+      <div id="panel-carta">
+        <label class="capsula-modal-label">✍️ Tu carta</label>
+        <textarea class="capsula-modal-textarea" id="capsulaTexto" placeholder="Querida yo… ¿qué quieres contarle a tu yo futuro?"></textarea>
+      </div>
+
+      <!-- Panel: Audio -->
+      <div id="panel-audio" style="display:none">
+        <label class="capsula-modal-label">🎙️ Graba tu voz (máx. 30 s)</label>
+        <div class="capsula-audio-ui">
+          <div class="capsula-rec-timer" id="recTimer">00:00</div>
+          <button class="capsula-rec-btn" id="recBtn" onclick="capsulaToggleRec()">🎙️</button>
+          <div class="capsula-rec-status" id="recStatus">Pulsa para grabar</div>
+          <audio id="recPreview" class="capsula-audio-player" controls style="display:none"></audio>
+        </div>
+        <div style="font-size:.67rem;color:var(--muted);font-weight:600;margin-top:.2rem;text-align:center">Tu voz se guarda solo en este dispositivo 🔒</div>
+      </div>
+
+      <!-- Panel: Logros Invisibles -->
+      <div id="panel-logro" style="display:none">
+        <label class="capsula-modal-label">🌟 Momentos de luz — fotos, capturas, dibujos</label>
+        <div class="capsula-img-grid" id="logroGrid">
+          <div class="capsula-img-add" onclick="document.getElementById('logroInput').click()">+</div>
+        </div>
+        <input type="file" id="logroInput" accept="image/*" multiple style="display:none" onchange="capsulaAddImgs(this)">
+        <div style="font-size:.67rem;color:var(--muted);font-weight:600;margin-top:.4rem">Se abrirá automáticamente en 6 meses 🗓️</div>
+        <label class="capsula-modal-label" style="margin-top:.5rem">Nota opcional</label>
+        <textarea class="capsula-modal-textarea" id="logroNota" style="min-height:70px" placeholder="Ej: Este mes fue difícil pero también hubo momentos bonitos…"></textarea>
+      </div>
+
+      <!-- Panel: Predicciones -->
+      <div id="panel-pred" style="display:none">
+        <label class="capsula-modal-label">🔮 Responde estas 3 preguntas hoy</label>
+        <div style="display:flex;flex-direction:column;gap:.6rem">
+          <div class="capsula-pred-q">
+            <div class="capsula-pred-label">¿Quién es tu mejor amiga hoy?</div>
+            <input class="capsula-modal-input" id="predQ1" placeholder="Su nombre o cómo la describirías…">
+          </div>
+          <div class="capsula-pred-q">
+            <div class="capsula-pred-label">¿Qué te da miedo ahora mismo?</div>
+            <input class="capsula-modal-input" id="predQ2" placeholder="Sé honesta contigo misma…">
+          </div>
+          <div class="capsula-pred-q">
+            <div class="capsula-pred-label">¿Cuál es tu meta principal en este momento?</div>
+            <input class="capsula-modal-input" id="predQ3" placeholder="Lo que más quieres lograr…">
+          </div>
+        </div>
+        <div style="font-size:.67rem;color:var(--muted);font-weight:600;margin-top:.5rem">Cuando la cápsula se abra verás cómo han cambiado tus prioridades 🌱</div>
+      </div>
+
+      <!-- Fecha (siempre visible) -->
+      <div id="capsulaFechaWrap">
+        <label class="capsula-modal-label">📅 Revelar el</label>
+        <input class="capsula-modal-input" id="capsulaFecha" type="date">
+        <div style="font-size:.67rem;color:var(--muted);font-weight:600;margin-top:.3rem" id="capsulaFechaHint">No podrás leerla hasta esta fecha 🔒</div>
+      </div>
+    </div>
+    <div class="capsula-modal-footer">
+      <div></div>
+      <div style="display:flex;gap:.6rem">
+        <button onclick="capsulasCerrarNueva()" style="background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:.45rem 1.1rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:var(--muted)">Cancelar</button>
+        <button onclick="capsulaGuardar()" style="background:var(--rosa);border:none;border-radius:20px;padding:.45rem 1.2rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:white">Sellar 🔒</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal leer cápsula -->
+<div class="capsula-modal-backdrop" id="capsulaReadBackdrop" onclick="if(event.target===this)capsulasCerrarRead()">
+  <div class="capsula-modal">
+    <div class="capsula-modal-header">
+      <span id="capsulaReadTitle">Mi cápsula</span>
+      <button onclick="capsulasCerrarRead()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div class="capsula-modal-body">
+      <div style="text-align:center;padding:.5rem 0;font-size:.75rem;color:var(--muted);font-weight:600" id="capsulaReadMeta"></div>
+      <div id="capsulaReadBody"></div>
+    </div>
+    <div class="capsula-modal-footer">
+      <button id="capsulaReadDeleteBtn" onclick="capsulaEliminar()" style="background:none;border:none;color:#e07;font-size:.78rem;font-weight:700;cursor:pointer">🗑️ Eliminar</button>
+      <button onclick="capsulasCerrarRead()" style="background:var(--rosa);border:none;border-radius:20px;padding:.45rem 1.2rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:white;margin-left:auto">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var KEY='yuki_capsulas';var _capsulas=[];var _readId=null;
+  var _tipoActual='carta';
+  var _mediaRec=null;var _recChunks=[];var _recTimer=null;var _recSecs=0;var _audioB64=null;
+  var _logroImgs=[];
+  function load(){try{_capsulas=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){_capsulas=[];}}
+  function save(){localStorage.setItem(KEY,JSON.stringify(_capsulas));}
+  function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+  function fmtDate(d){if(!d)return '';var p=d.split('-');if(p.length<3)return d;var m=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return p[2]+' de '+m[parseInt(p[1],10)-1]+' de '+p[0];}
+  function isUnlocked(c){return !c.revelar||new Date().toISOString().slice(0,10)>=c.revelar;}
+  function tipoLabel(t){return {carta:'✍️ Carta',audio:'🎙️ Audio',logro:'🌟 Logros',pred:'🔮 Predicciones'}[t]||'✉️';}
+  function tipoClass(t){return {carta:'',audio:'capsula-type-audio',logro:'capsula-type-logro',pred:'capsula-type-pred'}[t]||'';}
+  function render(){
+    load();var list=document.getElementById('capsulaList');if(!list)return;
+    var sorted=_capsulas.slice().sort(function(a,b){return(a.revelar||'').localeCompare(b.revelar||'');});
+    if(!sorted.length){list.innerHTML='<div style="text-align:center;padding:2rem 1rem;color:var(--muted);font-size:.82rem;font-weight:600">✉️ Aún no hay cápsulas — ¡crea tu primera!</div>';return;}
+    list.innerHTML='';
+    sorted.forEach(function(c){
+      var unlocked=isUnlocked(c);
+      var card=document.createElement('div');card.className='capsula-card '+(unlocked?'unlocked':'locked');
+      var badge=unlocked?'<span class="capsula-unlock-badge">🔓 ¡Lista para abrir!</span>':'<span class="capsula-lock-badge">🔒 se revela el '+fmtDate(c.revelar)+'</span>';
+      var typeBadge='<span class="capsula-type-badge '+tipoClass(c.tipo)+'">'+tipoLabel(c.tipo)+'</span>';
+      var preview='';
+      if(c.tipo==='audio'){
+        preview=unlocked?'<div class="capsula-card-preview">🎙️ Audio guardado — escucha tu voz de entonces</div>':'<div class="capsula-card-preview" style="filter:blur(3.5px);user-select:none">🎙️ Audio sellado...</div>';
+      } else if(c.tipo==='logro'){
+        var n=c.imagenes?c.imagenes.length:0;
+        preview=unlocked?'<div class="capsula-card-preview">🌟 '+n+' momento'+(n!==1?'s':'')+' de luz guardado'+(n!==1?'s':'')+'</div>':'<div class="capsula-card-preview" style="filter:blur(3.5px);user-select:none">🌟 Momentos sellados...</div>';
+      } else if(c.tipo==='pred'){
+        preview=unlocked?'<div class="capsula-card-preview">🔮 Tus predicciones de entonces — ¿cuántas acertaste?</div>':'<div class="capsula-card-preview" style="filter:blur(3.5px);user-select:none">🔮 Predicciones selladas...</div>';
+      } else {
+        var txt=c.texto||'';
+        preview=unlocked?'<div class="capsula-card-preview">'+txt.slice(0,100)+'…</div>':'<div class="capsula-card-preview" style="filter:blur(3.5px);user-select:none">'+txt.slice(0,80)+'</div>';
+      }
+      card.innerHTML='<div class="capsula-card-header"><div><div class="capsula-card-title">'+(c.titulo||'Mi cápsula')+'</div>'+typeBadge+'</div><div class="capsula-card-date">Sellada el<br>'+fmtDate(c.creada)+'</div></div>'+preview+badge;
+      if(unlocked)card.onclick=function(){capsulaAbrirRead(c.id);};
+      list.appendChild(card);
+    });
+  }
+  // ── Switch tipo ──
+  window.capsulaSwitchTipo=function(tipo){
+    _tipoActual=tipo;
+    ['carta','audio','logro','pred'].forEach(function(t){
+      var p=document.getElementById('panel-'+t);if(p)p.style.display=t===tipo?'':'none';
+      var tab=document.getElementById('tab-'+t);if(tab)tab.classList.toggle('active',t===tipo);
+    });
+    if(tipo==='logro'){
+      var d=new Date();d.setMonth(d.getMonth()+6);
+      document.getElementById('capsulaFecha').value=d.toISOString().slice(0,10);
+      document.getElementById('capsulaFechaHint').textContent='Los logros invisibles se abren en 6 meses 🗓️';
+    } else {
+      document.getElementById('capsulaFechaHint').textContent='No podrás leerla hasta esta fecha 🔒';
+    }
+    if(tipo!=='audio') capsulaStopRec(true);
+  };
+  // ── Audio recorder ──
+  window.capsulaToggleRec=function(){
+    if(_mediaRec&&_mediaRec.state==='recording'){capsulaStopRec(false);return;}
+    if(_audioB64){_audioB64=null;var p2=document.getElementById('recPreview');if(p2){p2.style.display='none';p2.src='';}document.getElementById('recStatus').textContent='Pulsa para grabar de nuevo';}
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){document.getElementById('recStatus').textContent='Tu navegador no soporta grabación 😔';return;}
+    navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+      _recChunks=[];_recSecs=0;
+      _mediaRec=new MediaRecorder(stream);
+      _mediaRec.ondataavailable=function(e){if(e.data.size>0)_recChunks.push(e.data);};
+      _mediaRec.onstop=function(){
+        var blob=new Blob(_recChunks,{type:'audio/webm'});
+        var reader=new FileReader();
+        reader.onload=function(){_audioB64=reader.result;var prev=document.getElementById('recPreview');if(prev){prev.src=_audioB64;prev.style.display='block';}};
+        reader.readAsDataURL(blob);
+        stream.getTracks().forEach(function(t){t.stop();});
+      };
+      _mediaRec.start();
+      var btn=document.getElementById('recBtn');if(btn){btn.classList.add('recording');btn.textContent='⏹️';}
+      document.getElementById('recStatus').textContent='Grabando… (máx. 30 s)';
+      _recTimer=setInterval(function(){
+        _recSecs++;
+        var m=Math.floor(_recSecs/60);var s=_recSecs%60;
+        var t=document.getElementById('recTimer');if(t)t.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+        if(_recSecs>=30)capsulaStopRec(false);
+      },1000);
+    }).catch(function(){document.getElementById('recStatus').textContent='No se pudo acceder al micrófono 😔';});
+  };
+  function capsulaStopRec(silent){
+    if(_recTimer){clearInterval(_recTimer);_recTimer=null;}
+    if(_mediaRec&&_mediaRec.state==='recording')_mediaRec.stop();
+    _mediaRec=null;
+    var btn=document.getElementById('recBtn');if(btn){btn.classList.remove('recording');btn.textContent='🎙️';}
+    var st=document.getElementById('recStatus');if(st&&!silent)st.textContent='¡Grabado! Pulsa ▶ para escuchar';
+    if(silent){_audioB64=null;_recSecs=0;var t=document.getElementById('recTimer');if(t)t.textContent='00:00';var p=document.getElementById('recPreview');if(p){p.style.display='none';p.src='';}}
+  }
+  // ── Logro imágenes ──
+  window.capsulaAddImgs=function(input){
+    Array.from(input.files).forEach(function(file){
+      if(_logroImgs.length>=6)return;
+      var r=new FileReader();
+      r.onload=function(e){_logroImgs.push(e.target.result);renderLogroGrid();};
+      r.readAsDataURL(file);
+    });
+    input.value='';
+  };
+  function renderLogroGrid(){
+    var grid=document.getElementById('logroGrid');if(!grid)return;
+    grid.innerHTML='';
+    _logroImgs.forEach(function(src,i){
+      var img=document.createElement('img');img.className='capsula-img-thumb';img.src=src;
+      img.title='Toca para eliminar';img.onclick=function(){_logroImgs.splice(i,1);renderLogroGrid();};
+      grid.appendChild(img);
+    });
+    if(_logroImgs.length<6){var add=document.createElement('div');add.className='capsula-img-add';add.textContent='+';add.onclick=function(){document.getElementById('logroInput').click();};grid.appendChild(add);}
+  }
+  // ── Abrir modal nueva ──
+  window.capsulaAbrirNueva=function(){
+    document.getElementById('capsulaTitulo').value='';
+    document.getElementById('capsulaTexto').value='';
+    document.getElementById('logroNota').value='';
+    document.getElementById('predQ1').value='';document.getElementById('predQ2').value='';document.getElementById('predQ3').value='';
+    _logroImgs=[];renderLogroGrid();
+    _audioB64=null;_recSecs=0;
+    var t=document.getElementById('recTimer');if(t)t.textContent='00:00';
+    var p=document.getElementById('recPreview');if(p){p.style.display='none';p.src='';}
+    var s=document.getElementById('recStatus');if(s)s.textContent='Pulsa para grabar';
+    var d=new Date();d.setFullYear(d.getFullYear()+1);
+    document.getElementById('capsulaFecha').value=d.toISOString().slice(0,10);
+    capsulaSwitchTipo('carta');
+    document.getElementById('capsulaNuevaBackdrop').classList.add('open');
+  };
+  window.capsulasCerrarNueva=function(){capsulaStopRec(true);document.getElementById('capsulaNuevaBackdrop').classList.remove('open');};
+  // ── Guardar ──
+  window.capsulaGuardar=function(){
+    var titulo=document.getElementById('capsulaTitulo').value.trim()||'Mi cápsula';
+    var fecha=document.getElementById('capsulaFecha').value;
+    var obj={id:uid(),tipo:_tipoActual,titulo:titulo,revelar:fecha,creada:new Date().toISOString().slice(0,10)};
+    if(_tipoActual==='carta'){
+      var texto=document.getElementById('capsulaTexto').value.trim();
+      if(!texto){document.getElementById('capsulaTexto').focus();return;}
+      obj.texto=texto;
+    } else if(_tipoActual==='audio'){
+      if(!_audioB64){document.getElementById('recStatus').textContent='Graba un audio primero 🎙️';return;}
+      obj.audio=_audioB64;
+    } else if(_tipoActual==='logro'){
+      if(!_logroImgs.length&&!document.getElementById('logroNota').value.trim()){document.getElementById('logroNota').focus();return;}
+      obj.imagenes=_logroImgs.slice();obj.texto=document.getElementById('logroNota').value.trim();
+    } else if(_tipoActual==='pred'){
+      var q1=document.getElementById('predQ1').value.trim();var q2=document.getElementById('predQ2').value.trim();var q3=document.getElementById('predQ3').value.trim();
+      if(!q1&&!q2&&!q3){document.getElementById('predQ1').focus();return;}
+      obj.predicciones=[q1,q2,q3];
+    }
+    load();_capsulas.push(obj);save();render();capsulaStopRec(true);capsulasCerrarNueva();
+  };
+  // ── Leer cápsula ──
+  window.capsulaAbrirRead=function(id){
+    load();_readId=id;var c=_capsulas.find(function(x){return x.id===id;});if(!c)return;
+    document.getElementById('capsulaReadTitle').textContent=c.titulo||'Mi cápsula';
+    document.getElementById('capsulaReadMeta').textContent='Sellada el '+fmtDate(c.creada)+(c.revelar?' · revelada el '+fmtDate(c.revelar):'');
+    var body=document.getElementById('capsulaReadBody');body.innerHTML='';
+    if(c.tipo==='audio'&&c.audio){
+      var aud=document.createElement('audio');aud.className='capsula-read-audio';aud.controls=true;aud.src=c.audio;body.appendChild(aud);
+      var hint=document.createElement('div');hint.style.cssText='font-size:.75rem;color:var(--muted);font-weight:600;text-align:center;margin-top:.4rem';hint.textContent='🎙️ Tu voz de hace un tiempo — escúchala con calma';body.appendChild(hint);
+    } else if(c.tipo==='logro'){
+      if(c.imagenes&&c.imagenes.length){var grid=document.createElement('div');grid.className='capsula-read-imgs';c.imagenes.forEach(function(src){var img=document.createElement('img');img.className='capsula-read-img';img.src=src;grid.appendChild(img);});body.appendChild(grid);}
+      if(c.texto){var note=document.createElement('div');note.className='capsula-read-content';note.style.marginTop='.7rem';note.textContent=c.texto;body.appendChild(note);}
+      var hint3=document.createElement('div');hint3.style.cssText='font-size:.72rem;color:var(--muted);font-weight:600;text-align:center;margin-top:.7rem';hint3.textContent='🌟 Aunque te sintieras estancada, hubo momentos de luz';body.appendChild(hint3);
+    } else if(c.tipo==='pred'&&c.predicciones){
+      var pregs=['¿Quién era tu mejor amiga?','¿Qué te daba miedo?','¿Cuál era tu meta principal?'];
+      c.predicciones.forEach(function(resp,i){var item=document.createElement('div');item.className='capsula-pred-read-item';item.innerHTML='<div class="capsula-pred-read-q">'+pregs[i]+'</div><div class="capsula-pred-read-a">'+(resp||'—')+'</div>';body.appendChild(item);});
+      var hint4=document.createElement('div');hint4.style.cssText='font-size:.72rem;color:var(--muted);font-weight:600;text-align:center;margin-top:.8rem';hint4.textContent='🌱 ¿Cuántas cosas han cambiado?';body.appendChild(hint4);
+    } else {
+      var cont=document.createElement('div');cont.className='capsula-read-content';cont.textContent=c.texto||'';body.appendChild(cont);
+    }
+    document.getElementById('capsulaReadBackdrop').classList.add('open');
+  };
+  window.capsulasCerrarRead=function(){document.getElementById('capsulaReadBackdrop').classList.remove('open');};
+  window.capsulaEliminar=function(){if(!_readId)return;load();_capsulas=_capsulas.filter(function(x){return x.id!==_readId;});save();render();capsulasCerrarRead();};
+  document.addEventListener('DOMContentLoaded',function(){load();render();});
+})();
+</script>
+
+  </div>
+</section>
+</div>
+
+<!-- ── PANEL: REFLEXIONES ── -->
+<div id="rf-panel-reflexiones" class="rf-tab-panel">
+<section class="rf-section">
+  <div class="ref-period-tabs">
+    <button class="ref-period-btn active" onclick="refPeriod('semanal',this)">📅 Semanal</button>
+    <button class="ref-period-btn" onclick="refPeriod('mensual',this)">🗓️ Mensual</button>
+  </div>
+  <div id="ref-panel-semanal">
+    <button class="ref-new-btn" onclick="refNueva('semanal')">✍️ Nueva reflexión semanal</button>
+    <div id="refListSemanal"></div>
+  </div>
+  <div id="ref-panel-mensual" style="display:none">
+    <button class="ref-new-btn" onclick="refNueva('mensual')">✍️ Nueva reflexión mensual</button>
+    <div id="refListMensual"></div>
+  </div>
+</section>
+</div>
+
+<!-- Modal Raíz -->
+<div class="raiz-modal-backdrop" id="raizModalBackdrop" onclick="if(event.target===this)raizCerrarModal()">
+  <div class="raiz-modal">
+    <div class="raiz-modal-header">
+      <span>🌱 Agregar a Raíz</span>
+      <button onclick="raizCerrarModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <label class="raiz-modal-label">Categoría</label>
+    <select class="raiz-modal-select" id="raizCategoria">
+      <option value="soltando">🍃 Lo que estoy soltando</option>
+      <option value="patrones">🔄 Patrones que quiero romper</option>
+      <option value="miedos">🌑 Mis miedos</option>
+      <option value="dios">🙏 Lo que Dios me está enseñando</option>
+    </select>
+    <label class="raiz-modal-label">Escribe</label>
+    <textarea class="raiz-modal-textarea" id="raizTexto" placeholder="Escribe aquí con honestidad…"></textarea>
+    <button class="raiz-save-btn" onclick="raizGuardar()">Guardar</button>
+  </div>
+</div>
+
+<!-- Modal Flor -->
+<div class="raiz-modal-backdrop" id="florModalBackdrop" onclick="if(event.target===this)florCerrarModal()">
+  <div class="raiz-modal">
+    <div class="raiz-modal-header">
+      <span id="florModalTitle">🌸 Agregar</span>
+      <button onclick="florCerrarModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <label class="raiz-modal-label">Escribe</label>
+    <textarea class="raiz-modal-textarea" id="florTexto" placeholder="Escribe aquí…"></textarea>
+    <button class="raiz-save-btn" onclick="florGuardar()">Guardar</button>
+  </div>
+</div>
+
+<!-- Modal Reflexiones -->
+<div class="ref-modal-backdrop" id="refModalBackdrop" onclick="if(event.target===this)refCerrarModal()">
+  <div class="ref-modal">
+    <div class="ref-modal-header">
+      <span id="refModalTitle">📖 Reflexión semanal</span>
+      <button onclick="refCerrarModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div class="ref-modal-body" id="refModalBody"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ── RAÍZ ──
+  var RAIZ_KEY = 'yuki_raiz_items';
+  var raizItems = [];
+  var RAIZ_LABELS = { soltando:'🍃 Soltando', patrones:'🔄 Patrones', miedos:'🌑 Miedos', dios:'🙏 Dios me enseña' };
+
+  function raizLoad(){ try{ raizItems = JSON.parse(localStorage.getItem(RAIZ_KEY)||'[]'); }catch(e){ raizItems=[]; } }
+  function raizSave(){ localStorage.setItem(RAIZ_KEY, JSON.stringify(raizItems)); }
+  function raizRender(){
+    var list = document.getElementById('raizList'); if(!list) return;
+    if(!raizItems.length){ list.innerHTML='<p style="color:var(--muted);font-size:.82rem;font-weight:600">Aún no hay nada aquí. Escribe con honestidad 🌱</p>'; return; }
+    list.innerHTML = raizItems.slice().reverse().map(function(item,i){
+      var realI = raizItems.length - 1 - i;
+      return '<div class="raiz-card"><div class="raiz-card-label">'+( RAIZ_LABELS[item.cat]||item.cat )+'</div><div class="raiz-card-text">'+item.texto.replace(/</g,"&lt;")+'</div><button class="raiz-card-del" onclick="raizEliminar('+realI+')">✕</button></div>';
+    }).join('');
+  }
+  window.raizAbrirModal = function(){ document.getElementById('raizModalBackdrop').classList.add('open'); document.getElementById('raizTexto').value=''; };
+  window.raizCerrarModal = function(){ document.getElementById('raizModalBackdrop').classList.remove('open'); };
+  window.raizGuardar = function(){
+    var cat = document.getElementById('raizCategoria').value;
+    var txt = document.getElementById('raizTexto').value.trim();
+    if(!txt) return;
+    raizItems.push({ id: Date.now(), cat: cat, texto: txt, fecha: new Date().toLocaleDateString('es-MX') });
+    raizSave(); raizRender(); raizCerrarModal();
+  };
+  window.raizEliminar = function(i){ if(!confirm('¿Eliminar?')) return; raizItems.splice(i,1); raizSave(); raizRender(); };
+
+  // ── FLOR ──
+  var FLOR_KEY = 'yuki_flor_items';
+  var florItems = { valores:[], fortalezas:[], quienSer:[] };
+  var _florCatActual = '';
+
+  function florLoad(){ try{ florItems = JSON.parse(localStorage.getItem(FLOR_KEY)||'{"valores":[],"fortalezas":[],"quienSer":[]}'); }catch(e){ florItems={valores:[],fortalezas:[],quienSer:[]}; } }
+  function florSave(){ localStorage.setItem(FLOR_KEY, JSON.stringify(florItems)); }
+  function florRenderCat(cat, elId){
+    var el = document.getElementById(elId); if(!el) return;
+    var items = florItems[cat]||[];
+    if(!items.length){ el.innerHTML='<p style="color:var(--muted);font-size:.8rem;font-weight:600;margin-bottom:.4rem">Vacío aún 🌸</p>'; return; }
+    el.innerHTML = items.map(function(item,i){
+      return '<div class="flor-card"><div class="flor-card-text">'+item.texto.replace(/</g,"&lt;")+'</div><button class="flor-card-del" onclick="florEliminar(\''+cat+'\','+i+')">✕</button></div>';
+    }).join('');
+  }
+  function florRender(){ florRenderCat('valores','florValores'); florRenderCat('fortalezas','florFortalezas'); florRenderCat('quienSer','florQuienSer'); }
+  var FLOR_TITLES = { valores:'🌟 Mis valores', fortalezas:'💪 Mis fortalezas', quienSer:'✨ Quién quiero ser' };
+  window.florAgregar = function(cat){ _florCatActual=cat; document.getElementById('florModalTitle').textContent='🌸 '+( FLOR_TITLES[cat]||cat ); document.getElementById('florTexto').value=''; document.getElementById('florModalBackdrop').classList.add('open'); };
+  window.florCerrarModal = function(){ document.getElementById('florModalBackdrop').classList.remove('open'); };
+  window.florGuardar = function(){
+    var txt = document.getElementById('florTexto').value.trim(); if(!txt) return;
+    if(!florItems[_florCatActual]) florItems[_florCatActual]=[];
+    florItems[_florCatActual].push({ id:Date.now(), texto:txt });
+    florSave(); florRender(); florCerrarModal();
+  };
+  window.florEliminar = function(cat,i){ if(!confirm('¿Eliminar?')) return; florItems[cat].splice(i,1); florSave(); florRender(); };
+
+  // ── REFLEXIONES ──
+  var REF_KEY = 'yuki_reflexiones';
+  var refData = { semanal:[], mensual:[] };
+  var _refPeriod = 'semanal';
+
+  var REF_QS = {
+    semanal: [
+      '🌱 ¿Qué aprendí esta semana?',
+      '🍃 ¿Qué estoy soltando?',
+      '🙏 ¿Qué le agradezco a Dios?',
+      '🌸 ¿Qué logré, aunque sea pequeño?',
+      '✨ ¿Qué quiero cultivar la próxima semana?',
+      '💬 Espacio libre — lo que Dios pone en mi corazón'
+    ],
+    mensual: [
+      '🌱 ¿Cómo crecí este mes?',
+      '🍃 ¿Qué suelto para el siguiente mes?',
+      '🙏 ¿Cómo vi la mano de Dios este mes?',
+      '🌸 ¿Qué me enorgullece de mí misma?',
+      '🎯 ¿Mis metas de este mes — cómo van?',
+      '✨ ¿Qué quiero sembrar el mes que viene?',
+      '💬 Reflexión libre — desde el alma'
+    ]
+  };
+
+  function refLoad(){ try{ refData = JSON.parse(localStorage.getItem(REF_KEY)||'{"semanal":[],"mensual":[]}'); }catch(e){ refData={semanal:[],mensual:[]}; } }
+  function refSave(){ localStorage.setItem(REF_KEY, JSON.stringify(refData)); }
+  function refRender(period){
+    var list = document.getElementById('refList'+(period.charAt(0).toUpperCase()+period.slice(1))); if(!list) return;
+    var items = (refData[period]||[]).slice().reverse();
+    if(!items.length){ list.innerHTML='<p style="color:var(--muted);font-size:.82rem;font-weight:600">Aún no hay reflexiones 📖</p>'; return; }
+    list.innerHTML = items.map(function(entry,i){
+      var qs = REF_QS[period];
+      var answersHtml = qs.map(function(q,qi){
+        var ans = entry.respuestas[qi]||'';
+        if(!ans) return '';
+        return '<div class="ref-q">'+q+'</div><div class="ref-a">'+ans.replace(/</g,"&lt;")+'</div>';
+      }).filter(Boolean).join('');
+      return '<div class="ref-entry"><div class="ref-entry-header"><span class="ref-entry-date">'+entry.fecha+'</span><button class="ref-entry-del" onclick="refEliminar(\''+period+'\',\''+entry.id+'\')" >✕</button></div>'+answersHtml+'</div>';
+    }).join('');
+  }
+
+  window.refPeriod = function(p, btn){
+    _refPeriod = p;
+    document.querySelectorAll('.ref-period-btn').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+    document.getElementById('ref-panel-semanal').style.display = p==='semanal' ? '' : 'none';
+    document.getElementById('ref-panel-mensual').style.display = p==='mensual' ? '' : 'none';
+  };
+
+  window.refNueva = function(period){
+    _refPeriod = period;
+    var qs = REF_QS[period];
+    document.getElementById('refModalTitle').textContent = period==='semanal' ? '📅 Reflexión semanal' : '🗓️ Reflexión mensual';
+    var body = document.getElementById('refModalBody');
+    body.innerHTML = qs.map(function(q,i){
+      return '<div><label class="ref-modal-label">'+q+'</label><textarea class="ref-modal-textarea" id="refQ'+i+'" placeholder="Escribe libremente…"></textarea></div>';
+    }).join('') + '<button class="ref-modal-save" onclick="refGuardar()">Guardar reflexión</button>';
+    document.getElementById('refModalBackdrop').classList.add('open');
+  };
+
+  window.refGuardar = function(){
+    var qs = REF_QS[_refPeriod];
+    var respuestas = qs.map(function(_,i){ var el=document.getElementById('refQ'+i); return el?el.value.trim():''; });
+    if(respuestas.every(function(r){ return !r; })) return;
+    if(!refData[_refPeriod]) refData[_refPeriod]=[];
+    refData[_refPeriod].push({ id:Date.now()+'', fecha:new Date().toLocaleDateString('es-MX'), respuestas:respuestas });
+    refSave(); refRender(_refPeriod); refCerrarModal();
+  };
+
+  window.refCerrarModal = function(){ document.getElementById('refModalBackdrop').classList.remove('open'); };
+  window.refEliminar = function(period, id){
+    if(!confirm('¿Eliminar esta reflexión?')) return;
+    refData[period] = (refData[period]||[]).filter(function(e){ return e.id!==id; });
+    refSave(); refRender(period);
+  };
+
+  // Init
+  raizLoad(); raizRender();
+  florLoad(); florRender();
+  refLoad(); refRender('semanal'); refRender('mensual');
+
+  if(window._watchCloud){
+    window._watchCloud(RAIZ_KEY, function(v){ raizItems=v||[]; raizRender(); });
+    window._watchCloud(FLOR_KEY, function(v){ florItems=v||{valores:[],fortalezas:[],quienSer:[]}; florRender(); });
+    window._watchCloud(REF_KEY, function(v){ refData=v||{semanal:[],mensual:[]}; refRender('semanal'); refRender('mensual'); });
+  }
+})();
+</script>
+
+</div><!-- end page-raiz-flor -->
 
   </div><!-- end #app-content -->
   <div class="img-col img-col-right" id="imgColRight"></div>
@@ -48059,6 +48994,7 @@ window.renderPasos = function() {
 
 })();
 </script>
+
 
 </body>
 </html>
