@@ -154,7 +154,7 @@ window.kittyConfirm = function(msg, onYes, onNo) {
           'univ_futuro_items','univ_links','univ_proyectos','spark_pins','spark_historial','spark_total_minutes',
           'trans_data','custom_notifs','eventos_prep','recuper_registros',
           'notas_intereses_data','notas_intereses_cats',
-          'yuki_mascotas','yuki_plantas','yuki_paste_recetas','yuki_paste_mood','yuki_paste_costos','yuki_paste_pedidos','yuki_paste_insumos','yuki_biblioteca_playlists','yuki_biblioteca_dopamina','yuki_biblioteca_libros','yuki_est_pedidos','yuki_est_catalogo','yuki_est_inspo','yuki_diario',
+          'yuki_mascotas','yuki_plantas','yuki_paste_recetas','yuki_paste_mood','yuki_paste_costos','yuki_paste_pedidos','yuki_paste_insumos','yuki_jardin_suelto','yuki_jardin_patrones','yuki_jardin_miedos','yuki_jardin_dios','yuki_jardin_valores','yuki_jardin_fortalezas','yuki_jardin_quien','yuki_biblioteca_playlists','yuki_biblioteca_dopamina','yuki_biblioteca_libros','yuki_est_pedidos','yuki_est_catalogo','yuki_est_inspo','yuki_diario',
           'yuki_decisions','yuki_rutina_horarios',
           'yuki_xp','yuki_xp_streak','yuki_xp_last_date','yuki_task_timers',
           'yuki_sakura','yuki_tienda_recompensas','yuki_compras_historial','yuki_study_minutes',
@@ -17515,359 +17515,6 @@ window.syncFromCloud = function() {
 })();
 </script>
 
-<!-- CÁPSULA DEL TIEMPO -->
-<style>
-  .capsula-section { max-width:860px;margin:2.5rem auto 0;padding:0 1rem 1rem;animation:fadeUp .5s .35s ease both;opacity:0;animation-fill-mode:both; }
-  .capsula-list { display:flex;flex-direction:column;gap:.75rem;margin-top:1rem; }
-  .capsula-card { background:var(--card);border:1.5px solid var(--border);border-radius:18px;padding:1.1rem 1.3rem;transition:all .18s;position:relative;overflow:hidden; }
-  .capsula-card.locked { background:linear-gradient(135deg,var(--card),var(--surface)); }
-  .capsula-card.unlocked { border-color:var(--rosa);cursor:pointer; }
-  .capsula-card.unlocked:hover { transform:translateY(-2px);box-shadow:0 4px 18px rgba(244,167,192,.2); }
-  .capsula-card-header { display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem; }
-  .capsula-card-title { font-family:var(--font-title);font-style:italic;font-size:.98rem;font-weight:700;color:var(--text); }
-  .capsula-card-date { font-size:.65rem;font-weight:700;color:var(--muted);flex-shrink:0;text-align:right; }
-  .capsula-card-preview { font-size:.78rem;color:var(--muted);font-weight:600;line-height:1.5;margin-top:.4rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
-  .capsula-lock-badge { display:inline-flex;align-items:center;gap:.3rem;background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:.2rem .6rem;font-size:.65rem;font-weight:700;color:var(--muted);margin-top:.5rem; }
-  .capsula-unlock-badge { display:inline-flex;align-items:center;gap:.3rem;background:var(--rosa);color:white;border-radius:20px;padding:.2rem .6rem;font-size:.65rem;font-weight:700;margin-top:.5rem; }
-  .capsula-type-badge { display:inline-flex;align-items:center;gap:.25rem;border-radius:20px;padding:.15rem .55rem;font-size:.6rem;font-weight:800;margin-right:.3rem;margin-top:.5rem; }
-  .capsula-type-audio { background:rgba(139,92,246,.15);color:#7c3aed; }
-  .capsula-type-logro { background:rgba(245,158,11,.12);color:#b45309; }
-  .capsula-type-pred { background:rgba(59,130,246,.12);color:#1d4ed8; }
-  .capsula-nueva-btn { display:inline-flex;align-items:center;gap:.5rem;background:var(--rosa);border:none;border-radius:20px;padding:.55rem 1.2rem;font-size:.82rem;font-weight:700;color:white;cursor:pointer;font-family:var(--font-body);margin-bottom:1rem;transition:opacity .15s; }
-  .capsula-nueva-btn:hover { opacity:.88; }
-  /* Modales cápsula */
-  .capsula-modal-backdrop { display:none;position:fixed;inset:0;background:rgba(244,167,192,.22);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:9100;align-items:flex-end;justify-content:center; }
-  .capsula-modal-backdrop.open { display:flex; }
-  .capsula-modal { background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:600px;max-height:92vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,1rem); }
-  .capsula-modal-header { display:flex;justify-content:space-between;align-items:center;padding:1.1rem 1.3rem .8rem;border-bottom:1px solid var(--border);font-family:var(--font-title);font-style:italic;font-size:1.05rem;font-weight:700; }
-  .capsula-modal-body { padding:1rem 1.3rem;display:flex;flex-direction:column;gap:.8rem; }
-  .capsula-modal-label { font-size:.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.25rem;display:block; }
-  .capsula-modal-input { width:100%;border:1.5px solid var(--border);border-radius:10px;padding:.5rem .7rem;font-family:var(--font-body);font-size:.88rem;color:var(--text);background:var(--surface);outline:none;box-sizing:border-box;font-weight:600;transition:border-color .2s; }
-  .capsula-modal-input:focus { border-color:var(--rosa); }
-  .capsula-modal-textarea { width:100%;border:1.5px solid var(--border);border-radius:10px;padding:.6rem .7rem;font-family:var(--font-body);font-size:.85rem;color:var(--text);background:var(--surface);outline:none;box-sizing:border-box;resize:none;min-height:120px;font-weight:600;line-height:1.6;transition:border-color .2s; }
-  .capsula-modal-textarea:focus { border-color:var(--rosa); }
-  .capsula-modal-footer { display:flex;justify-content:space-between;align-items:center;padding:.9rem 1.3rem;border-top:1px solid var(--border); }
-  .capsula-read-content { background:linear-gradient(135deg,var(--surface),var(--card));border:1.5px solid var(--border);border-radius:14px;padding:1.2rem;font-size:.88rem;color:var(--text);font-weight:600;line-height:1.8;white-space:pre-wrap;margin-top:.5rem;font-family:var(--font-body); }
-  /* Tabs tipo cápsula */
-  .capsula-tipo-tabs { display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.2rem; }
-  .capsula-tipo-tab { flex:1;min-width:0;border:1.5px solid var(--border);border-radius:14px;padding:.5rem .4rem;font-size:.7rem;font-weight:800;cursor:pointer;font-family:var(--font-body);background:var(--surface);color:var(--muted);transition:all .18s;text-align:center;white-space:nowrap; }
-  .capsula-tipo-tab.active { background:var(--rosa);color:white;border-color:var(--rosa); }
-  /* Audio recorder */
-  .capsula-audio-ui { display:flex;flex-direction:column;align-items:center;gap:.8rem;padding:.5rem 0; }
-  .capsula-rec-btn { width:64px;height:64px;border-radius:50%;border:none;cursor:pointer;font-size:1.5rem;display:flex;align-items:center;justify-content:center;transition:all .2s;background:var(--rosa);color:white;box-shadow:0 2px 12px rgba(244,167,192,.4); }
-  .capsula-rec-btn.recording { background:#e53e3e;animation:capsulaRecPulse 1s infinite; }
-  @keyframes capsulaRecPulse { 0%,100%{box-shadow:0 0 0 0 rgba(229,62,62,.4);} 50%{box-shadow:0 0 0 10px rgba(229,62,62,0);} }
-  .capsula-rec-timer { font-size:1.4rem;font-weight:800;font-family:var(--font-title);color:var(--text);letter-spacing:.05em; }
-  .capsula-rec-status { font-size:.72rem;font-weight:700;color:var(--muted); }
-  .capsula-audio-player { width:100%;border-radius:10px;margin-top:.3rem; }
-  /* Logros imágenes */
-  .capsula-img-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-top:.3rem; }
-  .capsula-img-thumb { aspect-ratio:1;border-radius:10px;object-fit:cover;width:100%;border:1.5px solid var(--border); }
-  .capsula-img-add { aspect-ratio:1;border-radius:10px;border:1.5px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:1.5rem;cursor:pointer;background:var(--surface);transition:border-color .18s; }
-  .capsula-img-add:hover { border-color:var(--rosa); }
-  /* Predicciones */
-  .capsula-pred-q { display:flex;flex-direction:column;gap:.25rem; }
-  .capsula-pred-label { font-size:.72rem;font-weight:800;color:var(--rosa);margin-bottom:.15rem; }
-  /* Read modal extras */
-  .capsula-read-audio { width:100%;border-radius:10px;margin:.5rem 0; }
-  .capsula-read-imgs { display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-top:.5rem; }
-  .capsula-read-img { width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1.5px solid var(--border); }
-  .capsula-pred-read-item { background:var(--surface);border-radius:12px;padding:.7rem 1rem;margin-top:.5rem; }
-  .capsula-pred-read-q { font-size:.67rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem; }
-  .capsula-pred-read-a { font-size:.88rem;font-weight:700;color:var(--text);line-height:1.5; }
-</style>
-<section class="capsula-section">
-  <span class="section-sub">cartas a mi yo futuro</span>
-  <h2 class="section-title"><em>Cápsula</em> del Tiempo <span style="font-style:normal;font-weight:400">. ݁₊ ⊹ . ݁ ⟡ ݁ . ⊹ ₊ ݁.</span></h2>
-  <p style="font-size:.78rem;color:var(--muted);font-weight:600;line-height:1.6;margin-bottom:.8rem">Escríbete una carta, graba tu voz, guarda momentos de luz o hazte predicciones — solo podrás abrirla cuando llegue la fecha 🔒</p>
-  <button class="capsula-nueva-btn" onclick="capsulaAbrirNueva()">✉️ Nueva cápsula</button>
-  <div class="capsula-list" id="capsulaList"></div>
-</section>
-
-<!-- Modal nueva cápsula -->
-<div class="capsula-modal-backdrop" id="capsulaNuevaBackdrop" onclick="if(event.target===this)capsulasCerrarNueva()">
-  <div class="capsula-modal">
-    <div class="capsula-modal-header">
-      <span id="capsulaNuevaTitle">Nueva cápsula ✉️</span>
-      <button onclick="capsulasCerrarNueva()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">✕</button>
-    </div>
-    <div class="capsula-modal-body">
-      <!-- Selector de tipo -->
-      <div>
-        <label class="capsula-modal-label">✨ Tipo de cápsula</label>
-        <div class="capsula-tipo-tabs">
-          <button class="capsula-tipo-tab active" onclick="capsulaSwitchTipo('carta')" id="tab-carta">✍️ Carta</button>
-          <button class="capsula-tipo-tab" onclick="capsulaSwitchTipo('audio')" id="tab-audio">🎙️ Audio</button>
-          <button class="capsula-tipo-tab" onclick="capsulaSwitchTipo('logro')" id="tab-logro">🌟 Logros</button>
-          <button class="capsula-tipo-tab" onclick="capsulaSwitchTipo('pred')" id="tab-pred">🔮 Predicciones</button>
-        </div>
-      </div>
-
-      <!-- Título (siempre visible) -->
-      <div><label class="capsula-modal-label">Título</label><input class="capsula-modal-input" id="capsulaTitulo" placeholder="Ej: Para mi yo de dentro de un año…"></div>
-
-      <!-- Panel: Carta -->
-      <div id="panel-carta">
-        <label class="capsula-modal-label">✍️ Tu carta</label>
-        <textarea class="capsula-modal-textarea" id="capsulaTexto" placeholder="Querida yo… ¿qué quieres contarle a tu yo futuro?"></textarea>
-      </div>
-
-      <!-- Panel: Audio -->
-      <div id="panel-audio" style="display:none">
-        <label class="capsula-modal-label">🎙️ Graba tu voz (máx. 30 s)</label>
-        <div class="capsula-audio-ui">
-          <div class="capsula-rec-timer" id="recTimer">00:00</div>
-          <button class="capsula-rec-btn" id="recBtn" onclick="capsulaToggleRec()">🎙️</button>
-          <div class="capsula-rec-status" id="recStatus">Pulsa para grabar</div>
-          <audio id="recPreview" class="capsula-audio-player" controls style="display:none"></audio>
-        </div>
-        <div style="font-size:.67rem;color:var(--muted);font-weight:600;margin-top:.2rem;text-align:center">Tu voz se guarda solo en este dispositivo 🔒</div>
-      </div>
-
-      <!-- Panel: Logros Invisibles -->
-      <div id="panel-logro" style="display:none">
-        <label class="capsula-modal-label">🌟 Momentos de luz — fotos, capturas, dibujos</label>
-        <div class="capsula-img-grid" id="logroGrid">
-          <div class="capsula-img-add" onclick="document.getElementById('logroInput').click()">+</div>
-        </div>
-        <input type="file" id="logroInput" accept="image/*" multiple style="display:none" onchange="capsulaAddImgs(this)">
-        <div style="font-size:.67rem;color:var(--muted);font-weight:600;margin-top:.4rem">Se abrirá automáticamente en 6 meses 🗓️</div>
-        <label class="capsula-modal-label" style="margin-top:.5rem">Nota opcional</label>
-        <textarea class="capsula-modal-textarea" id="logroNota" style="min-height:70px" placeholder="Ej: Este mes fue difícil pero también hubo momentos bonitos…"></textarea>
-      </div>
-
-      <!-- Panel: Predicciones -->
-      <div id="panel-pred" style="display:none">
-        <label class="capsula-modal-label">🔮 Responde estas 3 preguntas hoy</label>
-        <div style="display:flex;flex-direction:column;gap:.6rem">
-          <div class="capsula-pred-q">
-            <div class="capsula-pred-label">¿Quién es tu mejor amiga hoy?</div>
-            <input class="capsula-modal-input" id="predQ1" placeholder="Su nombre o cómo la describirías…">
-          </div>
-          <div class="capsula-pred-q">
-            <div class="capsula-pred-label">¿Qué te da miedo ahora mismo?</div>
-            <input class="capsula-modal-input" id="predQ2" placeholder="Sé honesta contigo misma…">
-          </div>
-          <div class="capsula-pred-q">
-            <div class="capsula-pred-label">¿Cuál es tu meta principal en este momento?</div>
-            <input class="capsula-modal-input" id="predQ3" placeholder="Lo que más quieres lograr…">
-          </div>
-        </div>
-        <div style="font-size:.67rem;color:var(--muted);font-weight:600;margin-top:.5rem">Cuando la cápsula se abra verás cómo han cambiado tus prioridades 🌱</div>
-      </div>
-
-      <!-- Fecha (siempre visible) -->
-      <div id="capsulaFechaWrap">
-        <label class="capsula-modal-label">📅 Revelar el</label>
-        <input class="capsula-modal-input" id="capsulaFecha" type="date">
-        <div style="font-size:.67rem;color:var(--muted);font-weight:600;margin-top:.3rem" id="capsulaFechaHint">No podrás leerla hasta esta fecha 🔒</div>
-      </div>
-    </div>
-    <div class="capsula-modal-footer">
-      <div></div>
-      <div style="display:flex;gap:.6rem">
-        <button onclick="capsulasCerrarNueva()" style="background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:.45rem 1.1rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:var(--muted)">Cancelar</button>
-        <button onclick="capsulaGuardar()" style="background:var(--rosa);border:none;border-radius:20px;padding:.45rem 1.2rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:white">Sellar 🔒</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Modal leer cápsula -->
-<div class="capsula-modal-backdrop" id="capsulaReadBackdrop" onclick="if(event.target===this)capsulasCerrarRead()">
-  <div class="capsula-modal">
-    <div class="capsula-modal-header">
-      <span id="capsulaReadTitle">Mi cápsula</span>
-      <button onclick="capsulasCerrarRead()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">✕</button>
-    </div>
-    <div class="capsula-modal-body">
-      <div style="text-align:center;padding:.5rem 0;font-size:.75rem;color:var(--muted);font-weight:600" id="capsulaReadMeta"></div>
-      <div id="capsulaReadBody"></div>
-    </div>
-    <div class="capsula-modal-footer">
-      <button id="capsulaReadDeleteBtn" onclick="capsulaEliminar()" style="background:none;border:none;color:#e07;font-size:.78rem;font-weight:700;cursor:pointer">🗑️ Eliminar</button>
-      <button onclick="capsulasCerrarRead()" style="background:var(--rosa);border:none;border-radius:20px;padding:.45rem 1.2rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:white;margin-left:auto">Cerrar</button>
-    </div>
-  </div>
-</div>
-
-<script>
-(function(){
-  var KEY='yuki_capsulas';var _capsulas=[];var _readId=null;
-  var _tipoActual='carta';
-  var _mediaRec=null;var _recChunks=[];var _recTimer=null;var _recSecs=0;var _audioB64=null;
-  var _logroImgs=[];
-  function load(){try{_capsulas=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){_capsulas=[];}}
-  function save(){localStorage.setItem(KEY,JSON.stringify(_capsulas));}
-  function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
-  function fmtDate(d){if(!d)return '';var p=d.split('-');if(p.length<3)return d;var m=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return p[2]+' de '+m[parseInt(p[1],10)-1]+' de '+p[0];}
-  function isUnlocked(c){return !c.revelar||new Date().toISOString().slice(0,10)>=c.revelar;}
-  function tipoLabel(t){return {carta:'✍️ Carta',audio:'🎙️ Audio',logro:'🌟 Logros',pred:'🔮 Predicciones'}[t]||'✉️';}
-  function tipoClass(t){return {carta:'',audio:'capsula-type-audio',logro:'capsula-type-logro',pred:'capsula-type-pred'}[t]||'';}
-  function render(){
-    load();var list=document.getElementById('capsulaList');if(!list)return;
-    var sorted=_capsulas.slice().sort(function(a,b){return(a.revelar||'').localeCompare(b.revelar||'');});
-    if(!sorted.length){list.innerHTML='<div style="text-align:center;padding:2rem 1rem;color:var(--muted);font-size:.82rem;font-weight:600">✉️ Aún no hay cápsulas — ¡crea tu primera!</div>';return;}
-    list.innerHTML='';
-    sorted.forEach(function(c){
-      var unlocked=isUnlocked(c);
-      var card=document.createElement('div');card.className='capsula-card '+(unlocked?'unlocked':'locked');
-      var badge=unlocked?'<span class="capsula-unlock-badge">🔓 ¡Lista para abrir!</span>':'<span class="capsula-lock-badge">🔒 se revela el '+fmtDate(c.revelar)+'</span>';
-      var typeBadge='<span class="capsula-type-badge '+tipoClass(c.tipo)+'">'+tipoLabel(c.tipo)+'</span>';
-      var preview='';
-      if(c.tipo==='audio'){
-        preview=unlocked?'<div class="capsula-card-preview">🎙️ Audio guardado — escucha tu voz de entonces</div>':'<div class="capsula-card-preview" style="filter:blur(3.5px);user-select:none">🎙️ Audio sellado...</div>';
-      } else if(c.tipo==='logro'){
-        var n=c.imagenes?c.imagenes.length:0;
-        preview=unlocked?'<div class="capsula-card-preview">🌟 '+n+' momento'+(n!==1?'s':'')+' de luz guardado'+(n!==1?'s':'')+'</div>':'<div class="capsula-card-preview" style="filter:blur(3.5px);user-select:none">🌟 Momentos sellados...</div>';
-      } else if(c.tipo==='pred'){
-        preview=unlocked?'<div class="capsula-card-preview">🔮 Tus predicciones de entonces — ¿cuántas acertaste?</div>':'<div class="capsula-card-preview" style="filter:blur(3.5px);user-select:none">🔮 Predicciones selladas...</div>';
-      } else {
-        var txt=c.texto||'';
-        preview=unlocked?'<div class="capsula-card-preview">'+txt.slice(0,100)+'…</div>':'<div class="capsula-card-preview" style="filter:blur(3.5px);user-select:none">'+txt.slice(0,80)+'</div>';
-      }
-      card.innerHTML='<div class="capsula-card-header"><div><div class="capsula-card-title">'+(c.titulo||'Mi cápsula')+'</div>'+typeBadge+'</div><div class="capsula-card-date">Sellada el<br>'+fmtDate(c.creada)+'</div></div>'+preview+badge;
-      if(unlocked)card.onclick=function(){capsulaAbrirRead(c.id);};
-      list.appendChild(card);
-    });
-  }
-  // ── Switch tipo ──
-  window.capsulaSwitchTipo=function(tipo){
-    _tipoActual=tipo;
-    ['carta','audio','logro','pred'].forEach(function(t){
-      var p=document.getElementById('panel-'+t);if(p)p.style.display=t===tipo?'':'none';
-      var tab=document.getElementById('tab-'+t);if(tab)tab.classList.toggle('active',t===tipo);
-    });
-    if(tipo==='logro'){
-      var d=new Date();d.setMonth(d.getMonth()+6);
-      document.getElementById('capsulaFecha').value=d.toISOString().slice(0,10);
-      document.getElementById('capsulaFechaHint').textContent='Los logros invisibles se abren en 6 meses 🗓️';
-    } else {
-      document.getElementById('capsulaFechaHint').textContent='No podrás leerla hasta esta fecha 🔒';
-    }
-    if(tipo!=='audio') capsulaStopRec(true);
-  };
-  // ── Audio recorder ──
-  window.capsulaToggleRec=function(){
-    if(_mediaRec&&_mediaRec.state==='recording'){capsulaStopRec(false);return;}
-    if(_audioB64){_audioB64=null;var p2=document.getElementById('recPreview');if(p2){p2.style.display='none';p2.src='';}document.getElementById('recStatus').textContent='Pulsa para grabar de nuevo';}
-    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){document.getElementById('recStatus').textContent='Tu navegador no soporta grabación 😔';return;}
-    navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
-      _recChunks=[];_recSecs=0;
-      _mediaRec=new MediaRecorder(stream);
-      _mediaRec.ondataavailable=function(e){if(e.data.size>0)_recChunks.push(e.data);};
-      _mediaRec.onstop=function(){
-        var blob=new Blob(_recChunks,{type:'audio/webm'});
-        var reader=new FileReader();
-        reader.onload=function(){_audioB64=reader.result;var prev=document.getElementById('recPreview');if(prev){prev.src=_audioB64;prev.style.display='block';}};
-        reader.readAsDataURL(blob);
-        stream.getTracks().forEach(function(t){t.stop();});
-      };
-      _mediaRec.start();
-      var btn=document.getElementById('recBtn');if(btn){btn.classList.add('recording');btn.textContent='⏹️';}
-      document.getElementById('recStatus').textContent='Grabando… (máx. 30 s)';
-      _recTimer=setInterval(function(){
-        _recSecs++;
-        var m=Math.floor(_recSecs/60);var s=_recSecs%60;
-        var t=document.getElementById('recTimer');if(t)t.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
-        if(_recSecs>=30)capsulaStopRec(false);
-      },1000);
-    }).catch(function(){document.getElementById('recStatus').textContent='No se pudo acceder al micrófono 😔';});
-  };
-  function capsulaStopRec(silent){
-    if(_recTimer){clearInterval(_recTimer);_recTimer=null;}
-    if(_mediaRec&&_mediaRec.state==='recording')_mediaRec.stop();
-    _mediaRec=null;
-    var btn=document.getElementById('recBtn');if(btn){btn.classList.remove('recording');btn.textContent='🎙️';}
-    var st=document.getElementById('recStatus');if(st&&!silent)st.textContent='¡Grabado! Pulsa ▶ para escuchar';
-    if(silent){_audioB64=null;_recSecs=0;var t=document.getElementById('recTimer');if(t)t.textContent='00:00';var p=document.getElementById('recPreview');if(p){p.style.display='none';p.src='';}}
-  }
-  // ── Logro imágenes ──
-  window.capsulaAddImgs=function(input){
-    Array.from(input.files).forEach(function(file){
-      if(_logroImgs.length>=6)return;
-      var r=new FileReader();
-      r.onload=function(e){_logroImgs.push(e.target.result);renderLogroGrid();};
-      r.readAsDataURL(file);
-    });
-    input.value='';
-  };
-  function renderLogroGrid(){
-    var grid=document.getElementById('logroGrid');if(!grid)return;
-    grid.innerHTML='';
-    _logroImgs.forEach(function(src,i){
-      var img=document.createElement('img');img.className='capsula-img-thumb';img.src=src;
-      img.title='Toca para eliminar';img.onclick=function(){_logroImgs.splice(i,1);renderLogroGrid();};
-      grid.appendChild(img);
-    });
-    if(_logroImgs.length<6){var add=document.createElement('div');add.className='capsula-img-add';add.textContent='+';add.onclick=function(){document.getElementById('logroInput').click();};grid.appendChild(add);}
-  }
-  // ── Abrir modal nueva ──
-  window.capsulaAbrirNueva=function(){
-    document.getElementById('capsulaTitulo').value='';
-    document.getElementById('capsulaTexto').value='';
-    document.getElementById('logroNota').value='';
-    document.getElementById('predQ1').value='';document.getElementById('predQ2').value='';document.getElementById('predQ3').value='';
-    _logroImgs=[];renderLogroGrid();
-    _audioB64=null;_recSecs=0;
-    var t=document.getElementById('recTimer');if(t)t.textContent='00:00';
-    var p=document.getElementById('recPreview');if(p){p.style.display='none';p.src='';}
-    var s=document.getElementById('recStatus');if(s)s.textContent='Pulsa para grabar';
-    var d=new Date();d.setFullYear(d.getFullYear()+1);
-    document.getElementById('capsulaFecha').value=d.toISOString().slice(0,10);
-    capsulaSwitchTipo('carta');
-    document.getElementById('capsulaNuevaBackdrop').classList.add('open');
-  };
-  window.capsulasCerrarNueva=function(){capsulaStopRec(true);document.getElementById('capsulaNuevaBackdrop').classList.remove('open');};
-  // ── Guardar ──
-  window.capsulaGuardar=function(){
-    var titulo=document.getElementById('capsulaTitulo').value.trim()||'Mi cápsula';
-    var fecha=document.getElementById('capsulaFecha').value;
-    var obj={id:uid(),tipo:_tipoActual,titulo:titulo,revelar:fecha,creada:new Date().toISOString().slice(0,10)};
-    if(_tipoActual==='carta'){
-      var texto=document.getElementById('capsulaTexto').value.trim();
-      if(!texto){document.getElementById('capsulaTexto').focus();return;}
-      obj.texto=texto;
-    } else if(_tipoActual==='audio'){
-      if(!_audioB64){document.getElementById('recStatus').textContent='Graba un audio primero 🎙️';return;}
-      obj.audio=_audioB64;
-    } else if(_tipoActual==='logro'){
-      if(!_logroImgs.length&&!document.getElementById('logroNota').value.trim()){document.getElementById('logroNota').focus();return;}
-      obj.imagenes=_logroImgs.slice();obj.texto=document.getElementById('logroNota').value.trim();
-    } else if(_tipoActual==='pred'){
-      var q1=document.getElementById('predQ1').value.trim();var q2=document.getElementById('predQ2').value.trim();var q3=document.getElementById('predQ3').value.trim();
-      if(!q1&&!q2&&!q3){document.getElementById('predQ1').focus();return;}
-      obj.predicciones=[q1,q2,q3];
-    }
-    load();_capsulas.push(obj);save();render();capsulaStopRec(true);capsulasCerrarNueva();
-  };
-  // ── Leer cápsula ──
-  window.capsulaAbrirRead=function(id){
-    load();_readId=id;var c=_capsulas.find(function(x){return x.id===id;});if(!c)return;
-    document.getElementById('capsulaReadTitle').textContent=c.titulo||'Mi cápsula';
-    document.getElementById('capsulaReadMeta').textContent='Sellada el '+fmtDate(c.creada)+(c.revelar?' · revelada el '+fmtDate(c.revelar):'');
-    var body=document.getElementById('capsulaReadBody');body.innerHTML='';
-    if(c.tipo==='audio'&&c.audio){
-      var aud=document.createElement('audio');aud.className='capsula-read-audio';aud.controls=true;aud.src=c.audio;body.appendChild(aud);
-      var hint=document.createElement('div');hint.style.cssText='font-size:.75rem;color:var(--muted);font-weight:600;text-align:center;margin-top:.4rem';hint.textContent='🎙️ Tu voz de hace un tiempo — escúchala con calma';body.appendChild(hint);
-    } else if(c.tipo==='logro'){
-      if(c.imagenes&&c.imagenes.length){var grid=document.createElement('div');grid.className='capsula-read-imgs';c.imagenes.forEach(function(src){var img=document.createElement('img');img.className='capsula-read-img';img.src=src;grid.appendChild(img);});body.appendChild(grid);}
-      if(c.texto){var note=document.createElement('div');note.className='capsula-read-content';note.style.marginTop='.7rem';note.textContent=c.texto;body.appendChild(note);}
-      var hint3=document.createElement('div');hint3.style.cssText='font-size:.72rem;color:var(--muted);font-weight:600;text-align:center;margin-top:.7rem';hint3.textContent='🌟 Aunque te sintieras estancada, hubo momentos de luz';body.appendChild(hint3);
-    } else if(c.tipo==='pred'&&c.predicciones){
-      var pregs=['¿Quién era tu mejor amiga?','¿Qué te daba miedo?','¿Cuál era tu meta principal?'];
-      c.predicciones.forEach(function(resp,i){var item=document.createElement('div');item.className='capsula-pred-read-item';item.innerHTML='<div class="capsula-pred-read-q">'+pregs[i]+'</div><div class="capsula-pred-read-a">'+(resp||'—')+'</div>';body.appendChild(item);});
-      var hint4=document.createElement('div');hint4.style.cssText='font-size:.72rem;color:var(--muted);font-weight:600;text-align:center;margin-top:.8rem';hint4.textContent='🌱 ¿Cuántas cosas han cambiado?';body.appendChild(hint4);
-    } else {
-      var cont=document.createElement('div');cont.className='capsula-read-content';cont.textContent=c.texto||'';body.appendChild(cont);
-    }
-    document.getElementById('capsulaReadBackdrop').classList.add('open');
-  };
-  window.capsulasCerrarRead=function(){document.getElementById('capsulaReadBackdrop').classList.remove('open');};
-  window.capsulaEliminar=function(){if(!_readId)return;load();_capsulas=_capsulas.filter(function(x){return x.id!==_readId;});save();render();capsulasCerrarRead();};
-  document.addEventListener('DOMContentLoaded',function(){load();render();});
-})();
-</script>
 
 </div><!-- end journalTabReflexion -->
 
@@ -27028,7 +26675,377 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
 <!-- ══════════════════════════════════════════
      PÁGINA · MASCOTAS 🐾
 ══════════════════════════════════════════ -->
+<div id="page-mascotas" class="page-section">
+<section class="pets-section">
+  <div class="pets-header">
+    <div>
+      <span class="section-sub">hogar</span>
+      <h1 class="section-title"><em>Mis</em> Mascotas 🐾 <span style="font-style:normal;font-weight:400">₍ᐢ. .ᐢ₎ ₊˚⊹♡</span></h1>
+    </div>
+    <button class="pets-add-btn" onclick="petsOpenModal()">+ agregar</button>
+  </div>
 
+  <div class="pets-grid" id="petsGrid">
+    <div class="pets-empty" id="petsEmpty">
+      <div style="font-size:3rem">🐾</div>
+      <p>Aún no has agregado ninguna mascota</p>
+      <button class="pets-add-btn" onclick="petsOpenModal()">+ agregar mascota</button>
+    </div>
+  </div>
+</section>
+
+<!-- Modal mascotas -->
+<div class="pets-modal-backdrop" id="petsModalBackdrop" style="display:none" onclick="if(event.target===this)petsCloseModal()">
+  <div class="pets-modal">
+    <div class="pets-modal-header">
+      <span id="petsModalTitle">Nueva mascota</span>
+      <button onclick="petsCloseModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div class="pets-modal-body">
+      <div class="pets-photo-upload" id="petsPhotoPreview" onclick="document.getElementById('petsPhotoInput').click()">
+        <span id="petsPhotoPlaceholder">📷 foto</span>
+        <img id="petsPhotoImg" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%">
+      </div>
+      <input type="file" id="petsPhotoInput" accept="image/*" style="display:none">
+      <input type="hidden" id="petsPhotoData">
+
+      <div class="pets-field">
+        <label class="pets-label">Nombre *</label>
+        <input class="pets-input" id="petsNombre" placeholder="¿Cómo se llama?">
+      </div>
+      <div class="pets-field" style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">
+        <div>
+          <label class="pets-label">Especie</label>
+          <input class="pets-input" id="petsEspecie" placeholder="Perro, gato, conejo…">
+        </div>
+        <div>
+          <label class="pets-label">Raza</label>
+          <input class="pets-input" id="petsRaza" placeholder="Opcional">
+        </div>
+      </div>
+      <div class="pets-field" style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">
+        <div>
+          <label class="pets-label">Fecha de nacimiento</label>
+          <input class="pets-input" type="date" id="petsFechaNac">
+        </div>
+        <div>
+          <label class="pets-label">Color / apariencia</label>
+          <input class="pets-input" id="petsColor" placeholder="Café, blanco…">
+        </div>
+      </div>
+      <div class="pets-field">
+        <label class="pets-label">Notas</label>
+        <textarea class="pets-input" id="petsNotas" rows="2" placeholder="Personalidad, gustos, cosas importantes…" style="resize:vertical"></textarea>
+      </div>
+
+      <div class="pets-cuidados-title">🩺 Cuidados y recordatorios</div>
+      <div id="petsCuidadosList"></div>
+      <button class="pets-add-cuidado-btn" onclick="petsAddCuidado()">+ agregar cuidado</button>
+
+      <div class="pets-diario-title">📓 Diario</div>
+      <div id="petsDiarioList"></div>
+      <button class="pets-add-cuidado-btn" onclick="petsAddDiario()">+ agregar entrada</button>
+    </div>
+    <div class="pets-modal-footer">
+      <button class="pets-cancel-btn" onclick="petsCloseModal()">Cancelar</button>
+      <button class="pets-save-btn" onclick="petsSave()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .pets-section { max-width: 860px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+  .pets-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.5rem; }
+  .pets-add-btn {
+    background: var(--rosa); color: white; border: none; border-radius: 20px;
+    padding: .45rem 1.1rem; font-size: .78rem; font-weight: 700; cursor: pointer;
+    font-family: var(--font-body); transition: opacity .2s;
+  }
+  .pets-add-btn:hover { opacity: .85; }
+  .pets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+  .pets-empty { grid-column: 1/-1; text-align: center; padding: 3rem 1rem; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: .8rem; }
+  .pets-card {
+    background: var(--card); border: 1.5px solid var(--border); border-radius: 16px;
+    overflow: hidden; transition: box-shadow .2s, border-color .2s; cursor: pointer;
+  }
+  .pets-card:hover { border-color: var(--rosa); box-shadow: 0 4px 18px rgba(244,167,192,.18); }
+  .pets-card-top { display: flex; align-items: center; gap: .9rem; padding: 1rem; }
+  .pets-card-photo {
+    width: 56px; height: 56px; border-radius: 50%; background: var(--surface);
+    border: 2px solid var(--border); overflow: hidden; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 1.8rem;
+  }
+  .pets-card-photo img { width: 100%; height: 100%; object-fit: cover; }
+  .pets-card-info { flex: 1; min-width: 0; }
+  .pets-card-name { font-size: 1rem; font-weight: 800; color: var(--text); font-family: var(--font-title); font-style: italic; }
+  .pets-card-especie { font-size: .7rem; font-weight: 600; color: var(--muted); margin-top: .1rem; }
+  .pets-card-edad { font-size: .68rem; color: var(--muted2); margin-top: .1rem; }
+  .pets-card-body { padding: 0 1rem .8rem; }
+  .pets-card-notas { font-size: .75rem; color: var(--muted); line-height: 1.5; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .pets-card-cuidados { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .6rem; }
+  .pets-card-cuidado-chip {
+    font-size: .64rem; font-weight: 700; padding: .2rem .55rem; border-radius: 20px;
+    background: var(--surface); border: 1.5px solid var(--border); color: var(--muted);
+  }
+  .pets-card-cuidado-chip.vence-hoy { background: var(--rosa-soft); border-color: var(--rosa); color: var(--rosa); }
+  .pets-card-cuidado-chip.vencido { background: #fff0f0; border-color: #f4a0a0; color: #c0392b; }
+  .pets-card-footer { display: flex; justify-content: flex-end; gap: .4rem; padding: .5rem .7rem; border-top: 1px solid var(--border); }
+  .pets-card-btn { background: none; border: none; font-size: .8rem; cursor: pointer; padding: .2rem .4rem; border-radius: 8px; color: var(--muted); }
+  .pets-card-btn:hover { background: var(--surface); }
+
+  /* Modal */
+  .pets-modal-backdrop { position: fixed; inset: 0; background: rgba(244,167,192,.22); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); z-index: 9000; align-items: center; justify-content: center; padding: 1rem; }
+  .pets-modal { background: var(--card); border-radius: 20px; width: 100%; max-width: 520px; max-height: 88vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,.18); position: relative; margin: auto; z-index: 9001; }
+  .pets-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1.1rem 1.3rem .8rem; font-family: var(--font-title); font-style: italic; font-size: 1.1rem; font-weight: 700; border-bottom: 1px solid var(--border); }
+  .pets-modal-body { padding: 1rem 1.3rem; display: flex; flex-direction: column; gap: .7rem; }
+  .pets-modal-footer { display: flex; justify-content: flex-end; gap: .6rem; padding: .9rem 1.3rem; border-top: 1px solid var(--border); }
+  .pets-photo-upload {
+    width: 80px; height: 80px; border-radius: 50%; background: var(--surface);
+    border: 2px dashed var(--border); cursor: pointer; margin: 0 auto;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .7rem; color: var(--muted); overflow: hidden; transition: border-color .2s;
+  }
+  .pets-photo-upload:hover { border-color: var(--rosa); }
+  .pets-field { display: flex; flex-direction: column; gap: .25rem; }
+  .pets-label { font-size: .67rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+  .pets-input { background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px; padding: .55rem .8rem; font-family: var(--font-body); font-size: .84rem; color: var(--text); outline: none; width: 100%; box-sizing: border-box; }
+  .pets-input:focus { border-color: var(--rosa); }
+  .pets-cuidados-title, .pets-diario-title { font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-top: .4rem; }
+  .pets-add-cuidado-btn { background: none; border: 1.5px dashed var(--border); border-radius: 10px; padding: .4rem .9rem; font-size: .75rem; font-weight: 700; color: var(--muted); cursor: pointer; font-family: var(--font-body); transition: border-color .2s, color .2s; }
+  .pets-add-cuidado-btn:hover { border-color: var(--rosa); color: var(--rosa); }
+  .pets-cuidado-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: .4rem; align-items: center; margin-bottom: .4rem; }
+  .pets-diario-row { display: grid; grid-template-columns: auto 1fr auto; gap: .4rem; align-items: center; margin-bottom: .4rem; }
+  .pets-remove-btn { background: none; border: none; font-size: 1rem; cursor: pointer; color: var(--muted); padding: .2rem; }
+  .pets-save-btn { background: var(--rosa); color: white; border: none; border-radius: 20px; padding: .5rem 1.3rem; font-size: .82rem; font-weight: 700; cursor: pointer; font-family: var(--font-body); }
+  .pets-cancel-btn { background: none; border: 1.5px solid var(--border); border-radius: 20px; padding: .5rem 1.3rem; font-size: .82rem; font-weight: 600; cursor: pointer; font-family: var(--font-body); color: var(--muted); }
+</style>
+
+<script>
+(function(){
+  var PETS_KEY = 'yuki_mascotas';
+  var pets = [];
+  var editingId = null;
+
+  function load() {
+    try { pets = JSON.parse(localStorage.getItem(PETS_KEY)) || []; } catch(e){ pets=[]; }
+  }
+  function save() {
+    localStorage.setItem(PETS_KEY, JSON.stringify(pets));
+    if (window.cloudSave) window.cloudSave(PETS_KEY, pets);
+  }
+
+  function calcEdad(fechaNac) {
+    if (!fechaNac) return '';
+    var hoy = new Date(), nac = new Date(fechaNac);
+    var anos = hoy.getFullYear() - nac.getFullYear();
+    var meses = hoy.getMonth() - nac.getMonth();
+    if (meses < 0) { anos--; meses += 12; }
+    if (anos > 0) return anos + (anos === 1 ? ' año' : ' años');
+    if (meses > 0) return meses + (meses === 1 ? ' mes' : ' meses');
+    return 'recién llegado 🐣';
+  }
+
+  function render() {
+    load();
+    var grid = document.getElementById('petsGrid');
+    var empty = document.getElementById('petsEmpty');
+    if (!grid) return;
+    // Clear cards but keep empty
+    Array.from(grid.querySelectorAll('.pets-card')).forEach(el => el.remove());
+    if (pets.length === 0) { if(empty) empty.style.display='flex'; return; }
+    if(empty) empty.style.display='none';
+    pets.forEach(function(pet) {
+      var card = document.createElement('div');
+      card.className = 'pets-card';
+      var photoHtml = pet.foto
+        ? '<img src="'+pet.foto+'" style="width:100%;height:100%;object-fit:cover">'
+        : (pet.especie ? especieEmoji(pet.especie) : '🐾');
+      var cuidadosHtml = (pet.cuidados||[]).map(function(c){
+        var cls = getCuidadoStatus(c);
+        return '<span class="pets-card-cuidado-chip '+cls+'">'+c.nombre+'</span>';
+      }).join('');
+      card.innerHTML =
+        '<div class="pets-card-top">'+
+          '<div class="pets-card-photo">'+photoHtml+'</div>'+
+          '<div class="pets-card-info">'+
+            '<div class="pets-card-name">'+pet.nombre+'</div>'+
+            '<div class="pets-card-especie">'+(pet.especie||'')+(pet.raza?' · '+pet.raza:'')+'</div>'+
+            (pet.fechaNac?'<div class="pets-card-edad">'+calcEdad(pet.fechaNac)+'</div>':'')+
+          '</div>'+
+        '</div>'+
+        '<div class="pets-card-body">'+
+          (pet.notas?'<div class="pets-card-notas">'+pet.notas+'</div>':'')+
+          (cuidadosHtml?'<div class="pets-card-cuidados">'+cuidadosHtml+'</div>':'')+
+        '</div>'+
+        '<div class="pets-card-footer">'+
+          '<button class="pets-card-btn" title="Editar" onclick="petsOpenModal(\''+pet.id+'\');event.stopPropagation()">✏️</button>'+
+          '<button class="pets-card-btn" title="Eliminar" onclick="petsDelete(\''+pet.id+'\');event.stopPropagation()">🗑️</button>'+
+        '</div>';
+      card.onclick = (function(pid){ return function(){ petsOpenModal(pid); }; })(pet.id);
+      grid.appendChild(card);
+    });
+  }
+
+  function especieEmoji(esp) {
+    esp = esp.toLowerCase();
+    if (esp.includes('perro') || esp.includes('dog')) return '🐶';
+    if (esp.includes('gato') || esp.includes('cat')) return '🐱';
+    if (esp.includes('conejo')) return '🐰';
+    if (esp.includes('pez') || esp.includes('peces')) return '🐠';
+    if (esp.includes('ave') || esp.includes('pájaro') || esp.includes('pajaro') || esp.includes('loro')) return '🦜';
+    if (esp.includes('hamster') || esp.includes('hámster')) return '🐹';
+    if (esp.includes('tortuga')) return '🐢';
+    return '🐾';
+  }
+
+  function getCuidadoStatus(c) {
+    if (!c.fecha) return '';
+    var hoy = new Date(); hoy.setHours(0,0,0,0);
+    var f = new Date(c.fecha); f.setHours(0,0,0,0);
+    if (f < hoy) return 'vencido';
+    if (f.getTime() === hoy.getTime()) return 'vence-hoy';
+    return '';
+  }
+
+  window.petsOpenModal = function(id) {
+    load();
+    editingId = id ? id : null;
+    var pet = id ? pets.find(function(p){ return p.id===id; }) : null;
+    document.getElementById('petsModalTitle').textContent = pet ? 'Editar mascota' : 'Nueva mascota';
+    document.getElementById('petsNombre').value = pet ? pet.nombre : '';
+    document.getElementById('petsEspecie').value = pet ? (pet.especie||'') : '';
+    document.getElementById('petsRaza').value = pet ? (pet.raza||'') : '';
+    document.getElementById('petsFechaNac').value = pet ? (pet.fechaNac||'') : '';
+    document.getElementById('petsColor').value = pet ? (pet.color||'') : '';
+    document.getElementById('petsNotas').value = pet ? (pet.notas||'') : '';
+    document.getElementById('petsPhotoData').value = pet ? (pet.foto||'') : '';
+    // Resetear file input para evitar bugs en móvil
+    var fileInp = document.getElementById('petsPhotoInput');
+    fileInp.value = '';
+    var img = document.getElementById('petsPhotoImg');
+    var ph = document.getElementById('petsPhotoPlaceholder');
+    if (pet && pet.foto) { img.src = pet.foto; img.style.display=''; ph.style.display='none'; }
+    else { img.src=''; img.style.display='none'; ph.style.display=''; }
+    // Cuidados
+    var cl = document.getElementById('petsCuidadosList'); cl.innerHTML='';
+    (pet ? pet.cuidados||[] : []).forEach(function(c){ addCuidadoRow(c); });
+    // Diario
+    var dl = document.getElementById('petsDiarioList'); dl.innerHTML='';
+    (pet ? pet.diario||[] : []).forEach(function(d){ addDiarioRow(d); });
+    document.getElementById('petsModalBackdrop').style.display='flex';
+  };
+
+  window.petsCloseModal = function() {
+    document.getElementById('petsModalBackdrop').style.display='none';
+    // Limpiar file input siempre al cerrar
+    var fileInp = document.getElementById('petsPhotoInput');
+    if (fileInp) fileInp.value = '';
+    editingId = null;
+  };
+
+  window.petsHandlePhoto = function(input) {
+    var file = input.files && input.files[0];
+    if (!file) return;
+    function compressImg(f, maxSz, qual, cb) {
+      var rd = new FileReader();
+      rd.onload = function(e) {
+        var im = new Image();
+        im.onload = function() {
+          var sc = Math.min(1, maxSz / Math.max(im.width, im.height));
+          var cv = document.createElement('canvas');
+          cv.width = Math.round(im.width * sc); cv.height = Math.round(im.height * sc);
+          cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
+          cb(cv.toDataURL('image/jpeg', qual));
+        };
+        im.src = e.target.result;
+      };
+      rd.readAsDataURL(f);
+    }
+    compressImg(file, 400, 0.72, function(b64) {
+      document.getElementById('petsPhotoData').value = b64;
+      var img = document.getElementById('petsPhotoImg');
+      var ph = document.getElementById('petsPhotoPlaceholder');
+      img.src = b64; img.style.display=''; ph.style.display='none';
+    });
+  };
+
+  // Asignar onchange por JS para evitar problemas al mover el modal al body
+  var petsPhotoInp = document.getElementById('petsPhotoInput');
+  if (petsPhotoInp) petsPhotoInp.onchange = function(){ window.petsHandlePhoto(this); };
+
+  function addCuidadoRow(c) {
+    c = c || { nombre:'', fecha:'' };
+    var row = document.createElement('div');
+    row.className = 'pets-cuidado-row';
+    row.innerHTML =
+      '<input class="pets-input" placeholder="Ej: Vacuna rabia, desparasitar…" value="'+(c.nombre||'')+'" style="font-size:.78rem">'+
+      '<input class="pets-input" type="date" value="'+(c.fecha||'')+'" style="font-size:.78rem">'+
+      '<button class="pets-remove-btn" onclick="this.parentElement.remove()">✕</button>';
+    document.getElementById('petsCuidadosList').appendChild(row);
+  }
+
+  function addDiarioRow(d) {
+    d = d || { fecha: new Date().toISOString().slice(0,10), texto:'' };
+    var row = document.createElement('div');
+    row.className = 'pets-diario-row';
+    row.innerHTML =
+      '<input class="pets-input" type="date" value="'+(d.fecha||'')+'" style="font-size:.78rem;width:130px">'+
+      '<input class="pets-input" placeholder="¿Qué pasó hoy?" value="'+(d.texto||'')+'" style="font-size:.78rem">'+
+      '<button class="pets-remove-btn" onclick="this.parentElement.remove()">✕</button>';
+    document.getElementById('petsDiarioList').appendChild(row);
+  }
+
+  window.petsAddCuidado = function() { addCuidadoRow(); };
+  window.petsAddDiario  = function() { addDiarioRow(); };
+
+  window.petsSave = function() {
+    var nombre = document.getElementById('petsNombre').value.trim();
+    if (!nombre) { alert('El nombre es obligatorio 🐾'); return; }
+    var cuidados = Array.from(document.querySelectorAll('#petsCuidadosList .pets-cuidado-row')).map(function(row){
+      var inputs = row.querySelectorAll('input');
+      return { nombre: inputs[0].value.trim(), fecha: inputs[1].value };
+    }).filter(function(c){ return c.nombre; });
+    var diario = Array.from(document.querySelectorAll('#petsDiarioList .pets-diario-row')).map(function(row){
+      var inputs = row.querySelectorAll('input');
+      return { fecha: inputs[0].value, texto: inputs[1].value.trim() };
+    }).filter(function(d){ return d.texto; });
+    var pet = {
+      id: editingId || ('pet_' + Date.now()),
+      nombre: nombre,
+      especie: document.getElementById('petsEspecie').value.trim(),
+      raza: document.getElementById('petsRaza').value.trim(),
+      fechaNac: document.getElementById('petsFechaNac').value,
+      color: document.getElementById('petsColor').value.trim(),
+      notas: document.getElementById('petsNotas').value.trim(),
+      foto: document.getElementById('petsPhotoData').value,
+      cuidados: cuidados,
+      diario: diario,
+    };
+    if (editingId) {
+      var idx = pets.findIndex(function(p){ return p.id===editingId; });
+      if (idx >= 0) pets[idx] = pet;
+    } else {
+      pets.push(pet);
+    }
+    editingId = null;
+    try{save();}catch(e){alert('La foto es muy grande. Se guardará sin foto.');pet.foto='';if(pets[pets.length-1]&&pets[pets.length-1].id===pet.id)pets[pets.length-1]=pet;else{var fi=pets.findIndex(function(x){return x.id===pet.id;});if(fi>=0)pets[fi]=pet;}try{save();}catch(e2){}}
+    petsCloseModal(); render();
+  };
+
+  window.petsDelete = function(id) {
+    if (!confirm('¿Eliminar esta mascota?')) return;
+    pets = pets.filter(function(p){ return p.id!==id; });
+    save(); render();
+  };
+
+  // Init
+  load(); render();
+
+  // Cloud sync
+  if (window._watchCloud) window._watchCloud(PETS_KEY, function(val){ pets = val||[]; render(); });
+})();
+</script>
+</div><!-- end page-mascotas -->
 
 
 <!-- ══════════════════════════════════════════
@@ -28396,6 +28413,1003 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
 </script>
 
 </div><!-- end page-pasteleria -->
+
+
+<!-- ══════════════════════════════════════════
+     PÁGINA · MI JARDÍN INTERIOR 🌿
+══════════════════════════════════════════ -->
+<div id="page-jardin" class="page-section">
+<section class="jardin-section">
+
+  <div class="jardin-header">
+    <div>
+      <span class="section-sub">crecimiento personal</span>
+      <h1 class="section-title"><em>Mi</em> Jardín Interior 🌿 <span style="font-style:normal;font-weight:400">˚˖𓍢ִ໋🌸✦</span></h1>
+    </div>
+  </div>
+
+  <!-- Main tabs -->
+  <div class="jardin-main-tabs">
+    <button class="jardin-main-tab active" onclick="jardinShowTab('interior')">🌑 Mi Interior</button>
+    <button class="jardin-main-tab" onclick="jardinShowTab('esencia')">✦ Fe & Esencia</button>
+  </div>
+
+  <!-- ══ TAB 1: MI INTERIOR ══ -->
+  <div id="jardinTabInterior">
+
+    <!-- Sub-tabs -->
+    <div class="jardin-sub-tabs">
+      <button class="jardin-sub-tab active" onclick="jardinShowSub(this,'suelto')">🌬️ Lo que suelto</button>
+      <button class="jardin-sub-tab" onclick="jardinShowSub(this,'patrones')">🔁 Patrones</button>
+      <button class="jardin-sub-tab" onclick="jardinShowSub(this,'miedos')">🌑 Miedos</button>
+    </div>
+
+    <!-- ─ SUELTO ─ -->
+    <div id="jardinSubSuelto">
+      <div class="jardin-tab-intro">Cosas, personas, creencias, versiones de ti que estás dejando ir. Escribirlo es soltarlo. 🍃</div>
+      <div class="jardin-tab-actions">
+        <button class="jardin-btn-primary" onclick="sueltoOpenModal(null)">＋ Soltar algo</button>
+      </div>
+      <div id="sueltoList" class="jardin-cards-col"></div>
+      <div id="sueltoEmpty" class="jardin-empty">
+        <div style="font-size:2.5rem">🍃</div>
+        <p>Aún no has soltado nada. Cuando estés lista, este es tu espacio.</p>
+      </div>
+    </div>
+
+    <!-- ─ PATRONES ─ -->
+    <div id="jardinSubPatrones" style="display:none">
+      <div class="jardin-tab-intro">Comportamientos, pensamientos o reacciones que notas en ti. Nombrarlos es el primer paso para transformarlos. 🔁</div>
+      <div class="jardin-tab-actions">
+        <button class="jardin-btn-primary" onclick="patronOpenModal(null)">＋ Agregar patrón</button>
+      </div>
+      <div id="patronesList" class="jardin-cards-col"></div>
+      <div id="patronesEmpty" class="jardin-empty">
+        <div style="font-size:2.5rem">🔁</div>
+        <p>Aquí irán los patrones que identificas en ti misma.</p>
+      </div>
+    </div>
+
+    <!-- ─ MIEDOS ─ -->
+    <div id="jardinSubMiedos" style="display:none">
+      <div class="jardin-tab-intro">Tus miedos no te definen. Registrarlos y ver cómo los vas trabajando es valentía pura. 🌑✨</div>
+      <div class="jardin-tab-actions">
+        <button class="jardin-btn-primary" onclick="miedoOpenModal(null)">＋ Nombrar un miedo</button>
+      </div>
+      <div class="jardin-miedo-filtros">
+        <span class="jardin-chip active" onclick="miedoFiltrar(this,'')">Todos</span>
+        <span class="jardin-chip" onclick="miedoFiltrar(this,'activo')">🌑 Activo</span>
+        <span class="jardin-chip" onclick="miedoFiltrar(this,'trabajando')">🌗 Trabajando</span>
+        <span class="jardin-chip" onclick="miedoFiltrar(this,'sanado')">🌕 Sanado</span>
+      </div>
+      <div id="miedosList" class="jardin-cards-col"></div>
+      <div id="miedosEmpty" class="jardin-empty">
+        <div style="font-size:2.5rem">🌑</div>
+        <p>Nombra tus miedos. Aquí están seguros.</p>
+      </div>
+    </div>
+
+  </div><!-- end jardinTabInterior -->
+
+  <!-- ══ TAB 2: FE & ESENCIA ══ -->
+  <div id="jardinTabEsencia" style="display:none">
+
+    <!-- Sub-tabs -->
+    <div class="jardin-sub-tabs">
+      <button class="jardin-sub-tab active" onclick="jardinShowSub2(this,'dios')">🙏 Lo que Dios me enseña</button>
+      <button class="jardin-sub-tab" onclick="jardinShowSub2(this,'valores')">💛 Valores & Fortalezas</button>
+      <button class="jardin-sub-tab" onclick="jardinShowSub2(this,'cartas')">💌 Cartas a mi yo futura</button>
+    </div>
+
+    <!-- ─ LO QUE DIOS ME ENSEÑA ─ -->
+    <div id="jardinSubDios">
+      <div class="jardin-tab-intro">Revelaciones, lecciones, palabras que sientes que Dios te habla. Tu diálogo con lo eterno. 🕊️</div>
+      <div class="jardin-tab-actions">
+        <button class="jardin-btn-primary" onclick="diosOpenModal(null)">＋ Registrar enseñanza</button>
+      </div>
+      <div class="jardin-dios-filtros">
+        <span class="jardin-chip active" onclick="diosFiltrar(this,'')">Todas</span>
+        <span class="jardin-chip" onclick="diosFiltrar(this,'fe')">🕊️ Fe</span>
+        <span class="jardin-chip" onclick="diosFiltrar(this,'proposito')">🌟 Propósito</span>
+        <span class="jardin-chip" onclick="diosFiltrar(this,'relaciones')">🤍 Relaciones</span>
+        <span class="jardin-chip" onclick="diosFiltrar(this,'identidad')">🌸 Identidad</span>
+        <span class="jardin-chip" onclick="diosFiltrar(this,'provision')">✨ Provisión</span>
+        <span class="jardin-chip" onclick="diosFiltrar(this,'otro')">💫 Otro</span>
+      </div>
+      <div id="diosList" class="jardin-cards-col"></div>
+      <div id="diosEmpty" class="jardin-empty">
+        <div style="font-size:2.5rem">🕊️</div>
+        <p>Registra lo que sientes que Dios te va enseñando en este camino.</p>
+      </div>
+    </div>
+
+    <!-- ─ VALORES & FORTALEZAS ─ -->
+    <div id="jardinSubValores" style="display:none">
+      <div class="jardin-tab-intro">Lo que eres, lo que te mueve, quién quieres ser. Tu esencia en palabras. 💛</div>
+
+      <!-- Valores -->
+      <div class="jardin-bloque-titulo">💛 Mis valores</div>
+      <div class="jardin-tab-actions">
+        <button class="jardin-btn-secondary" onclick="valorOpenModal(null)">＋ Agregar valor</button>
+      </div>
+      <div id="valoresList" class="jardin-chips-list"></div>
+      <div id="valoresEmpty" class="jardin-empty-small">Aún no has registrado tus valores. ¿Qué es sagrado para ti?</div>
+
+      <!-- Fortalezas -->
+      <div class="jardin-bloque-titulo" style="margin-top:1.5rem">💪 Mis fortalezas</div>
+      <div class="jardin-tab-actions">
+        <button class="jardin-btn-secondary" onclick="fortalezaOpenModal(null)">＋ Agregar fortaleza</button>
+      </div>
+      <div id="fortalezasList" class="jardin-chips-list"></div>
+      <div id="fortalezasEmpty" class="jardin-empty-small">¿En qué eres increíble? Escríbelo sin pena. 🌸</div>
+
+      <!-- Quién quiero ser -->
+      <div class="jardin-bloque-titulo" style="margin-top:1.5rem">🌟 Quién quiero ser</div>
+      <div class="jardin-quien-wrap" id="jardinQuienWrap">
+        <textarea class="jardin-quien-textarea" id="jardinQuienText" placeholder="Quiero ser una mujer que…&#10;&#10;A los 20: …&#10;A los 25: …&#10;A los 30: …" oninput="jardinQuienAutoSave()"></textarea>
+        <div class="jardin-quien-hint">Estos pensamientos se guardan automáticamente 🌿</div>
+      </div>
+    </div>
+
+    <!-- ─ CARTAS A MI YO FUTURA ─ (cápsula del tiempo movida de Journal) -->
+    <div id="jardinSubCartas" style="display:none">
+
+<!-- CÁPSULA DEL TIEMPO -->
+<style>
+  .capsula-section { max-width:860px;margin:1rem auto 0;padding:0 0 1rem; }
+  .capsula-list { display:flex;flex-direction:column;gap:.75rem;margin-top:1rem; }
+  .capsula-card { background:var(--card);border:1.5px solid var(--border);border-radius:18px;padding:1.1rem 1.3rem;transition:all .18s;position:relative;overflow:hidden; }
+  .capsula-card.locked { background:linear-gradient(135deg,var(--card),var(--surface)); }
+  .capsula-card.unlocked { border-color:var(--rosa);cursor:pointer; }
+  .capsula-card.unlocked:hover { transform:translateY(-2px);box-shadow:0 4px 18px rgba(244,167,192,.2); }
+  .capsula-card-header { display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem; }
+  .capsula-card-title { font-family:var(--font-title);font-style:italic;font-size:.98rem;font-weight:700;color:var(--text); }
+  .capsula-card-date { font-size:.65rem;font-weight:700;color:var(--muted);flex-shrink:0;text-align:right; }
+  .capsula-card-preview { font-size:.78rem;color:var(--muted);font-weight:600;line-height:1.5;margin-top:.4rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
+  .capsula-lock-badge { display:inline-flex;align-items:center;gap:.3rem;background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:.2rem .6rem;font-size:.65rem;font-weight:700;color:var(--muted);margin-top:.5rem; }
+  .capsula-unlock-badge { display:inline-flex;align-items:center;gap:.3rem;background:var(--rosa);color:white;border-radius:20px;padding:.2rem .6rem;font-size:.65rem;font-weight:700;margin-top:.5rem; }
+  .capsula-type-badge { display:inline-flex;align-items:center;gap:.25rem;border-radius:20px;padding:.15rem .55rem;font-size:.6rem;font-weight:800;margin-right:.3rem;margin-top:.5rem; }
+  .capsula-type-audio { background:rgba(139,92,246,.15);color:#7c3aed; }
+  .capsula-type-logro { background:rgba(245,158,11,.12);color:#b45309; }
+  .capsula-type-pred { background:rgba(59,130,246,.12);color:#1d4ed8; }
+  .capsula-nueva-btn { display:inline-flex;align-items:center;gap:.5rem;background:var(--rosa);border:none;border-radius:20px;padding:.55rem 1.2rem;font-size:.82rem;font-weight:700;color:white;cursor:pointer;font-family:var(--font-body);margin-bottom:1rem;transition:opacity .15s; }
+  .capsula-nueva-btn:hover { opacity:.88; }
+  .capsula-modal-backdrop { display:none;position:fixed;inset:0;background:rgba(244,167,192,.22);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:9100;align-items:flex-end;justify-content:center; }
+  .capsula-modal-backdrop.open { display:flex; }
+  .capsula-modal { background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:540px;max-height:88vh;overflow-y:auto;padding:1.3rem 1.3rem 2rem;box-shadow:0 -8px 40px rgba(0,0,0,.18); }
+  .capsula-modal-title { font-family:var(--font-title);font-style:italic;font-size:1.1rem;font-weight:700;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center; }
+  .capsula-tipo-tabs { display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.2rem; }
+  .capsula-tipo-tab { flex:1;min-width:0;border:1.5px solid var(--border);border-radius:14px;padding:.5rem .4rem;font-size:.7rem;font-weight:800;cursor:pointer;font-family:var(--font-body);background:var(--surface);color:var(--muted);transition:all .18s;text-align:center;white-space:nowrap; }
+  .capsula-tipo-tab.active { background:var(--rosa);color:white;border-color:var(--rosa); }
+  .capsula-input { width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:.6rem .9rem;font-family:var(--font-body);font-size:.84rem;color:var(--text);outline:none;box-sizing:border-box;margin-top:.5rem; }
+  .capsula-input:focus { border-color:var(--rosa); }
+  .capsula-label { font-size:.67rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-top:.8rem;display:block; }
+  .capsula-textarea { width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:.7rem .9rem;font-family:var(--font-body);font-size:.84rem;color:var(--text);outline:none;resize:vertical;box-sizing:border-box;margin-top:.5rem;min-height:120px; }
+  .capsula-textarea:focus { border-color:var(--rosa); }
+  @keyframes capsulaRecPulse { 0%,100%{box-shadow:0 0 0 0 rgba(229,62,62,.4);} 50%{box-shadow:0 0 0 10px rgba(229,62,62,0);} }
+  .capsula-rec-active { animation:capsulaRecPulse 1.5s infinite; }
+</style>
+
+<section class="capsula-section">
+  <div class="jardin-tab-intro">Cartas selladas para tu yo futura. Solo podrás leerlas cuando llegue el momento. 💌🔒</div>
+  <button class="capsula-nueva-btn" onclick="capsulasAbrirNueva()">✉️ Nueva carta</button>
+  <div class="capsula-list" id="capsulaList2"></div>
+  <div id="capsulaEmpty2" style="display:none;text-align:center;padding:2rem 1rem;color:var(--muted);font-size:.85rem">
+    <div style="font-size:2.5rem">💌</div>
+    <p>Aún no hay cartas. Escríbele algo a tu yo futura 🌸</p>
+  </div>
+</section>
+
+<!-- Modal nueva cápsula -->
+<div class="capsula-modal-backdrop" id="capsulaNuevaBackdrop2">
+  <div class="capsula-modal">
+    <div class="capsula-modal-title">
+      <span id="capsulaNuevaTitle2">Nueva carta ✉️</span>
+      <button onclick="capsulasCerrarNueva2()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div class="capsula-tipo-tabs">
+      <button class="capsula-tipo-tab active" onclick="capsulaSwitchTipo2('carta')" id="tab-carta2">✍️ Carta</button>
+      <button class="capsula-tipo-tab" onclick="capsulaSwitchTipo2('audio')" id="tab-audio2">🎙️ Audio</button>
+      <button class="capsula-tipo-tab" onclick="capsulaSwitchTipo2('logro')" id="tab-logro2">🌟 Logros</button>
+      <button class="capsula-tipo-tab" onclick="capsulaSwitchTipo2('pred')" id="tab-pred2">🔮 Predicciones</button>
+    </div>
+    <span class="capsula-label">Título</span>
+    <input class="capsula-input" id="capsulaTitulo2" placeholder="Querida yo del futuro…">
+    <!-- Carta -->
+    <div id="capsulaBodyCarta2">
+      <span class="capsula-label">Tu carta</span>
+      <textarea class="capsula-textarea" id="capsulaTextoCarta2" placeholder="Hola, soy yo de [fecha]. Hoy quiero contarte…"></textarea>
+    </div>
+    <!-- Audio -->
+    <div id="capsulaBodyAudio2" style="display:none">
+      <span class="capsula-label">Nota de voz</span>
+      <div style="display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap">
+        <button id="capsRec2" onclick="capsStartRec2()" style="background:var(--rosa);color:white;border:none;border-radius:20px;padding:.4rem 1rem;font-size:.78rem;font-weight:700;cursor:pointer;font-family:var(--font-body)">⏺ Grabar</button>
+        <button id="capsStop2" onclick="capsStopRec2()" style="display:none;background:#e53e3e;color:white;border:none;border-radius:20px;padding:.4rem 1rem;font-size:.78rem;font-weight:700;cursor:pointer;font-family:var(--font-body)">⏹ Detener</button>
+        <span id="capsTimer2" style="font-size:.78rem;color:var(--muted);align-self:center"></span>
+      </div>
+      <audio id="capsAudioPreview2" controls style="display:none;width:100%;margin-top:.6rem"></audio>
+    </div>
+    <!-- Logros -->
+    <div id="capsulaBodyLogro2" style="display:none">
+      <span class="capsula-label">Logros de esta etapa 🌟</span>
+      <textarea class="capsula-textarea" id="capsulaTextoLogro2" placeholder="Este año logré…" style="min-height:80px"></textarea>
+      <span class="capsula-label">Fotos del momento (opcional)</span>
+      <button onclick="document.getElementById('logroInput2').click()" style="margin-top:.4rem;background:none;border:1.5px dashed var(--border);border-radius:10px;padding:.4rem .9rem;font-size:.75rem;color:var(--muted);cursor:pointer;font-family:var(--font-body)">📷 Subir fotos</button>
+      <input type="file" id="logroInput2" accept="image/*" multiple style="display:none" onchange="capsulaAddImgs2(this)">
+      <div id="logroImgsPreview2" style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.5rem"></div>
+    </div>
+    <!-- Predicciones -->
+    <div id="capsulaBodyPred2" style="display:none">
+      <span class="capsula-label">Predicciones para el futuro 🔮</span>
+      <textarea class="capsula-textarea" id="capsulaTextoPred2" placeholder="Creo que en X años…&#10;Predigo que…" style="min-height:80px"></textarea>
+      <div style="font-size:.67rem;color:var(--muted);font-weight:600;margin-top:.5rem">Cuando la carta se abra verás qué tanto acertaste 🌱</div>
+    </div>
+    <div id="capsulaFechaWrap2">
+      <span class="capsula-label">Abrir esta carta el…</span>
+      <input class="capsula-input" type="date" id="capsulaFecha2">
+      <div style="font-size:.67rem;color:var(--muted);font-weight:600;margin-top:.3rem" id="capsulaFechaHint2">No podrás leerla hasta esta fecha 🔒</div>
+    </div>
+    <div style="display:flex;gap:.6rem;margin-top:1.2rem;justify-content:flex-end">
+      <button onclick="capsulasCerrarNueva2()" style="background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:.45rem 1.1rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:var(--muted)">Cancelar</button>
+      <button onclick="capsulaGuardar2()" style="background:var(--rosa);border:none;border-radius:20px;padding:.45rem 1.2rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:white">Sellar 🔒</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal leer cápsula -->
+<div class="capsula-modal-backdrop" id="capsulaReadBackdrop2">
+  <div class="capsula-modal">
+    <div class="capsula-modal-title">
+      <span id="capsulaReadTitle2">Mi carta</span>
+      <button onclick="capsulasCerrarRead2()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div style="text-align:center;padding:.5rem 0;font-size:.75rem;color:var(--muted);font-weight:600" id="capsulaReadMeta2"></div>
+    <div id="capsulaReadBody2"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:1.2rem">
+      <button id="capsulaReadDeleteBtn2" onclick="capsulaEliminar2()" style="background:none;border:none;color:#e07;font-size:.78rem;font-weight:700;cursor:pointer">🗑️ Eliminar</button>
+      <button onclick="capsulasCerrarRead2()" style="background:var(--rosa);border:none;border-radius:20px;padding:.45rem 1.2rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:white;margin-left:auto">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var KEY='yuki_capsulas';var _capsulas=[];var _readId=null;
+  var _tipoActual='carta';
+  var _mediaRec=null;var _recChunks=[];var _recTimer=null;var _recSecs=0;var _audioB64=null;
+  var _logroImgs=[];
+  function load(){try{_capsulas=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){_capsulas=[];}};
+  function save(){localStorage.setItem(KEY,JSON.stringify(_capsulas));};
+  function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);};
+  function fmtDate(d){if(!d)return '';var p=d.split('-');if(p.length<3)return d;var m=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];return p[2]+' de '+m[parseInt(p[1],10)-1]+' de '+p[0];};
+  function isUnlocked(c){return !c.revelar||new Date().toISOString().slice(0,10)>=c.revelar;};
+  function tipoLabel(t){return {carta:'✍️ Carta',audio:'🎙️ Audio',logro:'🌟 Logros',pred:'🔮 Predicciones'}[t]||'✉️';};
+  function render(){
+    load();
+    var list=document.getElementById('capsulaList2');
+    var empty=document.getElementById('capsulaEmpty2');
+    if(!list)return;
+    list.innerHTML='';
+    if(_capsulas.length===0){empty.style.display='';return;}
+    empty.style.display='none';
+    _capsulas.slice().reverse().forEach(function(c){
+      var locked=!isUnlocked(c);
+      var card=document.createElement('div');
+      card.className='capsula-card '+(locked?'locked':'unlocked');
+      var typeBadge='';
+      if(c.tipo&&c.tipo!=='carta') typeBadge='<span class="capsula-type-badge capsula-type-'+c.tipo+'">'+tipoLabel(c.tipo)+'</span>';
+      card.innerHTML='<div class="capsula-card-header"><div class="capsula-card-title">'+(c.titulo||'Carta sin título')+'</div>'+
+        '<div class="capsula-card-date">Escrita: '+fmtDate(c.fechaCreacion)+'<br>'+(c.revelar?'Abre: '+fmtDate(c.revelar):'Sin fecha límite')+'</div></div>'+
+        typeBadge+
+        (!locked&&c.tipo==='carta'&&c.texto?'<div class="capsula-card-preview">'+c.texto+'</div>':'')+
+        (locked?'<div><span class="capsula-lock-badge">🔒 Se abre el '+fmtDate(c.revelar)+'</span></div>':
+                '<div><span class="capsula-unlock-badge">🔓 ¡Lista para leer!</span></div>');
+      if(!locked) card.onclick=function(){capsulaAbrir2(c.id);};
+      list.appendChild(card);
+    });
+  };
+  window.capsulasAbrirNueva=function(){
+    _tipoActual='carta';_audioB64=null;_logroImgs=[];
+    document.getElementById('capsulaTitulo2').value='';
+    document.getElementById('capsulaTextoCarta2').value='';
+    document.getElementById('capsulaTextoLogro2').value='';
+    document.getElementById('capsulaTextoPred2').value='';
+    document.getElementById('capsulaFecha2').value='';
+    document.getElementById('logroImgsPreview2').innerHTML='';
+    document.getElementById('capsAudioPreview2').style.display='none';
+    document.getElementById('capsAudioPreview2').src='';
+    ['carta','audio','logro','pred'].forEach(function(t){
+      document.getElementById('capsulaBody'+t.charAt(0).toUpperCase()+t.slice(1)+'2').style.display=t==='carta'?'':'none';
+      document.getElementById('tab-'+t+'2').classList.toggle('active',t==='carta');
+    });
+    document.getElementById('capsulaNuevaBackdrop2').classList.add('open');
+  };
+  window.capsulasCerrarNueva2=function(){document.getElementById('capsulaNuevaBackdrop2').classList.remove('open');};
+  window.capsulaSwitchTipo2=function(tipo){
+    _tipoActual=tipo;
+    ['carta','audio','logro','pred'].forEach(function(t){
+      document.getElementById('capsulaBody'+t.charAt(0).toUpperCase()+t.slice(1)+'2').style.display=t===tipo?'':'none';
+      document.getElementById('tab-'+t+'2').classList.toggle('active',t===tipo);
+    });
+  };
+  window.capsStartRec2=function(){
+    if(!navigator.mediaDevices){alert('Tu navegador no soporta grabación de audio.');return;}
+    navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+      _recChunks=[];_recSecs=0;_audioB64=null;
+      _mediaRec=new MediaRecorder(stream);
+      _mediaRec.ondataavailable=function(e){if(e.data.size>0)_recChunks.push(e.data);};
+      _mediaRec.onstop=function(){
+        var blob=new Blob(_recChunks,{type:'audio/webm'});
+        var reader=new FileReader();
+        reader.onload=function(ev){
+          _audioB64=ev.target.result;
+          var au=document.getElementById('capsAudioPreview2');
+          au.src=_audioB64;au.style.display='';
+        };
+        reader.readAsDataURL(blob);
+        stream.getTracks().forEach(function(t){t.stop();});
+      };
+      _mediaRec.start();
+      document.getElementById('capsRec2').style.display='none';
+      document.getElementById('capsStop2').style.display='';
+      document.getElementById('capsStop2').classList.add('capsula-rec-active');
+      _recTimer=setInterval(function(){_recSecs++;var m=Math.floor(_recSecs/60);var s=_recSecs%60;document.getElementById('capsTimer2').textContent=(m<10?'0'+m:m)+':'+(s<10?'0'+s:s);},1000);
+    }).catch(function(){alert('No se pudo acceder al micrófono.');});
+  };
+  window.capsStopRec2=function(){
+    if(_mediaRec&&_mediaRec.state!=='inactive')_mediaRec.stop();
+    clearInterval(_recTimer);
+    document.getElementById('capsRec2').style.display='';
+    document.getElementById('capsStop2').style.display='none';
+    document.getElementById('capsStop2').classList.remove('capsula-rec-active');
+  };
+  window.capsulaAddImgs2=function(input){
+    var files=Array.from(input.files);
+    files.forEach(function(f){
+      var rd=new FileReader();
+      rd.onload=function(e){
+        _logroImgs.push(e.target.result);
+        var prev=document.getElementById('logroImgsPreview2');
+        var img=document.createElement('img');
+        img.src=e.target.result;img.style.cssText='width:64px;height:64px;object-fit:cover;border-radius:10px;border:1.5px solid var(--border)';
+        prev.appendChild(img);
+      };rd.readAsDataURL(f);
+    });
+  };
+  window.capsulaGuardar2=function(){
+    var titulo=document.getElementById('capsulaTitulo2').value.trim();
+    if(!titulo){alert('Ponle un título a tu carta 💌');return;}
+    var obj={id:uid(),titulo:titulo,tipo:_tipoActual,fechaCreacion:new Date().toISOString().slice(0,10),revelar:document.getElementById('capsulaFecha2').value||null};
+    if(_tipoActual==='carta') obj.texto=document.getElementById('capsulaTextoCarta2').value.trim();
+    else if(_tipoActual==='audio') obj.audio=_audioB64;
+    else if(_tipoActual==='logro'){obj.texto=document.getElementById('capsulaTextoLogro2').value.trim();obj.imgs=_logroImgs;}
+    else if(_tipoActual==='pred') obj.texto=document.getElementById('capsulaTextoPred2').value.trim();
+    load();_capsulas.push(obj);
+    try{save();}catch(e){if(obj.imgs)obj.imgs=[];if(obj.audio)obj.audio=null;try{save();}catch(e2){alert('No se pudo guardar.');return;}}
+    capsulasCerrarNueva2();render();
+  };
+  function capsulaAbrir2(id){
+    load();var c=_capsulas.find(function(x){return x.id===id;});if(!c)return;
+    _readId=id;
+    document.getElementById('capsulaReadTitle2').textContent=c.titulo||'Mi carta';
+    document.getElementById('capsulaReadMeta2').textContent='Escrita el '+fmtDate(c.fechaCreacion)+(c.revelar?' · Abierta el '+fmtDate(new Date().toISOString().slice(0,10)):'');
+    var body=document.getElementById('capsulaReadBody2');body.innerHTML='';
+    if(c.tipo==='audio'&&c.audio){var au=document.createElement('audio');au.controls=true;au.src=c.audio;au.style.width='100%';body.appendChild(au);}
+    else if(c.texto){var p=document.createElement('p');p.style.cssText='font-size:.88rem;line-height:1.7;color:var(--text);white-space:pre-wrap';p.textContent=c.texto;body.appendChild(p);}
+    if(c.imgs&&c.imgs.length){var wrap=document.createElement('div');wrap.style.cssText='display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.8rem';c.imgs.forEach(function(src){var img=document.createElement('img');img.src=src;img.style.cssText='width:80px;height:80px;object-fit:cover;border-radius:10px';wrap.appendChild(img);});body.appendChild(wrap);}
+    document.getElementById('capsulaReadBackdrop2').classList.add('open');
+  };
+  window.capsulasCerrarRead2=function(){document.getElementById('capsulaReadBackdrop2').classList.remove('open');};
+  window.capsulaEliminar2=function(){if(!_readId)return;load();_capsulas=_capsulas.filter(function(x){return x.id!==_readId;});save();render();capsulasCerrarRead2();};
+  document.addEventListener('DOMContentLoaded',function(){load();render();});
+})();
+</script>
+
+    </div><!-- end jardinSubCartas -->
+
+  </div><!-- end jardinTabEsencia -->
+
+</section>
+
+<!-- ════ MODALS ════ -->
+
+<!-- Modal: Lo que suelto -->
+<div class="jardin-backdrop" id="sueltoBackdrop" style="display:none" onclick="if(event.target===this)sueltoCloseModal()">
+  <div class="jardin-modal">
+    <div class="jardin-modal-hdr"><span id="sueltoModalTitle">Soltar algo</span><button onclick="sueltoCloseModal()" class="jardin-modal-close">✕</button></div>
+    <div class="jardin-modal-body">
+      <div class="jardin-field"><label class="jardin-label">¿Qué sueltas? *</label>
+        <input class="jardin-input" id="sueltoNombre" placeholder="Una creencia, una persona, una versión de mí…"></div>
+      <div class="jardin-field"><label class="jardin-label">Tipo</label>
+        <select class="jardin-input" id="sueltoTipo">
+          <option value="creencia">💭 Creencia limitante</option>
+          <option value="persona">🤍 Persona / relación</option>
+          <option value="version">🦋 Versión de mí misma</option>
+          <option value="habito">🔗 Hábito o patrón</option>
+          <option value="emocion">🌊 Emoción / peso</option>
+          <option value="otro">✨ Otro</option>
+        </select></div>
+      <div class="jardin-field"><label class="jardin-label">¿Por qué lo sueltas?</label>
+        <textarea class="jardin-input" id="sueltoPor" rows="3" placeholder="Ya no me sirve porque…" style="resize:vertical"></textarea></div>
+      <div class="jardin-field"><label class="jardin-label">¿Qué recibes a cambio?</label>
+        <input class="jardin-input" id="sueltoRecibe" placeholder="Paz, espacio, libertad…"></div>
+      <div class="jardin-field"><label class="jardin-label">Estado</label>
+        <select class="jardin-input" id="sueltoEstado">
+          <option value="en_proceso">🌊 Aún en proceso</option>
+          <option value="soltado">🍃 Soltado</option>
+        </select></div>
+    </div>
+    <div class="jardin-modal-ftr">
+      <button class="jardin-btn-cancel" onclick="sueltoCloseModal()">Cancelar</button>
+      <button class="jardin-btn-save" onclick="sueltoSave()">Soltar 🍃</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Patrones -->
+<div class="jardin-backdrop" id="patronBackdrop" style="display:none" onclick="if(event.target===this)patronCloseModal()">
+  <div class="jardin-modal">
+    <div class="jardin-modal-hdr"><span id="patronModalTitle">Nuevo patrón</span><button onclick="patronCloseModal()" class="jardin-modal-close">✕</button></div>
+    <div class="jardin-modal-body">
+      <div class="jardin-field"><label class="jardin-label">El patrón *</label>
+        <input class="jardin-input" id="patronNombre" placeholder="Cuando me siento insegura, tiendo a…"></div>
+      <div class="jardin-field"><label class="jardin-label">¿Cuándo aparece?</label>
+        <textarea class="jardin-input" id="patronCuando" rows="2" placeholder="Situaciones, personas, emociones que lo activan…" style="resize:vertical"></textarea></div>
+      <div class="jardin-field"><label class="jardin-label">¿Qué lo origina?</label>
+        <textarea class="jardin-input" id="patronOrigen" rows="2" placeholder="Creo que viene de…" style="resize:vertical"></textarea></div>
+      <div class="jardin-field"><label class="jardin-label">¿Cómo lo estoy trabajando?</label>
+        <textarea class="jardin-input" id="patronTrabajando" rows="2" placeholder="Estoy aprendiendo a…" style="resize:vertical"></textarea></div>
+      <div class="jardin-field"><label class="jardin-label">Estado</label>
+        <select class="jardin-input" id="patronEstado">
+          <option value="identificado">🔍 Identificado</option>
+          <option value="trabajando">🌱 Trabajando en él</option>
+          <option value="transformado">🦋 Transformado</option>
+        </select></div>
+    </div>
+    <div class="jardin-modal-ftr">
+      <button class="jardin-btn-cancel" onclick="patronCloseModal()">Cancelar</button>
+      <button class="jardin-btn-save" onclick="patronSave()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Miedos -->
+<div class="jardin-backdrop" id="miedoBackdrop" style="display:none" onclick="if(event.target===this)miedoCloseModal()">
+  <div class="jardin-modal">
+    <div class="jardin-modal-hdr"><span id="miedoModalTitle">Nombrar un miedo</span><button onclick="miedoCloseModal()" class="jardin-modal-close">✕</button></div>
+    <div class="jardin-modal-body">
+      <div class="jardin-field"><label class="jardin-label">El miedo *</label>
+        <input class="jardin-input" id="miedoNombre" placeholder="Le tengo miedo a…"></div>
+      <div class="jardin-field"><label class="jardin-label">¿Cómo se manifiesta en mí?</label>
+        <textarea class="jardin-input" id="miedoManifesta" rows="2" placeholder="Cuando aparece, me bloquea, evito…" style="resize:vertical"></textarea></div>
+      <div class="jardin-field"><label class="jardin-label">¿Qué lo alimenta?</label>
+        <input class="jardin-input" id="miedoAlimenta" placeholder="Una experiencia pasada, una creencia…"></div>
+      <div class="jardin-field"><label class="jardin-label">¿Cómo lo estoy enfrentando?</label>
+        <textarea class="jardin-input" id="miedoEnfrenta" rows="2" placeholder="Estoy aprendiendo a…" style="resize:vertical"></textarea></div>
+      <div class="jardin-field"><label class="jardin-label">Estado</label>
+        <select class="jardin-input" id="miedoEstado">
+          <option value="activo">🌑 Activo (aún me afecta)</option>
+          <option value="trabajando">🌗 Trabajando en él</option>
+          <option value="sanado">🌕 Sanado</option>
+        </select></div>
+    </div>
+    <div class="jardin-modal-ftr">
+      <button class="jardin-btn-cancel" onclick="miedoCloseModal()">Cancelar</button>
+      <button class="jardin-btn-save" onclick="miedoSave()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Lo que Dios me enseña -->
+<div class="jardin-backdrop" id="diosBackdrop" style="display:none" onclick="if(event.target===this)diosCloseModal()">
+  <div class="jardin-modal">
+    <div class="jardin-modal-hdr"><span id="diosModalTitle">Nueva enseñanza</span><button onclick="diosCloseModal()" class="jardin-modal-close">✕</button></div>
+    <div class="jardin-modal-body">
+      <div class="jardin-field"><label class="jardin-label">¿Qué te enseñó? *</label>
+        <textarea class="jardin-input" id="diosEnsenanza" rows="3" placeholder="Hoy sentí / entendí / Dios me mostró que…" style="resize:vertical"></textarea></div>
+      <div class="jardin-field"><label class="jardin-label">Categoría</label>
+        <select class="jardin-input" id="diosCat">
+          <option value="fe">🕊️ Fe</option>
+          <option value="proposito">🌟 Propósito</option>
+          <option value="relaciones">🤍 Relaciones</option>
+          <option value="identidad">🌸 Identidad</option>
+          <option value="provision">✨ Provisión</option>
+          <option value="otro">💫 Otro</option>
+        </select></div>
+      <div class="jardin-field"><label class="jardin-label">Versículo / referencia (opcional)</label>
+        <input class="jardin-input" id="diosVersiculo" placeholder="Juan 3:16, Jeremías 29:11…"></div>
+      <div class="jardin-field"><label class="jardin-label">¿Cómo lo aplicas?</label>
+        <textarea class="jardin-input" id="diosAplica" rows="2" placeholder="En mi vida esto significa…" style="resize:vertical"></textarea></div>
+    </div>
+    <div class="jardin-modal-ftr">
+      <button class="jardin-btn-cancel" onclick="diosCloseModal()">Cancelar</button>
+      <button class="jardin-btn-save" onclick="diosSave()">Guardar 🕊️</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Valor -->
+<div class="jardin-backdrop" id="valorBackdrop" style="display:none" onclick="if(event.target===this)valorCloseModal()">
+  <div class="jardin-modal" style="max-width:380px">
+    <div class="jardin-modal-hdr"><span>Agregar valor</span><button onclick="valorCloseModal()" class="jardin-modal-close">✕</button></div>
+    <div class="jardin-modal-body">
+      <div class="jardin-field"><label class="jardin-label">Valor *</label>
+        <input class="jardin-input" id="valorNombre" placeholder="Autenticidad, familia, libertad…"></div>
+      <div class="jardin-field"><label class="jardin-label">¿Por qué es sagrado para ti?</label>
+        <textarea class="jardin-input" id="valorPor" rows="2" placeholder="Para mí significa…" style="resize:vertical"></textarea></div>
+    </div>
+    <div class="jardin-modal-ftr">
+      <button class="jardin-btn-cancel" onclick="valorCloseModal()">Cancelar</button>
+      <button class="jardin-btn-save" onclick="valorSave()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Fortaleza -->
+<div class="jardin-backdrop" id="fortalezaBackdrop" style="display:none" onclick="if(event.target===this)fortalezaCloseModal()">
+  <div class="jardin-modal" style="max-width:380px">
+    <div class="jardin-modal-hdr"><span>Agregar fortaleza</span><button onclick="fortalezaCloseModal()" class="jardin-modal-close">✕</button></div>
+    <div class="jardin-modal-body">
+      <div class="jardin-field"><label class="jardin-label">Fortaleza *</label>
+        <input class="jardin-input" id="fortalezaNombre" placeholder="Empatía, resiliencia, creatividad…"></div>
+      <div class="jardin-field"><label class="jardin-label">¿Cómo se manifiesta en ti?</label>
+        <textarea class="jardin-input" id="fortalezaComo" rows="2" placeholder="La veo cuando…" style="resize:vertical"></textarea></div>
+    </div>
+    <div class="jardin-modal-ftr">
+      <button class="jardin-btn-cancel" onclick="fortalezaCloseModal()">Cancelar</button>
+      <button class="jardin-btn-save" onclick="fortalezaSave()">Guardar 💪</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ ESTILOS ════ -->
+<style>
+  .jardin-section { max-width: 780px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+  .jardin-header { margin-bottom: 1rem; }
+
+  /* MAIN TABS */
+  .jardin-main-tabs { display:flex; gap:.5rem; margin-bottom:1.2rem; padding-bottom:.9rem; border-bottom:1.5px solid var(--border); }
+  .jardin-main-tab { flex:1; background:var(--surface); border:1.5px solid var(--border); border-radius:20px; padding:.45rem .6rem; font-size:.8rem; font-weight:700; color:var(--muted); cursor:pointer; font-family:var(--font-body); transition:all .18s; text-align:center; }
+  .jardin-main-tab:hover { border-color:var(--verde); color:var(--verde); }
+  .jardin-main-tab.active { background:var(--verde); border-color:var(--verde); color:white; }
+
+  /* SUB TABS */
+  .jardin-sub-tabs { display:flex; gap:.35rem; flex-wrap:wrap; margin-bottom:1rem; }
+  .jardin-sub-tab { background:var(--surface); border:1.5px solid var(--border); border-radius:20px; padding:.3rem .8rem; font-size:.73rem; font-weight:700; color:var(--muted); cursor:pointer; font-family:var(--font-body); transition:all .18s; }
+  .jardin-sub-tab:hover { border-color:var(--verde); color:var(--verde); }
+  .jardin-sub-tab.active { background:var(--verde-soft,#e8f5e9); border-color:var(--verde); color:var(--verde); }
+
+  /* CHIPS FILTRO */
+  .jardin-chip { font-size:.7rem; font-weight:700; padding:.22rem .65rem; border-radius:20px; background:var(--surface); border:1.5px solid var(--border); color:var(--muted); cursor:pointer; transition:all .18s; }
+  .jardin-chip:hover { border-color:var(--verde); color:var(--verde); }
+  .jardin-chip.active { background:var(--verde-soft,#e8f5e9); border-color:var(--verde); color:var(--verde); }
+  .jardin-miedo-filtros, .jardin-dios-filtros { display:flex; flex-wrap:wrap; gap:.35rem; margin-bottom:.9rem; }
+
+  /* INTRO */
+  .jardin-tab-intro { font-size:.8rem; color:var(--muted); line-height:1.6; margin-bottom:.9rem; font-style:italic; }
+  .jardin-tab-actions { margin-bottom:.8rem; }
+
+  /* CARDS */
+  .jardin-cards-col { display:flex; flex-direction:column; gap:.7rem; }
+  .jardin-card { background:var(--card); border:1.5px solid var(--border); border-radius:16px; padding:.9rem 1rem; transition:border-color .2s; }
+  .jardin-card:hover { border-color:var(--verde); }
+  .jardin-card-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:.35rem; gap:.5rem; }
+  .jardin-card-nombre { font-family:var(--font-title); font-style:italic; font-size:.95rem; font-weight:800; color:var(--text); }
+  .jardin-card-badge { font-size:.63rem; font-weight:800; padding:.13rem .5rem; border-radius:20px; white-space:nowrap; flex-shrink:0; }
+  .jardin-card-body { font-size:.77rem; color:var(--muted); line-height:1.5; }
+  .jardin-card-footer { display:flex; justify-content:flex-end; gap:.3rem; margin-top:.6rem; border-top:1px solid var(--border); padding-top:.5rem; }
+  .jardin-card-btn { background:none; border:none; font-size:.8rem; cursor:pointer; padding:.2rem .35rem; border-radius:8px; color:var(--muted); }
+  .jardin-card-btn:hover { background:var(--surface); }
+
+  /* ESTADOS BADGES */
+  .badge-en_proceso, .badge-activo, .badge-identificado { background:#f0f0f0; color:#888; }
+  .badge-trabajando { background:#fff3cd; color:#b07d00; }
+  .badge-soltado, .badge-sanado, .badge-transformado { background:#d4f5e0; color:#1a7a3e; }
+
+  /* VALORES / FORTALEZAS */
+  .jardin-bloque-titulo { font-size:.72rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:.5rem; }
+  .jardin-chips-list { display:flex; flex-wrap:wrap; gap:.45rem; min-height:2rem; }
+  .jardin-vf-chip { background:var(--surface); border:1.5px solid var(--border); border-radius:20px; padding:.3rem .8rem; font-size:.78rem; font-weight:700; color:var(--text); cursor:pointer; display:flex; align-items:center; gap:.35rem; transition:border-color .2s; }
+  .jardin-vf-chip:hover { border-color:var(--rosa); }
+  .jardin-vf-del { background:none; border:none; font-size:.75rem; cursor:pointer; color:var(--muted); padding:0; line-height:1; }
+  .jardin-empty-small { font-size:.78rem; color:var(--muted2); font-style:italic; padding:.4rem 0; }
+
+  /* QUIÉN QUIERO SER */
+  .jardin-quien-wrap { margin-top:.4rem; }
+  .jardin-quien-textarea { width:100%; box-sizing:border-box; min-height:160px; background:var(--surface); border:1.5px solid var(--border); border-radius:14px; padding:.8rem 1rem; font-family:var(--font-body); font-size:.85rem; color:var(--text); outline:none; resize:vertical; line-height:1.7; }
+  .jardin-quien-textarea:focus { border-color:var(--verde); }
+  .jardin-quien-hint { font-size:.67rem; color:var(--muted2); margin-top:.3rem; font-style:italic; }
+
+  /* EMPTY */
+  .jardin-empty { text-align:center; padding:3rem 1rem; color:var(--muted); display:flex; flex-direction:column; align-items:center; gap:.8rem; font-size:.84rem; }
+
+  /* BUTTONS */
+  .jardin-btn-primary { background:var(--verde); color:white; border:none; border-radius:20px; padding:.45rem 1.1rem; font-size:.78rem; font-weight:700; cursor:pointer; font-family:var(--font-body); transition:opacity .2s; }
+  .jardin-btn-primary:hover { opacity:.85; }
+  .jardin-btn-secondary { background:none; border:1.5px solid var(--verde); color:var(--verde); border-radius:20px; padding:.4rem 1rem; font-size:.76rem; font-weight:700; cursor:pointer; font-family:var(--font-body); transition:all .18s; }
+  .jardin-btn-secondary:hover { background:var(--verde); color:white; }
+
+  /* MODAL */
+  .jardin-backdrop { position:fixed; inset:0; background:rgba(100,180,100,.15); backdrop-filter:blur(3px); z-index:9000; display:flex; align-items:center; justify-content:center; padding:1rem; }
+  .jardin-modal { background:var(--card); border-radius:20px; width:100%; max-width:480px; max-height:88vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,.18); }
+  .jardin-modal-hdr { display:flex; justify-content:space-between; align-items:center; padding:1.1rem 1.3rem .8rem; font-family:var(--font-title); font-style:italic; font-size:1.05rem; font-weight:700; border-bottom:1px solid var(--border); }
+  .jardin-modal-close { background:none; border:none; font-size:1.1rem; cursor:pointer; color:var(--muted); }
+  .jardin-modal-body { padding:1rem 1.3rem; display:flex; flex-direction:column; gap:.7rem; }
+  .jardin-modal-ftr { display:flex; justify-content:flex-end; gap:.6rem; padding:.9rem 1.3rem; border-top:1px solid var(--border); }
+  .jardin-field { display:flex; flex-direction:column; gap:.25rem; }
+  .jardin-label { font-size:.67rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); }
+  .jardin-input { background:var(--surface); border:1.5px solid var(--border); border-radius:10px; padding:.55rem .8rem; font-family:var(--font-body); font-size:.83rem; color:var(--text); outline:none; width:100%; box-sizing:border-box; }
+  .jardin-input:focus { border-color:var(--verde); }
+  .jardin-btn-cancel { background:none; border:1.5px solid var(--border); border-radius:20px; padding:.5rem 1.2rem; font-size:.82rem; font-weight:600; cursor:pointer; font-family:var(--font-body); color:var(--muted); }
+  .jardin-btn-save { background:var(--verde); color:white; border:none; border-radius:20px; padding:.5rem 1.3rem; font-size:.82rem; font-weight:700; cursor:pointer; font-family:var(--font-body); }
+</style>
+
+<!-- ════ SCRIPTS ════ -->
+<script>
+(function(){
+
+  /* ── NAVEGACIÓN ── */
+  window.jardinShowTab = function(tab) {
+    document.getElementById('jardinTabInterior').style.display = tab==='interior' ? '' : 'none';
+    document.getElementById('jardinTabEsencia').style.display  = tab==='esencia'  ? '' : 'none';
+    document.querySelectorAll('.jardin-main-tab').forEach(function(b,i){
+      b.classList.toggle('active', i===(tab==='interior'?0:1));
+    });
+  };
+
+  var _activeSub1 = 'suelto';
+  window.jardinShowSub = function(el, sub) {
+    _activeSub1 = sub;
+    ['suelto','patrones','miedos'].forEach(function(s){
+      document.getElementById('jardinSub'+s.charAt(0).toUpperCase()+s.slice(1)).style.display = s===sub?'':'none';
+    });
+    document.querySelectorAll('.jardin-sub-tabs .jardin-sub-tab').forEach(function(b){ b.classList.remove('active'); });
+    el.classList.add('active');
+  };
+
+  var _activeSub2 = 'dios';
+  window.jardinShowSub2 = function(el, sub) {
+    _activeSub2 = sub;
+    ['dios','valores','cartas'].forEach(function(s){
+      document.getElementById('jardinSub'+s.charAt(0).toUpperCase()+s.slice(1)).style.display = s===sub?'':'none';
+    });
+    var btns = document.querySelectorAll('#jardinTabEsencia .jardin-sub-tab');
+    btns.forEach(function(b){ b.classList.remove('active'); });
+    el.classList.add('active');
+  };
+
+  /* ══ LO QUE SUELTO ══ */
+  var SK = 'yuki_jardin_suelto'; var sueltos = []; var sueltoEditId = null;
+  var SUELTO_TIPOS = { creencia:'💭', persona:'🤍', version:'🦋', habito:'🔗', emocion:'🌊', otro:'✨' };
+  var SUELTO_ESTADOS = { en_proceso:'🌊 En proceso', soltado:'🍃 Soltado' };
+
+  function sueltoLoad(){ try{sueltos=JSON.parse(localStorage.getItem(SK))||[];}catch(e){sueltos=[];} }
+  function sueltoSaveD(){ localStorage.setItem(SK,JSON.stringify(sueltos)); if(window.cloudSave) window.cloudSave(SK,sueltos); }
+  function sueltoRender(){
+    sueltoLoad();
+    var list=document.getElementById('sueltoList'); var empty=document.getElementById('sueltoEmpty');
+    if(!list)return; list.innerHTML='';
+    if(sueltos.length===0){empty.style.display='flex';return;} empty.style.display='none';
+    sueltos.slice().reverse().forEach(function(s){
+      var card=document.createElement('div'); card.className='jardin-card';
+      var em=SUELTO_TIPOS[s.tipo]||'✨';
+      var badgeClass='badge-'+(s.estado||'en_proceso');
+      card.innerHTML='<div class="jardin-card-top">'+
+        '<div class="jardin-card-nombre">'+em+' '+s.nombre+'</div>'+
+        '<span class="jardin-card-badge '+badgeClass+'">'+(SUELTO_ESTADOS[s.estado]||s.estado)+'</span>'+
+        '</div>'+
+        (s.por?'<div class="jardin-card-body">'+s.por+'</div>':'')+
+        (s.recibe?'<div class="jardin-card-body" style="margin-top:.3rem">✦ '+s.recibe+'</div>':'')+
+        '<div class="jardin-card-footer">'+
+        '<button class="jardin-card-btn" onclick="sueltoOpenModal(\''+s.id+'\');event.stopPropagation()">✏️</button>'+
+        '<button class="jardin-card-btn" onclick="sueltoDelete(\''+s.id+'\');event.stopPropagation()">🗑️</button>'+
+        '</div>';
+      list.appendChild(card);
+    });
+  }
+  window.sueltoOpenModal=function(id){
+    sueltoLoad(); sueltoEditId=id||null;
+    var s=id?sueltos.find(function(x){return x.id===id;}):null;
+    document.getElementById('sueltoModalTitle').textContent=s?'Editar':'Soltar algo';
+    document.getElementById('sueltoNombre').value=s?s.nombre:'';
+    document.getElementById('sueltoTipo').value=s?(s.tipo||'creencia'):'creencia';
+    document.getElementById('sueltoPor').value=s?(s.por||''):'';
+    document.getElementById('sueltoRecibe').value=s?(s.recibe||''):'';
+    document.getElementById('sueltoEstado').value=s?(s.estado||'en_proceso'):'en_proceso';
+    document.getElementById('sueltoBackdrop').style.display='flex';
+  };
+  window.sueltoCloseModal=function(){document.getElementById('sueltoBackdrop').style.display='none';};
+  window.sueltoSave=function(){
+    var n=document.getElementById('sueltoNombre').value.trim(); if(!n){alert('¿Qué estás soltando? 🍃');return;}
+    sueltoLoad();
+    var obj={id:sueltoEditId||('s_'+Date.now()),nombre:n,tipo:document.getElementById('sueltoTipo').value,
+      por:document.getElementById('sueltoPor').value.trim(),recibe:document.getElementById('sueltoRecibe').value.trim(),
+      estado:document.getElementById('sueltoEstado').value};
+    if(sueltoEditId){var i=sueltos.findIndex(function(x){return x.id===sueltoEditId;}); if(i>=0)sueltos[i]=obj;}
+    else sueltos.push(obj);
+    sueltoEditId=null; sueltoSaveD(); sueltoCloseModal(); sueltoRender();
+  };
+  window.sueltoDelete=function(id){
+    if(!confirm('¿Eliminar?'))return;
+    sueltoLoad(); sueltos=sueltos.filter(function(x){return x.id!==id;}); sueltoSaveD(); sueltoRender();
+  };
+
+  /* ══ PATRONES ══ */
+  var PK='yuki_jardin_patrones'; var patrones=[]; var patronEditId=null;
+  var PATRON_ESTADOS={identificado:'🔍 Identificado',trabajando:'🌱 Trabajando',transformado:'🦋 Transformado'};
+  function patronLoad(){try{patrones=JSON.parse(localStorage.getItem(PK))||[];}catch(e){patrones=[];}}
+  function patronSaveD(){localStorage.setItem(PK,JSON.stringify(patrones)); if(window.cloudSave) window.cloudSave(PK,patrones);}
+  function patronRender(){
+    patronLoad();
+    var list=document.getElementById('patronesList'); var empty=document.getElementById('patronesEmpty');
+    if(!list)return; list.innerHTML='';
+    if(patrones.length===0){empty.style.display='flex';return;} empty.style.display='none';
+    patrones.slice().reverse().forEach(function(p){
+      var card=document.createElement('div'); card.className='jardin-card';
+      var badgeClass='badge-'+(p.estado||'identificado');
+      card.innerHTML='<div class="jardin-card-top">'+
+        '<div class="jardin-card-nombre">🔁 '+p.nombre+'</div>'+
+        '<span class="jardin-card-badge '+badgeClass+'">'+(PATRON_ESTADOS[p.estado]||p.estado)+'</span>'+
+        '</div>'+
+        (p.cuando?'<div class="jardin-card-body"><b>Aparece:</b> '+p.cuando+'</div>':'')+
+        (p.trabajando?'<div class="jardin-card-body" style="margin-top:.3rem"><b>Trabajando:</b> '+p.trabajando+'</div>':'')+
+        '<div class="jardin-card-footer">'+
+        '<button class="jardin-card-btn" onclick="patronOpenModal(\''+p.id+'\');event.stopPropagation()">✏️</button>'+
+        '<button class="jardin-card-btn" onclick="patronDelete(\''+p.id+'\');event.stopPropagation()">🗑️</button>'+
+        '</div>';
+      list.appendChild(card);
+    });
+  }
+  window.patronOpenModal=function(id){
+    patronLoad(); patronEditId=id||null;
+    var p=id?patrones.find(function(x){return x.id===id;}):null;
+    document.getElementById('patronModalTitle').textContent=p?'Editar patrón':'Nuevo patrón';
+    document.getElementById('patronNombre').value=p?p.nombre:'';
+    document.getElementById('patronCuando').value=p?(p.cuando||''):'';
+    document.getElementById('patronOrigen').value=p?(p.origen||''):'';
+    document.getElementById('patronTrabajando').value=p?(p.trabajando||''):'';
+    document.getElementById('patronEstado').value=p?(p.estado||'identificado'):'identificado';
+    document.getElementById('patronBackdrop').style.display='flex';
+  };
+  window.patronCloseModal=function(){document.getElementById('patronBackdrop').style.display='none';};
+  window.patronSave=function(){
+    var n=document.getElementById('patronNombre').value.trim(); if(!n){alert('Describe el patrón 🔁');return;}
+    patronLoad();
+    var obj={id:patronEditId||('p_'+Date.now()),nombre:n,cuando:document.getElementById('patronCuando').value.trim(),
+      origen:document.getElementById('patronOrigen').value.trim(),trabajando:document.getElementById('patronTrabajando').value.trim(),
+      estado:document.getElementById('patronEstado').value};
+    if(patronEditId){var i=patrones.findIndex(function(x){return x.id===patronEditId;}); if(i>=0)patrones[i]=obj;}
+    else patrones.push(obj);
+    patronEditId=null; patronSaveD(); patronCloseModal(); patronRender();
+  };
+  window.patronDelete=function(id){
+    if(!confirm('¿Eliminar?'))return;
+    patronLoad(); patrones=patrones.filter(function(x){return x.id!==id;}); patronSaveD(); patronRender();
+  };
+
+  /* ══ MIEDOS ══ */
+  var MK='yuki_jardin_miedos'; var miedos=[]; var miedoEditId=null; var miedoFiltroActivo='';
+  var MIEDO_ESTADOS={activo:'🌑 Activo',trabajando:'🌗 Trabajando',sanado:'🌕 Sanado'};
+  function miedoLoad(){try{miedos=JSON.parse(localStorage.getItem(MK))||[];}catch(e){miedos=[];}}
+  function miedoSaveD(){localStorage.setItem(MK,JSON.stringify(miedos)); if(window.cloudSave) window.cloudSave(MK,miedos);}
+  function miedoRender(){
+    miedoLoad();
+    var list=document.getElementById('miedosList'); var empty=document.getElementById('miedosEmpty');
+    if(!list)return; list.innerHTML='';
+    var filtered=miedoFiltroActivo?miedos.filter(function(m){return (m.estado||'activo')===miedoFiltroActivo;}):miedos;
+    if(filtered.length===0){empty.style.display='flex';return;} empty.style.display='none';
+    filtered.slice().reverse().forEach(function(m){
+      var card=document.createElement('div'); card.className='jardin-card';
+      var badgeClass='badge-'+(m.estado||'activo');
+      card.innerHTML='<div class="jardin-card-top">'+
+        '<div class="jardin-card-nombre">🌑 '+m.nombre+'</div>'+
+        '<span class="jardin-card-badge '+badgeClass+'">'+(MIEDO_ESTADOS[m.estado]||m.estado)+'</span>'+
+        '</div>'+
+        (m.manifesta?'<div class="jardin-card-body">'+m.manifesta+'</div>':'')+
+        (m.enfrenta?'<div class="jardin-card-body" style="margin-top:.3rem">✦ '+m.enfrenta+'</div>':'')+
+        '<div class="jardin-card-footer">'+
+        '<button class="jardin-card-btn" onclick="miedoOpenModal(\''+m.id+'\');event.stopPropagation()">✏️</button>'+
+        '<button class="jardin-card-btn" onclick="miedoDelete(\''+m.id+'\');event.stopPropagation()">🗑️</button>'+
+        '</div>';
+      list.appendChild(card);
+    });
+  }
+  window.miedoFiltrar=function(el,est){
+    miedoFiltroActivo=est;
+    document.querySelectorAll('.jardin-miedo-filtros .jardin-chip').forEach(function(c){c.classList.toggle('active',c===el);});
+    miedoRender();
+  };
+  window.miedoOpenModal=function(id){
+    miedoLoad(); miedoEditId=id||null;
+    var m=id?miedos.find(function(x){return x.id===id;}):null;
+    document.getElementById('miedoModalTitle').textContent=m?'Editar miedo':'Nombrar un miedo';
+    document.getElementById('miedoNombre').value=m?m.nombre:'';
+    document.getElementById('miedoManifesta').value=m?(m.manifesta||''):'';
+    document.getElementById('miedoAlimenta').value=m?(m.alimenta||''):'';
+    document.getElementById('miedoEnfrenta').value=m?(m.enfrenta||''):'';
+    document.getElementById('miedoEstado').value=m?(m.estado||'activo'):'activo';
+    document.getElementById('miedoBackdrop').style.display='flex';
+  };
+  window.miedoCloseModal=function(){document.getElementById('miedoBackdrop').style.display='none';};
+  window.miedoSave=function(){
+    var n=document.getElementById('miedoNombre').value.trim(); if(!n){alert('Nombra el miedo 🌑');return;}
+    miedoLoad();
+    var obj={id:miedoEditId||('m_'+Date.now()),nombre:n,manifesta:document.getElementById('miedoManifesta').value.trim(),
+      alimenta:document.getElementById('miedoAlimenta').value.trim(),enfrenta:document.getElementById('miedoEnfrenta').value.trim(),
+      estado:document.getElementById('miedoEstado').value};
+    if(miedoEditId){var i=miedos.findIndex(function(x){return x.id===miedoEditId;}); if(i>=0)miedos[i]=obj;}
+    else miedos.push(obj);
+    miedoEditId=null; miedoSaveD(); miedoCloseModal(); miedoRender();
+  };
+  window.miedoDelete=function(id){
+    if(!confirm('¿Eliminar?'))return;
+    miedoLoad(); miedos=miedos.filter(function(x){return x.id!==id;}); miedoSaveD(); miedoRender();
+  };
+
+  /* ══ LO QUE DIOS ME ENSEÑA ══ */
+  var DK='yuki_jardin_dios'; var dios=[]; var diosEditId=null; var diosFiltroActivo='';
+  var DIOS_CATS={fe:'🕊️ Fe',proposito:'🌟 Propósito',relaciones:'🤍 Relaciones',identidad:'🌸 Identidad',provision:'✨ Provisión',otro:'💫 Otro'};
+  function diosLoad(){try{dios=JSON.parse(localStorage.getItem(DK))||[];}catch(e){dios=[];}}
+  function diosSaveD(){localStorage.setItem(DK,JSON.stringify(dios)); if(window.cloudSave) window.cloudSave(DK,dios);}
+  function diosRender(){
+    diosLoad();
+    var list=document.getElementById('diosList'); var empty=document.getElementById('diosEmpty');
+    if(!list)return; list.innerHTML='';
+    var filtered=diosFiltroActivo?dios.filter(function(d){return (d.cat||'fe')===diosFiltroActivo;}):dios;
+    if(filtered.length===0){empty.style.display='flex';return;} empty.style.display='none';
+    filtered.slice().reverse().forEach(function(d){
+      var card=document.createElement('div'); card.className='jardin-card';
+      var catLabel=DIOS_CATS[d.cat]||d.cat||'🕊️';
+      card.innerHTML='<div class="jardin-card-top">'+
+        '<div class="jardin-card-nombre" style="font-style:normal;font-size:.82rem;line-height:1.5">'+d.ensenanza+'</div>'+
+        '<span class="jardin-card-badge" style="background:var(--rosa-soft);color:var(--rosa)">'+catLabel+'</span>'+
+        '</div>'+
+        (d.versiculo?'<div class="jardin-card-body" style="font-style:italic">📖 '+d.versiculo+'</div>':'')+
+        (d.aplica?'<div class="jardin-card-body" style="margin-top:.3rem">✦ '+d.aplica+'</div>':'')+
+        '<div class="jardin-card-footer">'+
+        '<button class="jardin-card-btn" onclick="diosOpenModal(\''+d.id+'\');event.stopPropagation()">✏️</button>'+
+        '<button class="jardin-card-btn" onclick="diosDelete(\''+d.id+'\');event.stopPropagation()">🗑️</button>'+
+        '</div>';
+      list.appendChild(card);
+    });
+  }
+  window.diosFiltrar=function(el,cat){
+    diosFiltroActivo=cat;
+    document.querySelectorAll('.jardin-dios-filtros .jardin-chip').forEach(function(c){c.classList.toggle('active',c===el);});
+    diosRender();
+  };
+  window.diosOpenModal=function(id){
+    diosLoad(); diosEditId=id||null;
+    var d=id?dios.find(function(x){return x.id===id;}):null;
+    document.getElementById('diosModalTitle').textContent=d?'Editar enseñanza':'Nueva enseñanza';
+    document.getElementById('diosEnsenanza').value=d?d.ensenanza:'';
+    document.getElementById('diosCat').value=d?(d.cat||'fe'):'fe';
+    document.getElementById('diosVersiculo').value=d?(d.versiculo||''):'';
+    document.getElementById('diosAplica').value=d?(d.aplica||''):'';
+    document.getElementById('diosBackdrop').style.display='flex';
+  };
+  window.diosCloseModal=function(){document.getElementById('diosBackdrop').style.display='none';};
+  window.diosSave=function(){
+    var e=document.getElementById('diosEnsenanza').value.trim(); if(!e){alert('¿Qué te enseñó? 🕊️');return;}
+    diosLoad();
+    var obj={id:diosEditId||('d_'+Date.now()),ensenanza:e,cat:document.getElementById('diosCat').value,
+      versiculo:document.getElementById('diosVersiculo').value.trim(),aplica:document.getElementById('diosAplica').value.trim()};
+    if(diosEditId){var i=dios.findIndex(function(x){return x.id===diosEditId;}); if(i>=0)dios[i]=obj;}
+    else dios.push(obj);
+    diosEditId=null; diosSaveD(); diosCloseModal(); diosRender();
+  };
+  window.diosDelete=function(id){
+    if(!confirm('¿Eliminar?'))return;
+    diosLoad(); dios=dios.filter(function(x){return x.id!==id;}); diosSaveD(); diosRender();
+  };
+
+  /* ══ VALORES ══ */
+  var VK='yuki_jardin_valores'; var valores=[]; var valorEditId=null;
+  function valorLoad(){try{valores=JSON.parse(localStorage.getItem(VK))||[];}catch(e){valores=[];}}
+  function valorSaveD(){localStorage.setItem(VK,JSON.stringify(valores)); if(window.cloudSave) window.cloudSave(VK,valores);}
+  function valorRender(){
+    valorLoad();
+    var list=document.getElementById('valoresList'); var empty=document.getElementById('valoresEmpty');
+    if(!list)return; list.innerHTML='';
+    if(valores.length===0){empty.style.display='';return;} empty.style.display='none';
+    valores.forEach(function(v){
+      var chip=document.createElement('div'); chip.className='jardin-vf-chip';
+      chip.title=v.por||'';
+      chip.innerHTML='💛 '+v.nombre+' <button class="jardin-vf-del" onclick="valorDelete(\''+v.id+'\');event.stopPropagation()" title="Eliminar">✕</button>';
+      chip.onclick=function(e){ if(e.target.classList.contains('jardin-vf-del'))return; valorOpenModal(v.id); };
+      list.appendChild(chip);
+    });
+  }
+  window.valorOpenModal=function(id){
+    valorLoad(); valorEditId=id||null;
+    var v=id?valores.find(function(x){return x.id===id;}):null;
+    document.getElementById('valorNombre').value=v?v.nombre:'';
+    document.getElementById('valorPor').value=v?(v.por||''):'';
+    document.getElementById('valorBackdrop').style.display='flex';
+    setTimeout(function(){document.getElementById('valorNombre').focus();},80);
+  };
+  window.valorCloseModal=function(){document.getElementById('valorBackdrop').style.display='none';};
+  window.valorSave=function(){
+    var n=document.getElementById('valorNombre').value.trim(); if(!n){alert('¿Cuál es el valor? 💛');return;}
+    valorLoad();
+    var obj={id:valorEditId||('v_'+Date.now()),nombre:n,por:document.getElementById('valorPor').value.trim()};
+    if(valorEditId){var i=valores.findIndex(function(x){return x.id===valorEditId;}); if(i>=0)valores[i]=obj;}
+    else valores.push(obj);
+    valorEditId=null; valorSaveD(); valorCloseModal(); valorRender();
+  };
+  window.valorDelete=function(id){
+    valorLoad(); valores=valores.filter(function(x){return x.id!==id;}); valorSaveD(); valorRender();
+  };
+
+  /* ══ FORTALEZAS ══ */
+  var FK='yuki_jardin_fortalezas'; var fortalezas=[]; var fortalezaEditId=null;
+  function fortalezaLoad(){try{fortalezas=JSON.parse(localStorage.getItem(FK))||[];}catch(e){fortalezas=[];}}
+  function fortalezaSaveD(){localStorage.setItem(FK,JSON.stringify(fortalezas)); if(window.cloudSave) window.cloudSave(FK,fortalezas);}
+  function fortalezaRender(){
+    fortalezaLoad();
+    var list=document.getElementById('fortalezasList'); var empty=document.getElementById('fortalezasEmpty');
+    if(!list)return; list.innerHTML='';
+    if(fortalezas.length===0){empty.style.display='';return;} empty.style.display='none';
+    fortalezas.forEach(function(f){
+      var chip=document.createElement('div'); chip.className='jardin-vf-chip';
+      chip.title=f.como||'';
+      chip.innerHTML='💪 '+f.nombre+' <button class="jardin-vf-del" onclick="fortalezaDelete(\''+f.id+'\');event.stopPropagation()" title="Eliminar">✕</button>';
+      chip.onclick=function(e){ if(e.target.classList.contains('jardin-vf-del'))return; fortalezaOpenModal(f.id); };
+      list.appendChild(chip);
+    });
+  }
+  window.fortalezaOpenModal=function(id){
+    fortalezaLoad(); fortalezaEditId=id||null;
+    var f=id?fortalezas.find(function(x){return x.id===id;}):null;
+    document.getElementById('fortalezaNombre').value=f?f.nombre:'';
+    document.getElementById('fortalezaComo').value=f?(f.como||''):'';
+    document.getElementById('fortalezaBackdrop').style.display='flex';
+    setTimeout(function(){document.getElementById('fortalezaNombre').focus();},80);
+  };
+  window.fortalezaCloseModal=function(){document.getElementById('fortalezaBackdrop').style.display='none';};
+  window.fortalezaSave=function(){
+    var n=document.getElementById('fortalezaNombre').value.trim(); if(!n){alert('¿Cuál es tu fortaleza? 💪');return;}
+    fortalezaLoad();
+    var obj={id:fortalezaEditId||('f_'+Date.now()),nombre:n,como:document.getElementById('fortalezaComo').value.trim()};
+    if(fortalezaEditId){var i=fortalezas.findIndex(function(x){return x.id===fortalezaEditId;}); if(i>=0)fortalezas[i]=obj;}
+    else fortalezas.push(obj);
+    fortalezaEditId=null; fortalezaSaveD(); fortalezaCloseModal(); fortalezaRender();
+  };
+  window.fortalezaDelete=function(id){
+    fortalezaLoad(); fortalezas=fortalezas.filter(function(x){return x.id!==id;}); fortalezaSaveD(); fortalezaRender();
+  };
+
+  /* ══ QUIÉN QUIERO SER ══ */
+  var QK='yuki_jardin_quien';
+  function quienLoad(){
+    var txt=document.getElementById('jardinQuienText'); if(!txt)return;
+    try{txt.value=localStorage.getItem(QK)||'';}catch(e){}
+  }
+  window.jardinQuienAutoSave=function(){
+    var txt=document.getElementById('jardinQuienText'); if(!txt)return;
+    try{localStorage.setItem(QK,txt.value); if(window.cloudSave) window.cloudSave(QK,txt.value);}catch(e){}
+  };
+  if(window._watchCloud) window._watchCloud(QK,function(v){var t=document.getElementById('jardinQuienText');if(t&&v)t.value=v;});
+
+  /* ── CLOUD SYNC ── */
+  if(window._watchCloud){
+    window._watchCloud('yuki_jardin_suelto',function(v){sueltos=v||[];sueltoRender();});
+    window._watchCloud('yuki_jardin_patrones',function(v){patrones=v||[];patronRender();});
+    window._watchCloud('yuki_jardin_miedos',function(v){miedos=v||[];miedoRender();});
+    window._watchCloud('yuki_jardin_dios',function(v){dios=v||[];diosRender();});
+    window._watchCloud('yuki_jardin_valores',function(v){valores=v||[];valorRender();});
+    window._watchCloud('yuki_jardin_fortalezas',function(v){fortalezas=v||[];fortalezaRender();});
+  }
+
+  /* ── INIT ── */
+  sueltoRender(); patronRender(); miedoRender(); diosRender(); valorRender(); fortalezaRender(); quienLoad();
+
+})();
+</script>
+
+</div><!-- end page-jardin -->
+
 
 
 
@@ -33571,7 +34585,7 @@ const NAV_PAGES = [
   { icon:'🍏', label:'Salud',           page:'page-salud'        },
   { icon:'🚀', label:'Logros',          page:'page-logros'       },
   { icon:'🙏', label:'Fe',              page:'page-fe'           },
-  { icon:'💗', label:'Vínculos',        page:'page-vinculos'     },
+  { icon:'👥', label:'Personas',        page:'page-personas'     },
   { icon:'💙', label:'Universidad',     page:'page-univ'         },
   { icon:'🦄', label:'Intereses',       page:'page-intereses'    },
   { icon:'📚', label:'Biblioteca',      page:'page-biblioteca'   },
@@ -33580,9 +34594,10 @@ const NAV_PAGES = [
   { icon:'🌿', label:'Mi Nutrición',    page:'page-recetario'    },
   { icon:'🧺', label:'Despensa',        page:'page-despensa'     },
   { icon:'🧹', label:'Limpieza',        page:'page-limpieza'     },
-  
+  { icon:'🐾', label:'Mascotas',        page:'page-mascotas'     },
   { icon:'🪴', label:'Plantas',         page:'page-plantas'      },
   { icon:'🎂', label:'Pastelería',      page:'page-pasteleria'   },
+  { icon:'🌿', label:'Jardín Interior', page:'page-jardin'       },
   { icon:'💸', label:'Finanzas',        page:'page-finanzas'     },
   { icon:'📋', label:'Listas',          page:'page-listas'       },
   { icon:'⚙️', label:'Config',          page:'page-config'       },
@@ -33613,7 +34628,7 @@ const DRAWER_STRUCTURE = {
       { icon:'♡', label:'Salud',           page:'page-salud'        },
       { icon:'♡', label:'Logros',          page:'page-logros'       },
       { icon:'♡', label:'Fe',              page:'page-fe'           },
-      { icon:'♡', label:'Vínculos',        page:'page-vinculos'     },
+      { icon:'♡', label:'Personas',        page:'page-personas'     },
     ]},
     { id:'crear', icon:'🍓', label:'Crear & Aprender', items: [
       { icon:'♡', label:'Universidad',     page:'page-univ'         },
@@ -33622,12 +34637,14 @@ const DRAWER_STRUCTURE = {
       { icon:'♡', label:'Atelier',         page:'page-estudio'      },
       { icon:'♡', label:'Plantas',         page:'page-plantas'      },
       { icon:'♡', label:'Pastelería',      page:'page-pasteleria'   },
+      { icon:'♡', label:'Jardín Interior', page:'page-jardin'       },
     ]},
     { id:'mundo', icon:'💌', label:'Mi Mundo', items: [
       { icon:'♡', label:'Armario',         page:'page-armario'      },
       { icon:'♡', label:'Mi Nutrición',    page:'page-recetario'    },
       { icon:'♡', label:'Despensa',        page:'page-despensa'     },
       { icon:'♡', label:'Limpieza',        page:'page-limpieza'     },
+      { icon:'♡', label:'Mascotas',        page:'page-mascotas'     },
       { icon:'♡', label:'Finanzas',        page:'page-finanzas'     },
       { icon:'♡', label:'Listas',          page:'page-listas'       },
     ]},
@@ -38548,55 +39565,7 @@ function interesesShowTab(idx) {
 })();
 </script>
 </div><!-- end page-listas -->
-<div id="page-vinculos" class="page-section">
-
-<style>
-  .vinculos-tabs-bar {
-    display: flex; gap: .5rem; padding: 1rem 1rem .5rem;
-    max-width: 860px; margin: 0 auto; flex-wrap: wrap;
-  }
-  .vinculos-tab-btn {
-    background: var(--surface); border: 1.5px solid var(--border);
-    border-radius: 20px; padding: .38rem 1rem; font-size: .78rem;
-    font-weight: 700; cursor: pointer; font-family: var(--font-body);
-    color: var(--muted); transition: all .18s; display: flex; align-items: center; gap: .35rem;
-  }
-  .vinculos-tab-btn.active {
-    background: var(--rosa); border-color: var(--rosa); color: white;
-  }
-  .vinculos-tab-btn:hover:not(.active) { border-color: var(--rosa); color: var(--rosa); }
-  .vinculos-panel { display: none; }
-  .vinculos-panel.active { display: block; }
-</style>
-
-<!-- Tab bar -->
-<div class="vinculos-tabs-bar">
-  <button class="vinculos-tab-btn active" onclick="vinculosTab('personas')" id="vtab-personas">
-    👥 Almas Cercanas
-  </button>
-  <button class="vinculos-tab-btn" onclick="vinculosTab('pareja')" id="vtab-pareja">
-    💗 Mi Pareja
-  </button>
-  <button class="vinculos-tab-btn" onclick="vinculosTab('mascotas')" id="vtab-mascotas">
-    🐾 Mascotas
-  </button>
-</div>
-
-<script>
-function vinculosTab(tab) {
-  var tabs = ['personas','pareja','mascotas'];
-  tabs.forEach(function(t) {
-    var btn = document.getElementById('vtab-' + t);
-    var panel = document.getElementById('vpanel-' + t);
-    if (btn) btn.classList.toggle('active', t === tab);
-    if (panel) panel.classList.toggle('active', t === tab);
-  });
-}
-</script>
-
-<!-- Panel: Almas Cercanas -->
-<div class="vinculos-panel active" id="vpanel-personas">
-
+<div id="page-personas" class="page-section">
 <style>
   .personas-section { max-width:860px;margin:2rem auto 0;padding:0 1rem 4rem;animation:fadeUp .5s .1s ease both;opacity:0;animation-fill-mode:both; }
   .personas-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:.9rem;margin-top:1.2rem; }
@@ -38742,399 +39711,7 @@ function vinculosTab(tab) {
   document.addEventListener('DOMContentLoaded',function(){load();render();});
 })();
 </script>
-
-</div><!-- end vpanel-personas -->
-
-<!-- Panel: Mi Pareja -->
-<div class="vinculos-panel" id="vpanel-pareja">
-<section style="max-width:860px;margin:2rem auto 0;padding:0 1rem 4rem;">
-  <span class="section-sub">mis vínculos</span>
-  <h2 class="section-title"><em>Mi</em> Pareja 💗</h2>
-  <div style="background:var(--card);border:1.5px dashed var(--border);border-radius:18px;padding:2.5rem 1.5rem;text-align:center;color:var(--muted);">
-    <div style="font-size:2.5rem;margin-bottom:.8rem">💗</div>
-    <div style="font-size:.9rem;font-weight:700;margin-bottom:.4rem">Próximamente</div>
-    <div style="font-size:.78rem">Aquí podrás guardar cosas especiales de tu pareja ✨</div>
-  </div>
-</section>
-</div><!-- end vpanel-pareja -->
-
-<!-- Panel: Mascotas -->
-<div class="vinculos-panel" id="vpanel-mascotas">
-
-<section class="pets-section">
-  <div class="pets-header">
-    <div>
-      <span class="section-sub">hogar</span>
-      <h1 class="section-title"><em>Mis</em> Mascotas 🐾 <span style="font-style:normal;font-weight:400">₍ᐢ. .ᐢ₎ ₊˚⊹♡</span></h1>
-    </div>
-    <button class="pets-add-btn" onclick="petsOpenModal()">+ agregar</button>
-  </div>
-
-  <div class="pets-grid" id="petsGrid">
-    <div class="pets-empty" id="petsEmpty">
-      <div style="font-size:3rem">🐾</div>
-      <p>Aún no has agregado ninguna mascota</p>
-      <button class="pets-add-btn" onclick="petsOpenModal()">+ agregar mascota</button>
-    </div>
-  </div>
-</section>
-
-<!-- Modal mascotas -->
-<div class="pets-modal-backdrop" id="petsModalBackdrop" style="display:none" onclick="if(event.target===this)petsCloseModal()">
-  <div class="pets-modal">
-    <div class="pets-modal-header">
-      <span id="petsModalTitle">Nueva mascota</span>
-      <button onclick="petsCloseModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">✕</button>
-    </div>
-    <div class="pets-modal-body">
-      <div class="pets-photo-upload" id="petsPhotoPreview" onclick="document.getElementById('petsPhotoInput').click()">
-        <span id="petsPhotoPlaceholder">📷 foto</span>
-        <img id="petsPhotoImg" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%">
-      </div>
-      <input type="file" id="petsPhotoInput" accept="image/*" style="display:none">
-      <input type="hidden" id="petsPhotoData">
-
-      <div class="pets-field">
-        <label class="pets-label">Nombre *</label>
-        <input class="pets-input" id="petsNombre" placeholder="¿Cómo se llama?">
-      </div>
-      <div class="pets-field" style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">
-        <div>
-          <label class="pets-label">Especie</label>
-          <input class="pets-input" id="petsEspecie" placeholder="Perro, gato, conejo…">
-        </div>
-        <div>
-          <label class="pets-label">Raza</label>
-          <input class="pets-input" id="petsRaza" placeholder="Opcional">
-        </div>
-      </div>
-      <div class="pets-field" style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">
-        <div>
-          <label class="pets-label">Fecha de nacimiento</label>
-          <input class="pets-input" type="date" id="petsFechaNac">
-        </div>
-        <div>
-          <label class="pets-label">Color / apariencia</label>
-          <input class="pets-input" id="petsColor" placeholder="Café, blanco…">
-        </div>
-      </div>
-      <div class="pets-field">
-        <label class="pets-label">Notas</label>
-        <textarea class="pets-input" id="petsNotas" rows="2" placeholder="Personalidad, gustos, cosas importantes…" style="resize:vertical"></textarea>
-      </div>
-
-      <div class="pets-cuidados-title">🩺 Cuidados y recordatorios</div>
-      <div id="petsCuidadosList"></div>
-      <button class="pets-add-cuidado-btn" onclick="petsAddCuidado()">+ agregar cuidado</button>
-
-      <div class="pets-diario-title">📓 Diario</div>
-      <div id="petsDiarioList"></div>
-      <button class="pets-add-cuidado-btn" onclick="petsAddDiario()">+ agregar entrada</button>
-    </div>
-    <div class="pets-modal-footer">
-      <button class="pets-cancel-btn" onclick="petsCloseModal()">Cancelar</button>
-      <button class="pets-save-btn" onclick="petsSave()">Guardar</button>
-    </div>
-  </div>
-</div>
-
-<style>
-  .pets-section { max-width: 860px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
-  .pets-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.5rem; }
-  .pets-add-btn {
-    background: var(--rosa); color: white; border: none; border-radius: 20px;
-    padding: .45rem 1.1rem; font-size: .78rem; font-weight: 700; cursor: pointer;
-    font-family: var(--font-body); transition: opacity .2s;
-  }
-  .pets-add-btn:hover { opacity: .85; }
-  .pets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
-  .pets-empty { grid-column: 1/-1; text-align: center; padding: 3rem 1rem; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: .8rem; }
-  .pets-card {
-    background: var(--card); border: 1.5px solid var(--border); border-radius: 16px;
-    overflow: hidden; transition: box-shadow .2s, border-color .2s; cursor: pointer;
-  }
-  .pets-card:hover { border-color: var(--rosa); box-shadow: 0 4px 18px rgba(244,167,192,.18); }
-  .pets-card-top { display: flex; align-items: center; gap: .9rem; padding: 1rem; }
-  .pets-card-photo {
-    width: 56px; height: 56px; border-radius: 50%; background: var(--surface);
-    border: 2px solid var(--border); overflow: hidden; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center; font-size: 1.8rem;
-  }
-  .pets-card-photo img { width: 100%; height: 100%; object-fit: cover; }
-  .pets-card-info { flex: 1; min-width: 0; }
-  .pets-card-name { font-size: 1rem; font-weight: 800; color: var(--text); font-family: var(--font-title); font-style: italic; }
-  .pets-card-especie { font-size: .7rem; font-weight: 600; color: var(--muted); margin-top: .1rem; }
-  .pets-card-edad { font-size: .68rem; color: var(--muted2); margin-top: .1rem; }
-  .pets-card-body { padding: 0 1rem .8rem; }
-  .pets-card-notas { font-size: .75rem; color: var(--muted); line-height: 1.5; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-  .pets-card-cuidados { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .6rem; }
-  .pets-card-cuidado-chip {
-    font-size: .64rem; font-weight: 700; padding: .2rem .55rem; border-radius: 20px;
-    background: var(--surface); border: 1.5px solid var(--border); color: var(--muted);
-  }
-  .pets-card-cuidado-chip.vence-hoy { background: var(--rosa-soft); border-color: var(--rosa); color: var(--rosa); }
-  .pets-card-cuidado-chip.vencido { background: #fff0f0; border-color: #f4a0a0; color: #c0392b; }
-  .pets-card-footer { display: flex; justify-content: flex-end; gap: .4rem; padding: .5rem .7rem; border-top: 1px solid var(--border); }
-  .pets-card-btn { background: none; border: none; font-size: .8rem; cursor: pointer; padding: .2rem .4rem; border-radius: 8px; color: var(--muted); }
-  .pets-card-btn:hover { background: var(--surface); }
-
-  /* Modal */
-  .pets-modal-backdrop { position: fixed; inset: 0; background: rgba(244,167,192,.22); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); z-index: 9000; align-items: center; justify-content: center; padding: 1rem; }
-  .pets-modal { background: var(--card); border-radius: 20px; width: 100%; max-width: 520px; max-height: 88vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,.18); position: relative; margin: auto; z-index: 9001; }
-  .pets-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1.1rem 1.3rem .8rem; font-family: var(--font-title); font-style: italic; font-size: 1.1rem; font-weight: 700; border-bottom: 1px solid var(--border); }
-  .pets-modal-body { padding: 1rem 1.3rem; display: flex; flex-direction: column; gap: .7rem; }
-  .pets-modal-footer { display: flex; justify-content: flex-end; gap: .6rem; padding: .9rem 1.3rem; border-top: 1px solid var(--border); }
-  .pets-photo-upload {
-    width: 80px; height: 80px; border-radius: 50%; background: var(--surface);
-    border: 2px dashed var(--border); cursor: pointer; margin: 0 auto;
-    display: flex; align-items: center; justify-content: center;
-    font-size: .7rem; color: var(--muted); overflow: hidden; transition: border-color .2s;
-  }
-  .pets-photo-upload:hover { border-color: var(--rosa); }
-  .pets-field { display: flex; flex-direction: column; gap: .25rem; }
-  .pets-label { font-size: .67rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
-  .pets-input { background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px; padding: .55rem .8rem; font-family: var(--font-body); font-size: .84rem; color: var(--text); outline: none; width: 100%; box-sizing: border-box; }
-  .pets-input:focus { border-color: var(--rosa); }
-  .pets-cuidados-title, .pets-diario-title { font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-top: .4rem; }
-  .pets-add-cuidado-btn { background: none; border: 1.5px dashed var(--border); border-radius: 10px; padding: .4rem .9rem; font-size: .75rem; font-weight: 700; color: var(--muted); cursor: pointer; font-family: var(--font-body); transition: border-color .2s, color .2s; }
-  .pets-add-cuidado-btn:hover { border-color: var(--rosa); color: var(--rosa); }
-  .pets-cuidado-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: .4rem; align-items: center; margin-bottom: .4rem; }
-  .pets-diario-row { display: grid; grid-template-columns: auto 1fr auto; gap: .4rem; align-items: center; margin-bottom: .4rem; }
-  .pets-remove-btn { background: none; border: none; font-size: 1rem; cursor: pointer; color: var(--muted); padding: .2rem; }
-  .pets-save-btn { background: var(--rosa); color: white; border: none; border-radius: 20px; padding: .5rem 1.3rem; font-size: .82rem; font-weight: 700; cursor: pointer; font-family: var(--font-body); }
-  .pets-cancel-btn { background: none; border: 1.5px solid var(--border); border-radius: 20px; padding: .5rem 1.3rem; font-size: .82rem; font-weight: 600; cursor: pointer; font-family: var(--font-body); color: var(--muted); }
-</style>
-
-<script>
-(function(){
-  var PETS_KEY = 'yuki_mascotas';
-  var pets = [];
-  var editingId = null;
-
-  function load() {
-    try { pets = JSON.parse(localStorage.getItem(PETS_KEY)) || []; } catch(e){ pets=[]; }
-  }
-  function save() {
-    localStorage.setItem(PETS_KEY, JSON.stringify(pets));
-    if (window.cloudSave) window.cloudSave(PETS_KEY, pets);
-  }
-
-  function calcEdad(fechaNac) {
-    if (!fechaNac) return '';
-    var hoy = new Date(), nac = new Date(fechaNac);
-    var anos = hoy.getFullYear() - nac.getFullYear();
-    var meses = hoy.getMonth() - nac.getMonth();
-    if (meses < 0) { anos--; meses += 12; }
-    if (anos > 0) return anos + (anos === 1 ? ' año' : ' años');
-    if (meses > 0) return meses + (meses === 1 ? ' mes' : ' meses');
-    return 'recién llegado 🐣';
-  }
-
-  function render() {
-    load();
-    var grid = document.getElementById('petsGrid');
-    var empty = document.getElementById('petsEmpty');
-    if (!grid) return;
-    // Clear cards but keep empty
-    Array.from(grid.querySelectorAll('.pets-card')).forEach(el => el.remove());
-    if (pets.length === 0) { if(empty) empty.style.display='flex'; return; }
-    if(empty) empty.style.display='none';
-    pets.forEach(function(pet) {
-      var card = document.createElement('div');
-      card.className = 'pets-card';
-      var photoHtml = pet.foto
-        ? '<img src="'+pet.foto+'" style="width:100%;height:100%;object-fit:cover">'
-        : (pet.especie ? especieEmoji(pet.especie) : '🐾');
-      var cuidadosHtml = (pet.cuidados||[]).map(function(c){
-        var cls = getCuidadoStatus(c);
-        return '<span class="pets-card-cuidado-chip '+cls+'">'+c.nombre+'</span>';
-      }).join('');
-      card.innerHTML =
-        '<div class="pets-card-top">'+
-          '<div class="pets-card-photo">'+photoHtml+'</div>'+
-          '<div class="pets-card-info">'+
-            '<div class="pets-card-name">'+pet.nombre+'</div>'+
-            '<div class="pets-card-especie">'+(pet.especie||'')+(pet.raza?' · '+pet.raza:'')+'</div>'+
-            (pet.fechaNac?'<div class="pets-card-edad">'+calcEdad(pet.fechaNac)+'</div>':'')+
-          '</div>'+
-        '</div>'+
-        '<div class="pets-card-body">'+
-          (pet.notas?'<div class="pets-card-notas">'+pet.notas+'</div>':'')+
-          (cuidadosHtml?'<div class="pets-card-cuidados">'+cuidadosHtml+'</div>':'')+
-        '</div>'+
-        '<div class="pets-card-footer">'+
-          '<button class="pets-card-btn" title="Editar" onclick="petsOpenModal(\''+pet.id+'\');event.stopPropagation()">✏️</button>'+
-          '<button class="pets-card-btn" title="Eliminar" onclick="petsDelete(\''+pet.id+'\');event.stopPropagation()">🗑️</button>'+
-        '</div>';
-      card.onclick = (function(pid){ return function(){ petsOpenModal(pid); }; })(pet.id);
-      grid.appendChild(card);
-    });
-  }
-
-  function especieEmoji(esp) {
-    esp = esp.toLowerCase();
-    if (esp.includes('perro') || esp.includes('dog')) return '🐶';
-    if (esp.includes('gato') || esp.includes('cat')) return '🐱';
-    if (esp.includes('conejo')) return '🐰';
-    if (esp.includes('pez') || esp.includes('peces')) return '🐠';
-    if (esp.includes('ave') || esp.includes('pájaro') || esp.includes('pajaro') || esp.includes('loro')) return '🦜';
-    if (esp.includes('hamster') || esp.includes('hámster')) return '🐹';
-    if (esp.includes('tortuga')) return '🐢';
-    return '🐾';
-  }
-
-  function getCuidadoStatus(c) {
-    if (!c.fecha) return '';
-    var hoy = new Date(); hoy.setHours(0,0,0,0);
-    var f = new Date(c.fecha); f.setHours(0,0,0,0);
-    if (f < hoy) return 'vencido';
-    if (f.getTime() === hoy.getTime()) return 'vence-hoy';
-    return '';
-  }
-
-  window.petsOpenModal = function(id) {
-    load();
-    editingId = id ? id : null;
-    var pet = id ? pets.find(function(p){ return p.id===id; }) : null;
-    document.getElementById('petsModalTitle').textContent = pet ? 'Editar mascota' : 'Nueva mascota';
-    document.getElementById('petsNombre').value = pet ? pet.nombre : '';
-    document.getElementById('petsEspecie').value = pet ? (pet.especie||'') : '';
-    document.getElementById('petsRaza').value = pet ? (pet.raza||'') : '';
-    document.getElementById('petsFechaNac').value = pet ? (pet.fechaNac||'') : '';
-    document.getElementById('petsColor').value = pet ? (pet.color||'') : '';
-    document.getElementById('petsNotas').value = pet ? (pet.notas||'') : '';
-    document.getElementById('petsPhotoData').value = pet ? (pet.foto||'') : '';
-    // Resetear file input para evitar bugs en móvil
-    var fileInp = document.getElementById('petsPhotoInput');
-    fileInp.value = '';
-    var img = document.getElementById('petsPhotoImg');
-    var ph = document.getElementById('petsPhotoPlaceholder');
-    if (pet && pet.foto) { img.src = pet.foto; img.style.display=''; ph.style.display='none'; }
-    else { img.src=''; img.style.display='none'; ph.style.display=''; }
-    // Cuidados
-    var cl = document.getElementById('petsCuidadosList'); cl.innerHTML='';
-    (pet ? pet.cuidados||[] : []).forEach(function(c){ addCuidadoRow(c); });
-    // Diario
-    var dl = document.getElementById('petsDiarioList'); dl.innerHTML='';
-    (pet ? pet.diario||[] : []).forEach(function(d){ addDiarioRow(d); });
-    document.getElementById('petsModalBackdrop').style.display='flex';
-  };
-
-  window.petsCloseModal = function() {
-    document.getElementById('petsModalBackdrop').style.display='none';
-    // Limpiar file input siempre al cerrar
-    var fileInp = document.getElementById('petsPhotoInput');
-    if (fileInp) fileInp.value = '';
-    editingId = null;
-  };
-
-  window.petsHandlePhoto = function(input) {
-    var file = input.files && input.files[0];
-    if (!file) return;
-    function compressImg(f, maxSz, qual, cb) {
-      var rd = new FileReader();
-      rd.onload = function(e) {
-        var im = new Image();
-        im.onload = function() {
-          var sc = Math.min(1, maxSz / Math.max(im.width, im.height));
-          var cv = document.createElement('canvas');
-          cv.width = Math.round(im.width * sc); cv.height = Math.round(im.height * sc);
-          cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
-          cb(cv.toDataURL('image/jpeg', qual));
-        };
-        im.src = e.target.result;
-      };
-      rd.readAsDataURL(f);
-    }
-    compressImg(file, 400, 0.72, function(b64) {
-      document.getElementById('petsPhotoData').value = b64;
-      var img = document.getElementById('petsPhotoImg');
-      var ph = document.getElementById('petsPhotoPlaceholder');
-      img.src = b64; img.style.display=''; ph.style.display='none';
-    });
-  };
-
-  // Asignar onchange por JS para evitar problemas al mover el modal al body
-  var petsPhotoInp = document.getElementById('petsPhotoInput');
-  if (petsPhotoInp) petsPhotoInp.onchange = function(){ window.petsHandlePhoto(this); };
-
-  function addCuidadoRow(c) {
-    c = c || { nombre:'', fecha:'' };
-    var row = document.createElement('div');
-    row.className = 'pets-cuidado-row';
-    row.innerHTML =
-      '<input class="pets-input" placeholder="Ej: Vacuna rabia, desparasitar…" value="'+(c.nombre||'')+'" style="font-size:.78rem">'+
-      '<input class="pets-input" type="date" value="'+(c.fecha||'')+'" style="font-size:.78rem">'+
-      '<button class="pets-remove-btn" onclick="this.parentElement.remove()">✕</button>';
-    document.getElementById('petsCuidadosList').appendChild(row);
-  }
-
-  function addDiarioRow(d) {
-    d = d || { fecha: new Date().toISOString().slice(0,10), texto:'' };
-    var row = document.createElement('div');
-    row.className = 'pets-diario-row';
-    row.innerHTML =
-      '<input class="pets-input" type="date" value="'+(d.fecha||'')+'" style="font-size:.78rem;width:130px">'+
-      '<input class="pets-input" placeholder="¿Qué pasó hoy?" value="'+(d.texto||'')+'" style="font-size:.78rem">'+
-      '<button class="pets-remove-btn" onclick="this.parentElement.remove()">✕</button>';
-    document.getElementById('petsDiarioList').appendChild(row);
-  }
-
-  window.petsAddCuidado = function() { addCuidadoRow(); };
-  window.petsAddDiario  = function() { addDiarioRow(); };
-
-  window.petsSave = function() {
-    var nombre = document.getElementById('petsNombre').value.trim();
-    if (!nombre) { alert('El nombre es obligatorio 🐾'); return; }
-    var cuidados = Array.from(document.querySelectorAll('#petsCuidadosList .pets-cuidado-row')).map(function(row){
-      var inputs = row.querySelectorAll('input');
-      return { nombre: inputs[0].value.trim(), fecha: inputs[1].value };
-    }).filter(function(c){ return c.nombre; });
-    var diario = Array.from(document.querySelectorAll('#petsDiarioList .pets-diario-row')).map(function(row){
-      var inputs = row.querySelectorAll('input');
-      return { fecha: inputs[0].value, texto: inputs[1].value.trim() };
-    }).filter(function(d){ return d.texto; });
-    var pet = {
-      id: editingId || ('pet_' + Date.now()),
-      nombre: nombre,
-      especie: document.getElementById('petsEspecie').value.trim(),
-      raza: document.getElementById('petsRaza').value.trim(),
-      fechaNac: document.getElementById('petsFechaNac').value,
-      color: document.getElementById('petsColor').value.trim(),
-      notas: document.getElementById('petsNotas').value.trim(),
-      foto: document.getElementById('petsPhotoData').value,
-      cuidados: cuidados,
-      diario: diario,
-    };
-    if (editingId) {
-      var idx = pets.findIndex(function(p){ return p.id===editingId; });
-      if (idx >= 0) pets[idx] = pet;
-    } else {
-      pets.push(pet);
-    }
-    editingId = null;
-    try{save();}catch(e){alert('La foto es muy grande. Se guardará sin foto.');pet.foto='';if(pets[pets.length-1]&&pets[pets.length-1].id===pet.id)pets[pets.length-1]=pet;else{var fi=pets.findIndex(function(x){return x.id===pet.id;});if(fi>=0)pets[fi]=pet;}try{save();}catch(e2){}}
-    petsCloseModal(); render();
-  };
-
-  window.petsDelete = function(id) {
-    if (!confirm('¿Eliminar esta mascota?')) return;
-    pets = pets.filter(function(p){ return p.id!==id; });
-    save(); render();
-  };
-
-  // Init
-  load(); render();
-
-  // Cloud sync
-  if (window._watchCloud) window._watchCloud(PETS_KEY, function(val){ pets = val||[]; render(); });
-})();
-</script>
-
-</div><!-- end vpanel-mascotas -->
-
-</div><!-- end page-vinculos -->
-
+</div><!-- end page-personas -->
 
 
 <div id="page-estudio" class="page-section">
@@ -44045,7 +44622,7 @@ document.createElement = function(tag) {
     'page-calma','page-selfcare','page-intereses',
     'page-inicio','page-semana','page-logros','page-habitos',
     'page-rutinas','page-tareas','page-armario','page-recetario',
-    'page-braindump','page-biblioteca','page-vinculos','page-notas',
+    'page-braindump','page-biblioteca','page-personas','page-notas',
     'page-finanzas','page-horario'
   ];
 
