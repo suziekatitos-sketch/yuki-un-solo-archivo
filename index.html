@@ -154,7 +154,7 @@ window.kittyConfirm = function(msg, onYes, onNo) {
           'univ_futuro_items','univ_links','univ_proyectos','spark_pins','spark_historial','spark_total_minutes',
           'trans_data','custom_notifs','eventos_prep','recuper_registros',
           'notas_intereses_data','notas_intereses_cats',
-          'yuki_mascotas','yuki_plantas','yuki_paste_recetas','yuki_paste_mood','yuki_paste_costos','yuki_paste_pedidos','yuki_paste_insumos','yuki_jardin_suelto','yuki_jardin_patrones','yuki_jardin_miedos','yuki_jardin_dios','yuki_jardin_valores','yuki_jardin_fortalezas','yuki_jardin_quien','yuki_biblioteca_playlists','yuki_biblioteca_dopamina','yuki_biblioteca_libros','yuki_est_pedidos','yuki_est_catalogo','yuki_est_inspo','yuki_diario',
+          'yuki_mascotas','yuki_plantas','yuki_paste_recetas','yuki_paste_mood','yuki_paste_costos','yuki_paste_pedidos','yuki_paste_insumos','yuki_jardin_suelto','yuki_jardin_patrones','yuki_jardin_miedos','yuki_jardin_dios','yuki_jardin_valores','yuki_jardin_fortalezas','yuki_jardin_quien','yuki_vinculos_pareja','yuki_vinculos_estandares','yuki_vinculos_nosotros','yuki_vinculos_corazon','yuki_personas','yuki_biblioteca_playlists','yuki_biblioteca_dopamina','yuki_biblioteca_libros','yuki_est_pedidos','yuki_est_catalogo','yuki_est_inspo','yuki_diario',
           'yuki_decisions','yuki_rutina_horarios',
           'yuki_xp','yuki_xp_streak','yuki_xp_last_date','yuki_task_timers',
           'yuki_sakura','yuki_tienda_recompensas','yuki_compras_historial','yuki_study_minutes',
@@ -170,7 +170,8 @@ window.kittyConfirm = function(msg, onYes, onNo) {
           'rutina_ancla_override',
           'yuki_armario_prendas','yuki_armario_outfits','yuki_armario_ootd','yuki_armario_maletas','yuki_armario_inspo',
           'yuki_rachas',
-          'yuki_makeup','yuki_hairstyles'];
+          'yuki_makeup','yuki_hairstyles',
+          'yuki_jardin_anclas','yuki_jardin_promesas','yuki_jardin_sabados','yuki_jardin_oracion','yuki_jardin_caracter','yuki_jardin_trabajando'];
         mirrorKeys.forEach(function(k) {
           if (raw[k] !== undefined) {
             try { localStorage.setItem(k, raw[k]); } catch(e) {}
@@ -193,6 +194,30 @@ window.kittyConfirm = function(msg, onYes, onNo) {
         if (raw.yuki_rachas)          { window._rachasData     = JSON.parse(raw.yuki_rachas);           }
         if (raw.yuki_makeup)          { window._mkData         = JSON.parse(raw.yuki_makeup);           }
         if (raw.yuki_hairstyles)      { window._hsData         = JSON.parse(raw.yuki_hairstyles);       }
+        if (raw.yuki_paste_recetas)   { window._pasteRecetas   = JSON.parse(raw.yuki_paste_recetas);    }
+        if (raw.yuki_paste_mood)      { window._pasteMood      = JSON.parse(raw.yuki_paste_mood);       }
+        if (raw.yuki_paste_costos)    { window._pasteCostos    = JSON.parse(raw.yuki_paste_costos);     }
+        if (raw.yuki_paste_pedidos)   { window._pastePedidos   = JSON.parse(raw.yuki_paste_pedidos);    }
+        if (raw.yuki_paste_insumos)   { window._pasteInsumos   = JSON.parse(raw.yuki_paste_insumos);    }
+        if (raw.yuki_jardin_suelto)   { window._jardinSuelto   = JSON.parse(raw.yuki_jardin_suelto);    }
+        if (raw.yuki_jardin_patrones) { window._jardinPatrones = JSON.parse(raw.yuki_jardin_patrones);  }
+        if (raw.yuki_jardin_miedos)   { window._jardinMiedos   = JSON.parse(raw.yuki_jardin_miedos);    }
+        if (raw.yuki_jardin_dios)     { window._jardinDios     = JSON.parse(raw.yuki_jardin_dios);      }
+        if (raw.yuki_jardin_valores)  { window._jardinValores  = JSON.parse(raw.yuki_jardin_valores);   }
+        if (raw.yuki_jardin_fortalezas){ window._jardinFortalezas = JSON.parse(raw.yuki_jardin_fortalezas); }
+        if (raw.yuki_jardin_quien)    { window._jardinQuien    = raw.yuki_jardin_quien;                 }
+        if (raw.yuki_est_pedidos)     { window._estPedidos     = JSON.parse(raw.yuki_est_pedidos);      }
+        if (raw.yuki_est_catalogo)    { window._estCatalogo    = JSON.parse(raw.yuki_est_catalogo);     }
+        if (raw.yuki_est_inspo)       { window._estInspo       = JSON.parse(raw.yuki_est_inspo);        }
+        if (raw.yuki_jardin_anclas)   { window._jardinAnclas   = JSON.parse(raw.yuki_jardin_anclas);    }
+        if (raw.yuki_jardin_promesas) { window._jardinPromesas = JSON.parse(raw.yuki_jardin_promesas);  }
+        if (raw.yuki_jardin_sabados)  { window._jardinSabados  = JSON.parse(raw.yuki_jardin_sabados);   }
+        if (raw.yuki_jardin_oracion)  { window._jardinOracion  = JSON.parse(raw.yuki_jardin_oracion);   }
+        if (raw.yuki_jardin_caracter) { window._jardinCaracter = JSON.parse(raw.yuki_jardin_caracter);  }
+        if (raw.yuki_jardin_trabajando){ window._jardinTrabajando= JSON.parse(raw.yuki_jardin_trabajando); }
+        if (raw.yuki_vinculos_pareja) { window._parejaData2    = JSON.parse(raw.yuki_vinculos_pareja);  }
+        if (raw.yuki_personas)        { window._personasData   = JSON.parse(raw.yuki_personas);         }
+        if (raw.crm_data)             { window._crmData        = JSON.parse(raw.crm_data);              }
         if (raw.cambio_custom){ window._cambioCustom = JSON.parse(raw.cambio_custom);}
         // Solo llamar syncFromCloud si el snapshot NO lo causamos nosotros.
         // Comparamos las keys del snapshot con las que estamos esperando.
@@ -10607,13 +10632,15 @@ function todayKey() { return dateKey(new Date()); }
   .rutina-modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(26,20,40,.55);
-    backdrop-filter: blur(4px);
+    background: rgba(244,167,192,.22);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
     z-index: 10001;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     padding: 1.5rem;
+    padding-top: 5.5rem;
     animation: fadeDown .2s ease both;
   }
 
@@ -19605,6 +19632,20 @@ window.scShowTab = function(idx) {
   setTimeout(function(){ mkRenderAll(); }, 250);
   window._mkRenderAll = mkRenderAll;
   window._mkSave = mkSave;
+
+  // ── Cloud sync hook ──
+  var _origSyncMk = window.syncFromCloud;
+  window.syncFromCloud = function() {
+    if (window._mkData) {
+      var d = window._mkData;
+      if (d.looks)    mkData.looks    = d.looks;
+      if (d.steps)    mkData.steps    = d.steps;
+      if (d.products) mkData.products = d.products;
+      if (d.inspos)   mkData.inspos   = d.inspos;
+      mkRenderAll();
+    }
+    if (_origSyncMk) _origSyncMk();
+  };
 })();
 </script>
 </section>
@@ -19728,6 +19769,20 @@ window.scShowTab = function(idx) {
 
   hsLoad();
   setTimeout(function(){ window.hsRenderAll(); }, 300);
+
+  // ── Cloud sync hook ──
+  var _origSyncHs = window.syncFromCloud;
+  window.syncFromCloud = function() {
+    if (window._hsData) {
+      var d = window._hsData;
+      if (d.looks)    hsData.looks    = d.looks;
+      if (d.steps)    hsData.steps    = d.steps;
+      if (d.products) hsData.products = d.products;
+      if (d.inspos)   hsData.inspos   = d.inspos;
+      window.hsRenderAll();
+    }
+    if (_origSyncHs) _origSyncHs();
+  };
 })();
 </script>
 </section>
@@ -20730,6 +20785,9 @@ function abrirDiaModal(date, dk) {
 
 // Renderizar vista hoy por defecto — se llama al final del script principal
 
+// Registro global para sync de secciones con scope privado
+window._yukiSyncRegistry = window._yukiSyncRegistry || [];
+
 // --- SYNC FROM CLOUD ---------------------------------------
 window.syncFromCloud = function() {
   if (window._recurringTasks !== undefined) recurringTasks = window._recurringTasks;
@@ -20764,6 +20822,38 @@ window.syncFromCloud = function() {
   if (typeof loadLimpRutinas  === 'function') { loadLimpRutinas(); renderLimpRutinas(); }
   if (typeof loadFinanzas     === 'function') { loadFinanzas();   renderFinanzas();   }
   if (typeof loadRecetario    === 'function') { loadRecetario();  renderRecetario();  }
+
+  // ── Selfcare: Makeup ──
+  if (window._mkData && typeof window._mkRenderAll === 'function') {
+    var _mkd = window._mkData;
+    if (window.mkData) {
+      if (_mkd.looks)    window.mkData.looks    = _mkd.looks;
+      if (_mkd.steps)    window.mkData.steps    = _mkd.steps;
+      if (_mkd.products) window.mkData.products = _mkd.products;
+      if (_mkd.inspos)   window.mkData.inspos   = _mkd.inspos;
+    }
+    window._mkRenderAll();
+  }
+  // ── Selfcare: Hairstyles ──
+  if (window._hsData && typeof window.hsRenderAll === 'function') {
+    var _hsd = window._hsData;
+    if (window.hsData) {
+      if (_hsd.looks)    window.hsData.looks    = _hsd.looks;
+      if (_hsd.steps)    window.hsData.steps    = _hsd.steps;
+      if (_hsd.products) window.hsData.products = _hsd.products;
+      if (_hsd.inspos)   window.hsData.inspos   = _hsd.inspos;
+    }
+    window.hsRenderAll();
+  }
+
+  // ── Registro global de secciones (Pastelería, Jardín, Atelier) ──
+  // Cada sección se registra en window._yukiSyncRegistry al inicializarse.
+  // syncFromCloud llama a cada handler registrado con los datos de Firebase.
+  if (window._yukiSyncRegistry) {
+    window._yukiSyncRegistry.forEach(function(entry) {
+      try { entry(); } catch(e) {}
+    });
+  }
 };
 
 // --- INIT --------------------------------------------------
@@ -21212,10 +21302,11 @@ setInterval(function() {
     // Controls
     var controls = document.createElement('div');
     controls.className = 'ykt-controls';
+    var hasTimer = subtareas.some(function(s){ return parseInt(s.minutos) > 0; });
     var playBtn = document.createElement('button');
     playBtn.className = 'ykt-ctrl-btn ykt-play-btn';
     playBtn.id = 'yktPlayBtn';
-    playBtn.textContent = subtareas.length > 0 ? '▶ Iniciar' : '▶ Iniciar';
+    playBtn.textContent = hasTimer ? '▶ Iniciar timer' : '▶ Iniciar pasos';
     playBtn.onclick = toggleTimerPlay;
     var skipBtn = document.createElement('button');
     skipBtn.className = 'ykt-ctrl-btn ykt-skip-btn';
@@ -21298,9 +21389,10 @@ setInterval(function() {
         min.className = 'ykt-edit-min';
         min.type = 'number';
         min.min = '1'; min.max = '999';
-        min.placeholder = 'min';
+        min.placeholder = '⏱ min (opcional)';
         min.value = sub.minutos || '';
-        min.oninput = function(){ subs[i].minutos = parseInt(this.value)||0; updateTotalLbl(subs); };
+        min.title = 'Tiempo en minutos (opcional). Si no lo pones, la subtarea no tendrá timer.';
+        min.oninput = function(){ subs[i].minutos = parseInt(this.value)||null; updateTotalLbl(subs); };
         var del = document.createElement('button');
         del.className = 'ykt-edit-del';
         del.textContent = '✕';
@@ -21337,7 +21429,7 @@ setInterval(function() {
     saveBtn.textContent = '💾 Guardar subtareas';
     saveBtn.onclick = function() {
       var clean = subtareas.filter(function(s){ return (s.texto||'').trim() !== ''; }).map(function(s){
-        return { texto: s.texto.trim(), minutos: parseInt(s.minutos)||5 };
+        return { texto: s.texto.trim(), minutos: parseInt(s.minutos)||null };
       });
       timerData[_timerTaskId] = { subtareas: clean };
       timerSave();
@@ -21409,7 +21501,8 @@ setInterval(function() {
       txt.textContent = s.texto || 'Subtarea ' + (i+1);
       var min = document.createElement('div');
       min.className = 'ykt-step-min';
-      min.textContent = (s.minutos||5) + ' min';
+      min.textContent = parseInt(s.minutos) > 0 ? (s.minutos + ' min') : '—';
+      if (!parseInt(s.minutos)) min.style.opacity = '.35';
       row.appendChild(num);
       row.appendChild(txt);
       row.appendChild(min);
@@ -21495,7 +21588,17 @@ setInterval(function() {
     stopCurrentTimer();
     _timerStepIdx = stepIdx;
     var step = _timerSteps[stepIdx];
-    var secs = (parseInt(step.minutos) || 5) * 60;
+    var mins = parseInt(step.minutos) || 0;
+
+    // Si el paso no tiene timer, marcarlo como done y pasar al siguiente
+    if (!mins) {
+      renderStepsView(_timerSteps, stepIdx);
+      renderProgStrip(_timerSteps, stepIdx);
+      showStepDoneAlert(stepIdx);
+      return;
+    }
+
+    var secs = mins * 60;
     _timerSecondsLeft  = secs;
     _timerSecondsTotal = secs;
     _timerActive = true;
@@ -26675,26 +26778,202 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
 <!-- ══════════════════════════════════════════
      PÁGINA · MASCOTAS 🐾
 ══════════════════════════════════════════ -->
-<div id="page-mascotas" class="page-section">
-<section class="pets-section">
-  <div class="pets-header">
+
+<!-- ══════════════════════════════════════════
+     PÁGINA · VÍNCULOS 🫧
+══════════════════════════════════════════ -->
+<div id="page-vinculos" class="page-section">
+<section class="vinculos-section">
+
+  <div class="vinculos-header">
     <div>
-      <span class="section-sub">hogar</span>
-      <h1 class="section-title"><em>Mis</em> Mascotas 🐾 <span style="font-style:normal;font-weight:400">₍ᐢ. .ᐢ₎ ₊˚⊹♡</span></h1>
+      <span class="section-sub">mis vínculos</span>
+      <h1 class="section-title"><em>Vínculos</em> 🫧 <span style="font-style:normal;font-weight:400">₍ᐢ. .ᐢ₎ ₊˚⊹♡</span></h1>
     </div>
-    <button class="pets-add-btn" onclick="petsOpenModal()">+ agregar</button>
   </div>
 
-  <div class="pets-grid" id="petsGrid">
-    <div class="pets-empty" id="petsEmpty">
-      <div style="font-size:3rem">🐾</div>
-      <p>Aún no has agregado ninguna mascota</p>
-      <button class="pets-add-btn" onclick="petsOpenModal()">+ agregar mascota</button>
+  <!-- Main tabs -->
+  <div class="vinculos-main-tabs">
+    <button class="vinculos-main-tab active" id="vinTabAlmas" onclick="vinShowTab('almas')">🫧 Almas Cercanas</button>
+    <button class="vinculos-main-tab" id="vinTabPareja" onclick="vinShowTab('pareja')">💗 Mi Pareja</button>
+    <button class="vinculos-main-tab" id="vinTabMascotas" onclick="vinShowTab('mascotas')">🐾 Mascotas</button>
+  </div>
+
+  <!-- ══ TAB: ALMAS CERCANAS ══ -->
+  <div id="vinPanelAlmas">
+    <div class="vinculos-personas-grid" id="vinPersonasGrid"></div>
+  </div>
+
+  <!-- ══ TAB: MI PAREJA ══ -->
+  <div id="vinPanelPareja" style="display:none">
+    <!-- subtabs -->
+    <div class="vin-pareja-subtabs">
+      <button class="vin-pareja-subtab active" id="vinParejaSubMiPareja" onclick="vinParejaSubTab('mipareja')">💗 Mi pareja</button>
+      <button class="vin-pareja-subtab" id="vinParejaSubEstandares" onclick="vinParejaSubTab('estandares')">✨ Mis estándares</button>
+      <button class="vin-pareja-subtab" id="vinParejaSubNosotros" onclick="vinParejaSubTab('nosotros')">🌷 Nosotros</button>
+      <button class="vin-pareja-subtab" id="vinParejaSubCorazon" onclick="vinParejaSubTab('corazon')">🌿 Mi corazón</button>
+    </div>
+    <div id="vinParejaSubPanelMiPareja"><div id="vinParejaContent"></div></div>
+    <div id="vinParejaSubPanelEstandares" style="display:none"></div>
+    <div id="vinParejaSubPanelNosotros" style="display:none"></div>
+    <div id="vinParejaSubPanelCorazon" style="display:none"></div>
+  </div>
+
+  <!-- ══ TAB: MASCOTAS ══ -->
+  <div id="vinPanelMascotas" style="display:none">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:.9rem">
+      <button class="vin-add-btn" onclick="petsOpenModal()">+ agregar mascota</button>
+    </div>
+    <div class="pets-grid" id="petsGrid">
+      <div class="pets-empty" id="petsEmpty">
+        <div style="font-size:3rem">🐾</div>
+        <p>Aún no has agregado ninguna mascota</p>
+        <button class="vin-add-btn" onclick="petsOpenModal()">+ agregar mascota</button>
+      </div>
     </div>
   </div>
+
 </section>
 
-<!-- Modal mascotas -->
+<!-- ══════════════════════════════════════
+     MODAL: NUEVA / EDITAR PERSONA
+     (estilo rutina-modal-backdrop)
+══════════════════════════════════════ -->
+<div class="rutina-modal-backdrop" id="vinPersonaBackdrop" style="display:none" onclick="if(event.target===this)vinPersonaCerrar()">
+  <div class="rutina-modal-box" style="max-width:460px;max-height:82vh;overflow-y:auto">
+
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.1rem">
+      <div class="rutina-modal-title" style="margin-bottom:0" id="vinPersonaTitle">🫧 <em>Nueva alma</em></div>
+      <button onclick="vinPersonaCerrar()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted);padding:.2rem .4rem">✕</button>
+    </div>
+
+    <!-- Avatar emoji (en vivo) -->
+    <div style="text-align:center;margin-bottom:1rem">
+      <div id="vinPersonaAvatarPreview" style="width:68px;height:68px;border-radius:50%;background:var(--bg);border:2.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:2rem;margin:0 auto .3rem;cursor:pointer;overflow:hidden;transition:border-color .2s" onclick="document.getElementById('vinPersonaFotoFile').click()">
+        <img id="vinPersonaFotoImg" src="" style="display:none;width:100%;height:100%;object-fit:cover">
+        <span id="vinPersonaEmojiShow">🧡</span>
+      </div>
+      <input type="file" id="vinPersonaFotoFile" accept="image/*" style="display:none" onchange="vinPersonaHandleFoto(this)">
+      <input type="hidden" id="vinPersonaFotoData">
+      <div style="font-size:.62rem;color:var(--muted2);font-weight:600">toca el avatar para cambiar foto</div>
+    </div>
+
+    <!-- Emoji picker personas -->
+    <div class="modal-field" id="vinPersonaEmojiField">
+      <label class="modal-label">Emoji del avatar</label>
+      <div class="emoji-picker-row" id="vinPersonaEmojiPicker"></div>
+    </div>
+
+    <!-- Campos -->
+    <div class="modal-field">
+      <label class="modal-label">Nombre *</label>
+      <input class="modal-input" id="vinPersonaNombre" placeholder="Ej: Mamá, Sofía, Abuelita…">
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Relación</label>
+      <input class="modal-input" id="vinPersonaRelacion" placeholder="Ej: mejor amiga, hermana, prima…">
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">🎂 Cumpleaños</label>
+      <input class="modal-input" type="date" id="vinPersonaCumple">
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">💬 Detalles personales</label>
+      <textarea class="modal-input" id="vinPersonaDetalles" rows="2" placeholder="Gustos, alergias, cosas importantes a recordar…" style="resize:vertical;min-height:60px"></textarea>
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">🎁 Ideas de regalos</label>
+      <div style="display:flex;gap:.4rem;align-items:center">
+        <input class="modal-input" id="vinPersonaRegaloInput" placeholder="Agrega una idea…" onkeydown="if(event.key==='Enter'){vinPersonaAddRegalo();event.preventDefault()}" style="flex:1">
+        <button onclick="vinPersonaAddRegalo()" style="background:var(--rosa);color:white;border:none;border-radius:50%;width:28px;height:28px;font-size:1.1rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center">+</button>
+      </div>
+      <div id="vinPersonaRegalosList" style="display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.4rem"></div>
+    </div>
+
+    <!-- Botones -->
+    <div class="modal-btns" style="margin-top:.8rem">
+      <button class="modal-btn-cancel" onclick="vinPersonaCerrar()">Cancelar</button>
+      <button class="modal-btn-delete" id="vinPersonaDeleteBtn" style="display:none" onclick="vinPersonaEliminar()">🗑️ Eliminar</button>
+      <button class="modal-btn-save" onclick="vinPersonaGuardar()">Guardar 🫧</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     MODAL: NUEVA / EDITAR PAREJA
+     (estilo rutina-modal-backdrop)
+══════════════════════════════════════ -->
+<div class="rutina-modal-backdrop" id="vinParejaBackdrop" style="display:none" onclick="if(event.target===this)vinParejaCerrar()">
+  <div class="rutina-modal-box" style="max-width:460px;max-height:82vh;overflow-y:auto">
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.1rem">
+      <div class="rutina-modal-title" style="margin-bottom:0">💗 <em>Mi Pareja</em></div>
+      <button onclick="vinParejaCerrar()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted);padding:.2rem .4rem">✕</button>
+    </div>
+
+    <!-- Avatar pareja -->
+    <div style="text-align:center;margin-bottom:1rem">
+      <div id="vinParejaAvatarPreview" style="width:72px;height:72px;border-radius:50%;background:var(--bg);border:2.5px solid var(--rosa);display:flex;align-items:center;justify-content:center;font-size:2.2rem;margin:0 auto .3rem;cursor:pointer;overflow:hidden;transition:border-color .2s" onclick="document.getElementById('vinParejaFotoFile').click()">
+        <img id="vinParejaFotoImg" src="" style="display:none;width:100%;height:100%;object-fit:cover">
+        <span id="vinParejaEmojiShow">💗</span>
+      </div>
+      <input type="file" id="vinParejaFotoFile" accept="image/*" style="display:none" onchange="vinParejaHandleFoto(this)">
+      <input type="hidden" id="vinParejaFotoData">
+      <div style="font-size:.62rem;color:var(--muted2);font-weight:600">toca para cambiar foto</div>
+    </div>
+
+    <!-- Emoji picker pareja -->
+    <div class="modal-field">
+      <label class="modal-label">Emoji del avatar</label>
+      <div class="emoji-picker-row" id="vinParejaEmojiPicker"></div>
+    </div>
+
+    <div class="modal-field">
+      <label class="modal-label">Nombre *</label>
+      <input class="modal-input" id="vinParejaNombre" placeholder="Su nombre…">
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">🎂 Su cumpleaños</label>
+      <input class="modal-input" type="date" id="vinParejaCumple">
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">💌 Aniversario</label>
+      <input class="modal-input" type="date" id="vinParejaAniversario">
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">💬 Cosas que amo de él/ella</label>
+      <textarea class="modal-input" id="vinParejaAmor" rows="3" placeholder="Lo que más amo es…" style="resize:vertical;min-height:70px"></textarea>
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">🌟 Recuerdos especiales</label>
+      <textarea class="modal-input" id="vinParejaRecuerdos" rows="2" placeholder="Nuestro primer…, el día que…" style="resize:vertical;min-height:55px"></textarea>
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">🎁 Ideas de regalos para él/ella</label>
+      <div style="display:flex;gap:.4rem;align-items:center">
+        <input class="modal-input" id="vinParejaRegaloInput" placeholder="Agrega una idea…" onkeydown="if(event.key==='Enter'){vinParejaAddRegalo();event.preventDefault()}" style="flex:1">
+        <button onclick="vinParejaAddRegalo()" style="background:var(--rosa);color:white;border:none;border-radius:50%;width:28px;height:28px;font-size:1.1rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center">+</button>
+      </div>
+      <div id="vinParejaRegalosList" style="display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.4rem"></div>
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">📝 Notas libres</label>
+      <textarea class="modal-input" id="vinParejaNotas" rows="2" placeholder="Miedos, sueños, cosas que quiero que sepa…" style="resize:vertical;min-height:55px"></textarea>
+    </div>
+
+    <div class="modal-btns" style="margin-top:.8rem">
+      <button class="modal-btn-cancel" onclick="vinParejaCerrar()">Cancelar</button>
+      <button class="modal-btn-save" onclick="vinParejaGuardar()">Guardar 💗</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     MODAL: MASCOTAS (existente, sin cambios)
+══════════════════════════════════════ -->
 <div class="pets-modal-backdrop" id="petsModalBackdrop" style="display:none" onclick="if(event.target===this)petsCloseModal()">
   <div class="pets-modal">
     <div class="pets-modal-header">
@@ -26708,40 +26987,25 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
       </div>
       <input type="file" id="petsPhotoInput" accept="image/*" style="display:none">
       <input type="hidden" id="petsPhotoData">
-
       <div class="pets-field">
         <label class="pets-label">Nombre *</label>
         <input class="pets-input" id="petsNombre" placeholder="¿Cómo se llama?">
       </div>
       <div class="pets-field" style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">
-        <div>
-          <label class="pets-label">Especie</label>
-          <input class="pets-input" id="petsEspecie" placeholder="Perro, gato, conejo…">
-        </div>
-        <div>
-          <label class="pets-label">Raza</label>
-          <input class="pets-input" id="petsRaza" placeholder="Opcional">
-        </div>
+        <div><label class="pets-label">Especie</label><input class="pets-input" id="petsEspecie" placeholder="Perro, gato, conejo…"></div>
+        <div><label class="pets-label">Raza</label><input class="pets-input" id="petsRaza" placeholder="Opcional"></div>
       </div>
       <div class="pets-field" style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">
-        <div>
-          <label class="pets-label">Fecha de nacimiento</label>
-          <input class="pets-input" type="date" id="petsFechaNac">
-        </div>
-        <div>
-          <label class="pets-label">Color / apariencia</label>
-          <input class="pets-input" id="petsColor" placeholder="Café, blanco…">
-        </div>
+        <div><label class="pets-label">Fecha de nacimiento</label><input class="pets-input" type="date" id="petsFechaNac"></div>
+        <div><label class="pets-label">Color / apariencia</label><input class="pets-input" id="petsColor" placeholder="Café, blanco…"></div>
       </div>
       <div class="pets-field">
         <label class="pets-label">Notas</label>
         <textarea class="pets-input" id="petsNotas" rows="2" placeholder="Personalidad, gustos, cosas importantes…" style="resize:vertical"></textarea>
       </div>
-
       <div class="pets-cuidados-title">🩺 Cuidados y recordatorios</div>
       <div id="petsCuidadosList"></div>
       <button class="pets-add-cuidado-btn" onclick="petsAddCuidado()">+ agregar cuidado</button>
-
       <div class="pets-diario-title">📓 Diario</div>
       <div id="petsDiarioList"></div>
       <button class="pets-add-cuidado-btn" onclick="petsAddDiario()">+ agregar entrada</button>
@@ -26753,301 +27017,988 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
   </div>
 </div>
 
+<!-- ══════════════ ESTILOS ══════════════ -->
 <style>
-  .pets-section { max-width: 860px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
-  .pets-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.5rem; }
-  .pets-add-btn {
-    background: var(--rosa); color: white; border: none; border-radius: 20px;
-    padding: .45rem 1.1rem; font-size: .78rem; font-weight: 700; cursor: pointer;
-    font-family: var(--font-body); transition: opacity .2s;
-  }
-  .pets-add-btn:hover { opacity: .85; }
-  .pets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
-  .pets-empty { grid-column: 1/-1; text-align: center; padding: 3rem 1rem; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: .8rem; }
-  .pets-card {
-    background: var(--card); border: 1.5px solid var(--border); border-radius: 16px;
-    overflow: hidden; transition: box-shadow .2s, border-color .2s; cursor: pointer;
-  }
-  .pets-card:hover { border-color: var(--rosa); box-shadow: 0 4px 18px rgba(244,167,192,.18); }
-  .pets-card-top { display: flex; align-items: center; gap: .9rem; padding: 1rem; }
-  .pets-card-photo {
-    width: 56px; height: 56px; border-radius: 50%; background: var(--surface);
-    border: 2px solid var(--border); overflow: hidden; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center; font-size: 1.8rem;
-  }
-  .pets-card-photo img { width: 100%; height: 100%; object-fit: cover; }
-  .pets-card-info { flex: 1; min-width: 0; }
-  .pets-card-name { font-size: 1rem; font-weight: 800; color: var(--text); font-family: var(--font-title); font-style: italic; }
-  .pets-card-especie { font-size: .7rem; font-weight: 600; color: var(--muted); margin-top: .1rem; }
-  .pets-card-edad { font-size: .68rem; color: var(--muted2); margin-top: .1rem; }
-  .pets-card-body { padding: 0 1rem .8rem; }
-  .pets-card-notas { font-size: .75rem; color: var(--muted); line-height: 1.5; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-  .pets-card-cuidados { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .6rem; }
-  .pets-card-cuidado-chip {
-    font-size: .64rem; font-weight: 700; padding: .2rem .55rem; border-radius: 20px;
-    background: var(--surface); border: 1.5px solid var(--border); color: var(--muted);
-  }
-  .pets-card-cuidado-chip.vence-hoy { background: var(--rosa-soft); border-color: var(--rosa); color: var(--rosa); }
-  .pets-card-cuidado-chip.vencido { background: #fff0f0; border-color: #f4a0a0; color: #c0392b; }
-  .pets-card-footer { display: flex; justify-content: flex-end; gap: .4rem; padding: .5rem .7rem; border-top: 1px solid var(--border); }
-  .pets-card-btn { background: none; border: none; font-size: .8rem; cursor: pointer; padding: .2rem .4rem; border-radius: 8px; color: var(--muted); }
-  .pets-card-btn:hover { background: var(--surface); }
+  .vinculos-section { max-width:860px;margin:0 auto;padding:1.5rem 1rem 4rem; }
+  .vinculos-header { margin-bottom:1rem; }
+  .vinculos-main-tabs { display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1.3rem;padding-bottom:.9rem;border-bottom:1.5px solid var(--border); }
+  .vinculos-main-tab { background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:.38rem .9rem;font-size:.76rem;font-weight:700;color:var(--muted);cursor:pointer;font-family:var(--font-body);transition:all .18s;white-space:nowrap; }
+  .vinculos-main-tab:hover { border-color:var(--rosa);color:var(--rosa); }
+  .vinculos-main-tab.active { background:var(--rosa);border-color:var(--rosa);color:white; }
 
-  /* Modal */
-  .pets-modal-backdrop { position: fixed; inset: 0; background: rgba(244,167,192,.22); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); z-index: 9000; align-items: center; justify-content: center; padding: 1rem; }
-  .pets-modal { background: var(--card); border-radius: 20px; width: 100%; max-width: 520px; max-height: 88vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,.18); position: relative; margin: auto; z-index: 9001; }
-  .pets-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1.1rem 1.3rem .8rem; font-family: var(--font-title); font-style: italic; font-size: 1.1rem; font-weight: 700; border-bottom: 1px solid var(--border); }
-  .pets-modal-body { padding: 1rem 1.3rem; display: flex; flex-direction: column; gap: .7rem; }
-  .pets-modal-footer { display: flex; justify-content: flex-end; gap: .6rem; padding: .9rem 1.3rem; border-top: 1px solid var(--border); }
-  .pets-photo-upload {
-    width: 80px; height: 80px; border-radius: 50%; background: var(--surface);
-    border: 2px dashed var(--border); cursor: pointer; margin: 0 auto;
-    display: flex; align-items: center; justify-content: center;
-    font-size: .7rem; color: var(--muted); overflow: hidden; transition: border-color .2s;
-  }
-  .pets-photo-upload:hover { border-color: var(--rosa); }
-  .pets-field { display: flex; flex-direction: column; gap: .25rem; }
-  .pets-label { font-size: .67rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
-  .pets-input { background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px; padding: .55rem .8rem; font-family: var(--font-body); font-size: .84rem; color: var(--text); outline: none; width: 100%; box-sizing: border-box; }
-  .pets-input:focus { border-color: var(--rosa); }
-  .pets-cuidados-title, .pets-diario-title { font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-top: .4rem; }
-  .pets-add-cuidado-btn { background: none; border: 1.5px dashed var(--border); border-radius: 10px; padding: .4rem .9rem; font-size: .75rem; font-weight: 700; color: var(--muted); cursor: pointer; font-family: var(--font-body); transition: border-color .2s, color .2s; }
-  .pets-add-cuidado-btn:hover { border-color: var(--rosa); color: var(--rosa); }
-  .pets-cuidado-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: .4rem; align-items: center; margin-bottom: .4rem; }
-  .pets-diario-row { display: grid; grid-template-columns: auto 1fr auto; gap: .4rem; align-items: center; margin-bottom: .4rem; }
-  .pets-remove-btn { background: none; border: none; font-size: 1rem; cursor: pointer; color: var(--muted); padding: .2rem; }
-  .pets-save-btn { background: var(--rosa); color: white; border: none; border-radius: 20px; padding: .5rem 1.3rem; font-size: .82rem; font-weight: 700; cursor: pointer; font-family: var(--font-body); }
-  .pets-cancel-btn { background: none; border: 1.5px solid var(--border); border-radius: 20px; padding: .5rem 1.3rem; font-size: .82rem; font-weight: 600; cursor: pointer; font-family: var(--font-body); color: var(--muted); }
+  /* Botón add genérico */
+  .vin-add-btn { background:var(--rosa);color:white;border:none;border-radius:20px;padding:.45rem 1.1rem;font-size:.78rem;font-weight:700;cursor:pointer;font-family:var(--font-body);transition:opacity .2s; }
+  .vin-add-btn:hover { opacity:.85; }
+
+  /* ── ALMAS CERCANAS ── */
+  .vinculos-personas-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:.9rem;margin-top:.5rem; }
+  .vin-persona-card { background:var(--card);border:1.5px solid var(--border);border-radius:18px;padding:1rem .9rem;display:flex;flex-direction:column;align-items:center;gap:.5rem;cursor:pointer;transition:all .18s;position:relative;text-align:center; }
+  .vin-persona-card:hover { border-color:var(--rosa);transform:translateY(-2px);box-shadow:0 4px 16px rgba(244,167,192,.18); }
+  .vin-persona-avatar { width:62px;height:62px;border-radius:50%;background:var(--surface);border:2.5px solid var(--border);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:1.6rem;flex-shrink:0; }
+  .vin-persona-avatar img { width:100%;height:100%;object-fit:cover;display:block; }
+  .vin-persona-name { font-family:var(--font-title);font-style:italic;font-size:.92rem;font-weight:700;color:var(--text); }
+  .vin-persona-relation { font-size:.65rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em; }
+  .vin-persona-bday { position:absolute;top:8px;right:8px;background:var(--rosa);color:white;font-size:.58rem;font-weight:800;padding:.15rem .38rem;border-radius:20px; }
+  .vin-add-card { background:var(--card);border:2px dashed var(--border);border-radius:18px;padding:1rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.4rem;cursor:pointer;transition:all .18s;min-height:130px;color:var(--muted);font-size:.78rem;font-weight:700; }
+  .vin-add-card:hover { border-color:var(--rosa);color:var(--rosa); }
+
+  /* ── MI PAREJA ── */
+  .vin-pareja-card { background:var(--card);border:1.5px solid var(--rosa);border-radius:24px;padding:1.5rem;max-width:400px;margin:0 auto;text-align:center;box-shadow:0 4px 24px rgba(244,167,192,.18);position:relative; }
+  .vin-pareja-avatar-big { width:90px;height:90px;border-radius:50%;background:var(--rosa-soft);border:3px solid var(--rosa);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:2.5rem;margin:0 auto .8rem; }
+  .vin-pareja-avatar-big img { width:100%;height:100%;object-fit:cover; }
+  .vin-pareja-name { font-family:var(--font-title);font-style:italic;font-size:1.4rem;font-weight:800;color:var(--text);margin-bottom:.2rem; }
+  .vin-pareja-dates { display:flex;justify-content:center;gap:1rem;margin:.6rem 0; }
+  .vin-pareja-date-item { font-size:.72rem;color:var(--muted);font-weight:600; }
+  .vin-pareja-amor { font-size:.83rem;color:var(--text);line-height:1.6;margin:.7rem 0;font-style:italic;background:var(--rosa-soft);border-radius:12px;padding:.7rem .9rem; }
+  .vin-pareja-recuerdos { font-size:.78rem;color:var(--muted);line-height:1.5;margin:.5rem 0; }
+  .vin-pareja-regalos { display:flex;flex-wrap:wrap;gap:.35rem;justify-content:center;margin:.5rem 0; }
+  .vin-pareja-regalo-chip { background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:.22rem .6rem;font-size:.72rem;font-weight:700;color:var(--text); }
+  .vin-pareja-edit-btn { background:var(--rosa);color:white;border:none;border-radius:20px;padding:.45rem 1.2rem;font-size:.78rem;font-weight:700;cursor:pointer;font-family:var(--font-body);margin-top:1rem; }
+  .vin-pareja-empty { text-align:center;padding:3rem 1rem;color:var(--muted); }
+
+  /* ── Mi Corazón tab ── */
+  .corazon-wrap { max-width:500px;margin:0 auto;display:flex;flex-direction:column;gap:1.8rem;padding-bottom:2.5rem; }
+  .corazon-intro { background:var(--surface);border:1.5px solid var(--border);border-radius:16px;padding:1rem 1.1rem; }
+  .corazon-intro-icon { font-size:1.4rem;margin-bottom:.35rem; }
+  .corazon-intro-text { font-size:.8rem;color:var(--muted);line-height:1.65;font-style:italic; }
+  .corazon-intro-verse { font-size:.76rem;color:var(--rosa);font-weight:700;margin-top:.5rem; }
+  .corazon-section { display:flex;flex-direction:column;gap:1rem; }
+  .corazon-section-title { font-family:var(--font-title);font-style:italic;font-size:.98rem;color:var(--rosa);font-weight:700;display:flex;align-items:center;gap:.45rem; }
+  .corazon-section-verse { font-size:.74rem;color:var(--muted);font-style:italic;margin-top:-.4rem;padding:.5rem .75rem;background:var(--surface);border-left:3px solid var(--rosa);border-radius:0 8px 8px 0;line-height:1.5; }
+  .corazon-field { display:flex;flex-direction:column;gap:.3rem; }
+  .corazon-field label { font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;line-height:1.45; }
+  .corazon-textarea { width:100%;box-sizing:border-box;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:.55rem .75rem;font-size:.82rem;font-family:var(--font-body);color:var(--text);resize:vertical;outline:none;transition:border-color .15s;min-height:72px; }
+  .corazon-textarea:focus { border-color:var(--rosa); }
+  .corazon-divider { border:none;border-top:1.5px solid var(--border);margin:.2rem 0; }
+  .corazon-save-btn { background:var(--rosa);color:white;border:none;border-radius:20px;padding:.55rem 1.6rem;font-size:.82rem;font-weight:700;cursor:pointer;font-family:var(--font-body);align-self:center;margin-top:.4rem; }
+  .corazon-save-btn:hover { opacity:.88; }
+
+  /* ── Nosotros tab ── */
+  .nosotros-wrap { max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:1.6rem;padding-bottom:2.5rem; }
+  .nosotros-section { display:flex;flex-direction:column;gap:.85rem; }
+  .nosotros-section-title { font-family:var(--font-title);font-style:italic;font-size:.98rem;color:var(--rosa);font-weight:700;display:flex;align-items:center;gap:.45rem;margin-bottom:.1rem; }
+  .nosotros-field label { display:block;font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.32rem; }
+  .nosotros-input { width:100%;box-sizing:border-box;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:.5rem .75rem;font-size:.83rem;font-family:var(--font-body);color:var(--text);outline:none;transition:border-color .15s; }
+  .nosotros-input:focus { border-color:var(--rosa); }
+  .nosotros-textarea { width:100%;box-sizing:border-box;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:.55rem .75rem;font-size:.82rem;font-family:var(--font-body);color:var(--text);resize:vertical;outline:none;transition:border-color .15s; }
+  .nosotros-textarea:focus { border-color:var(--rosa); }
+  .nosotros-divider { border:none;border-top:1.5px solid var(--border);margin:.2rem 0; }
+  .nosotros-save-btn { background:var(--rosa);color:white;border:none;border-radius:20px;padding:.55rem 1.6rem;font-size:.82rem;font-weight:700;cursor:pointer;font-family:var(--font-body);align-self:center;margin-top:.4rem; }
+  .nosotros-save-btn:hover { opacity:.88; }
+  .nosotros-tag-row { display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.2rem; }
+  .nosotros-tag { background:var(--rosa-soft,#fce4ef);border:1.5px solid var(--rosa);border-radius:20px;padding:.22rem .7rem;font-size:.75rem;font-weight:700;color:var(--rosa);display:flex;align-items:center;gap:.3rem; }
+  .nosotros-tag button { background:none;border:none;cursor:pointer;color:var(--muted);font-size:.7rem;padding:0;line-height:1; }
+  .nosotros-add-row { display:flex;gap:.5rem;align-items:center; }
+  .nosotros-add-input { flex:1;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:.4rem .7rem;font-size:.8rem;font-family:var(--font-body);color:var(--text);outline:none; }
+  .nosotros-add-input:focus { border-color:var(--rosa); }
+  .nosotros-add-btn { background:var(--rosa);color:white;border:none;border-radius:50%;width:28px;height:28px;font-size:1.1rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center; }
+
+  /* ── Pareja subtabs ── */
+  .vin-pareja-subtabs { display:flex;gap:.5rem;margin-bottom:1.2rem; }
+  .vin-pareja-subtab { background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:.38rem 1rem;font-size:.78rem;font-weight:700;cursor:pointer;color:var(--muted);font-family:var(--font-body);transition:all .18s; }
+  .vin-pareja-subtab.active { background:var(--rosa);border-color:var(--rosa);color:white; }
+
+  /* ── Estándares formulario ── */
+  .estandares-wrap { max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:1.4rem;padding-bottom:2rem; }
+  .estandares-section-title { font-family:var(--font-title);font-style:italic;font-size:.95rem;color:var(--rosa);font-weight:700;margin-bottom:.6rem;display:flex;align-items:center;gap:.4rem; }
+  .estandares-question { margin-bottom:.9rem; }
+  .estandares-question label { display:block;font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.35rem;line-height:1.45; }
+  .estandares-question p.est-pregunta-texto { font-size:.84rem;color:var(--text);line-height:1.6;margin:0 0 .5rem;font-style:italic; }
+  .estandares-opt-group { display:flex;gap:.5rem;flex-wrap:wrap; }
+  .estandares-opt { background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:.32rem .85rem;font-size:.75rem;font-weight:700;cursor:pointer;color:var(--text);font-family:var(--font-body);transition:all .15s; }
+  .estandares-opt.sel-si  { background:#d4f7e0;border-color:#6dca96;color:#2a7a4a; }
+  .estandares-opt.sel-no  { background:#fde8e8;border-color:#e88;color:#a03; }
+  .estandares-opt.sel-nd  { background:var(--surface);border-color:var(--border);color:var(--muted); }
+  .estandares-textarea { width:100%;box-sizing:border-box;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:.55rem .75rem;font-size:.82rem;font-family:var(--font-body);color:var(--text);resize:vertical;min-height:60px;outline:none;transition:border-color .15s; }
+  .estandares-textarea:focus { border-color:var(--rosa); }
+  .estandares-save-btn { background:var(--rosa);color:white;border:none;border-radius:20px;padding:.55rem 1.6rem;font-size:.82rem;font-weight:700;cursor:pointer;font-family:var(--font-body);align-self:center;margin-top:.5rem; }
+  .estandares-save-btn:hover { opacity:.88; }
+  .estandares-divider { border:none;border-top:1.5px solid var(--border);margin:.4rem 0; }
+
+
+
+  /* Mascotas (reusando los estilos ya definidos globalmente) */
+  .pets-section { max-width:860px;margin:0 auto;padding:1.5rem 1rem 3rem; }
+  .pets-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem; }
+  .pets-empty { grid-column:1/-1;text-align:center;padding:3rem 1rem;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:.8rem; }
+  .pets-card { background:var(--card);border:1.5px solid var(--border);border-radius:16px;overflow:hidden;transition:box-shadow .2s,border-color .2s;cursor:pointer; }
+  .pets-card:hover { border-color:var(--rosa);box-shadow:0 4px 18px rgba(244,167,192,.18); }
+  .pets-card-top { display:flex;align-items:center;gap:.9rem;padding:1rem; }
+  .pets-card-photo { width:56px;height:56px;border-radius:50%;background:var(--surface);border:2px solid var(--border);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.8rem; }
+  .pets-card-photo img { width:100%;height:100%;object-fit:cover; }
+  .pets-card-info { flex:1;min-width:0; }
+  .pets-card-name { font-size:1rem;font-weight:800;color:var(--text);font-family:var(--font-title);font-style:italic; }
+  .pets-card-especie { font-size:.7rem;font-weight:600;color:var(--muted);margin-top:.1rem; }
+  .pets-card-edad { font-size:.68rem;color:var(--muted2);margin-top:.1rem; }
+  .pets-card-body { padding:0 1rem .8rem; }
+  .pets-card-notas { font-size:.75rem;color:var(--muted);line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical; }
+  .pets-card-cuidados { display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.6rem; }
+  .pets-card-cuidado-chip { font-size:.64rem;font-weight:700;padding:.2rem .55rem;border-radius:20px;background:var(--surface);border:1.5px solid var(--border);color:var(--muted); }
+  .pets-card-cuidado-chip.vence-hoy { background:var(--rosa-soft);border-color:var(--rosa);color:var(--rosa); }
+  .pets-card-cuidado-chip.vencido { background:#fff0f0;border-color:#f4a0a0;color:#c0392b; }
+  .pets-card-footer { display:flex;justify-content:flex-end;gap:.4rem;padding:.5rem .7rem;border-top:1px solid var(--border); }
+  .pets-card-btn { background:none;border:none;font-size:.8rem;cursor:pointer;padding:.2rem .4rem;border-radius:8px;color:var(--muted); }
+  .pets-card-btn:hover { background:var(--surface); }
+  .pets-modal-backdrop { position:fixed;inset:0;background:rgba(244,167,192,.22);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);z-index:9000;display:flex;align-items:center;justify-content:center;padding:1rem; }
+  .pets-modal { background:var(--card);border-radius:20px;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.18);position:relative;margin:auto; }
+  .pets-modal-header { display:flex;justify-content:space-between;align-items:center;padding:1.1rem 1.3rem .8rem;font-family:var(--font-title);font-style:italic;font-size:1.1rem;font-weight:700;border-bottom:1px solid var(--border); }
+  .pets-modal-body { padding:1rem 1.3rem;display:flex;flex-direction:column;gap:.7rem; }
+  .pets-modal-footer { display:flex;justify-content:flex-end;gap:.6rem;padding:.9rem 1.3rem;border-top:1px solid var(--border); }
+  .pets-photo-upload { width:80px;height:80px;border-radius:50%;background:var(--surface);border:2px dashed var(--border);cursor:pointer;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--muted);overflow:hidden;transition:border-color .2s; }
+  .pets-photo-upload:hover { border-color:var(--rosa); }
+  .pets-field { display:flex;flex-direction:column;gap:.25rem; }
+  .pets-label { font-size:.67rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted); }
+  .pets-input { background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:.55rem .8rem;font-family:var(--font-body);font-size:.84rem;color:var(--text);outline:none;width:100%;box-sizing:border-box; }
+  .pets-input:focus { border-color:var(--rosa); }
+  .pets-cuidados-title,.pets-diario-title { font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:.4rem; }
+  .pets-add-cuidado-btn { background:none;border:1.5px dashed var(--border);border-radius:10px;padding:.4rem .9rem;font-size:.75rem;font-weight:700;color:var(--muted);cursor:pointer;font-family:var(--font-body);transition:border-color .2s,color .2s; }
+  .pets-add-cuidado-btn:hover { border-color:var(--rosa);color:var(--rosa); }
+  .pets-cuidado-row { display:grid;grid-template-columns:1fr 1fr auto;gap:.4rem;align-items:center;margin-bottom:.4rem; }
+  .pets-diario-row { display:grid;grid-template-columns:auto 1fr auto;gap:.4rem;align-items:center;margin-bottom:.4rem; }
+  .pets-remove-btn { background:none;border:none;font-size:1rem;cursor:pointer;color:var(--muted);padding:.2rem; }
+  .pets-save-btn { background:var(--rosa);color:white;border:none;border-radius:20px;padding:.5rem 1.3rem;font-size:.82rem;font-weight:700;cursor:pointer;font-family:var(--font-body); }
+  .pets-cancel-btn { background:none;border:1.5px solid var(--border);border-radius:20px;padding:.5rem 1.3rem;font-size:.82rem;font-weight:600;cursor:pointer;font-family:var(--font-body);color:var(--muted); }
 </style>
 
+<!-- ══════════════ SCRIPTS ══════════════ -->
 <script>
 (function(){
+
+  var VIN_TAB = 'almas';
+
+  /* ── TABS ── */
+  window.vinShowTab = function(tab) {
+    VIN_TAB = tab;
+    document.getElementById('vinPanelAlmas').style.display    = tab==='almas'    ? '' : 'none';
+    document.getElementById('vinPanelPareja').style.display   = tab==='pareja'   ? '' : 'none';
+    document.getElementById('vinPanelMascotas').style.display = tab==='mascotas' ? '' : 'none';
+    document.querySelectorAll('.vinculos-main-tab').forEach(function(b){
+      b.classList.toggle('active',
+        (tab==='almas'    && b.id==='vinTabAlmas') ||
+        (tab==='pareja'   && b.id==='vinTabPareja') ||
+        (tab==='mascotas' && b.id==='vinTabMascotas')
+      );
+    });
+  };
+
+  /* ══════════════════════════════════════════
+     ALMAS CERCANAS
+  ══════════════════════════════════════════ */
+  var VIN_PERSONAS_KEY = 'yuki_personas';
+  var _personas = [];
+  var _editPersonaId = null;
+  var _personaRegalos = [];
+  var _personaFotoTemp = null;
+  var _personaEmojiSel = '🧡';
+
+  var PERSONA_EMOJIS = ['🧡','💛','💚','💙','💜','🤍','🫶','🌸','✨','🦋','🌙','⭐','🎀','🌈','🍀','🐱'];
+
+  function personaLoad(){ try{_personas=JSON.parse(localStorage.getItem(VIN_PERSONAS_KEY)||'[]');}catch(e){_personas=[];} }
+  function personaSave(){ localStorage.setItem(VIN_PERSONAS_KEY,JSON.stringify(_personas)); if(window.cloudSave) window.cloudSave(VIN_PERSONAS_KEY,_personas); if(window.cloudSave) window.cloudSave('crm_data',_personas); }
+  function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+
+  function isBdaySoon(d){ if(!d)return false; var t=new Date(),b=new Date(d),n=new Date(t.getFullYear(),b.getMonth(),b.getDate()); if(n<t)n.setFullYear(t.getFullYear()+1); return(n-t)/864e5<=14; }
+
+  function personaRender(){
+    personaLoad();
+    var grid=document.getElementById('vinPersonasGrid'); if(!grid)return;
+    grid.innerHTML='';
+    _personas.forEach(function(p){
+      var card=document.createElement('div'); card.className='vin-persona-card';
+      var avHtml = p.avatar
+        ? '<div class="vin-persona-avatar"><img src="'+p.avatar+'" alt=""></div>'
+        : '<div class="vin-persona-avatar">'+(p.emoji||'🧡')+'</div>';
+      card.innerHTML = avHtml+
+        (isBdaySoon(p.cumple)?'<div class="vin-persona-bday">🎂 pronto</div>':'')+
+        '<div class="vin-persona-name">'+p.nombre+'</div>'+
+        '<div class="vin-persona-relation">'+(p.relacion||'')+'</div>';
+      card.onclick=function(){ vinPersonaAbrir(p.id); };
+      grid.appendChild(card);
+    });
+    var add=document.createElement('div'); add.className='vin-add-card';
+    add.innerHTML='<span style="font-size:1.5rem">＋</span><span>Agregar alma</span>';
+    add.onclick=function(){ vinPersonaAbrir(null); };
+    grid.appendChild(add);
+  }
+
+  function renderPersonaRegalos(){
+    var list=document.getElementById('vinPersonaRegalosList'); if(!list)return;
+    list.innerHTML='';
+    _personaRegalos.forEach(function(r,i){
+      var c=document.createElement('span');
+      c.style.cssText='background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:.22rem .6rem;font-size:.72rem;font-weight:700;color:var(--text);display:flex;align-items:center;gap:.3rem';
+      c.innerHTML='🎁 '+r+' <button onclick="vinPersonaRemoveRegalo('+i+')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:.75rem;padding:0;line-height:1">✕</button>';
+      list.appendChild(c);
+    });
+  }
+
+  window.vinPersonaAddRegalo=function(){
+    var inp=document.getElementById('vinPersonaRegaloInput'); var v=(inp.value||'').trim(); if(!v)return;
+    _personaRegalos.push(v); inp.value=''; renderPersonaRegalos();
+  };
+  window.vinPersonaRemoveRegalo=function(i){ _personaRegalos.splice(i,1); renderPersonaRegalos(); };
+
+  window.vinPersonaAbrir=function(id){
+    personaLoad(); _editPersonaId=id||null; _personaRegalos=[]; _personaFotoTemp=null;
+    var p=id?_personas.find(function(x){return x.id===id;}):null;
+    _personaEmojiSel = p?(p.emoji||'🧡'):'🧡';
+    document.getElementById('vinPersonaTitle').innerHTML='🫧 <em>'+(p?'Editar alma':'Nueva alma')+'</em>';
+    document.getElementById('vinPersonaNombre').value=p?(p.nombre||''):'';
+    document.getElementById('vinPersonaRelacion').value=p?(p.relacion||''):'';
+    document.getElementById('vinPersonaCumple').value=p?(p.cumple||''):'';
+    document.getElementById('vinPersonaDetalles').value=p?(p.detalles||''):'';
+    _personaRegalos=p?(p.regalos||[]).slice():[];
+    _personaFotoTemp=p?(p.avatar||null):null;
+    document.getElementById('vinPersonaDeleteBtn').style.display=p?'':'none';
+    // Avatar
+    var img=document.getElementById('vinPersonaFotoImg'); var em=document.getElementById('vinPersonaEmojiShow');
+    if(_personaFotoTemp){ img.src=_personaFotoTemp; img.style.display=''; em.style.display='none'; }
+    else { img.style.display='none'; em.textContent=_personaEmojiSel; em.style.display=''; }
+    document.getElementById('vinPersonaFotoData').value=_personaFotoTemp||'';
+    // Emoji picker
+    var picker=document.getElementById('vinPersonaEmojiPicker'); picker.innerHTML='';
+    PERSONA_EMOJIS.forEach(function(e){
+      var sp=document.createElement('span');
+      sp.className='emoji-opt'+(e===_personaEmojiSel?' selected':'');
+      sp.dataset.emoji=e; sp.textContent=e;
+      sp.onclick=function(){
+        picker.querySelectorAll('.emoji-opt').forEach(function(o){o.classList.remove('selected');});
+        sp.classList.add('selected');
+        _personaEmojiSel=e;
+        if(!_personaFotoTemp){ document.getElementById('vinPersonaEmojiShow').textContent=e; }
+      };
+      picker.appendChild(sp);
+    });
+    renderPersonaRegalos();
+    document.getElementById('vinPersonaBackdrop').style.display='flex';
+    setTimeout(function(){ document.getElementById('vinPersonaNombre').focus(); },80);
+  };
+
+  window.vinPersonaCerrar=function(){
+    document.getElementById('vinPersonaBackdrop').style.display='none';
+    document.getElementById('vinPersonaFotoFile').value='';
+    _editPersonaId=null;
+  };
+
+  window.vinPersonaHandleFoto=function(input){
+    var file=input.files&&input.files[0]; if(!file)return;
+    var rd=new FileReader(); rd.onload=function(e){
+      var im=new Image(); im.onload=function(){
+        var sc=Math.min(1,400/Math.max(im.width,im.height));
+        var cv=document.createElement('canvas'); cv.width=Math.round(im.width*sc); cv.height=Math.round(im.height*sc);
+        cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);
+        var b64=cv.toDataURL('image/jpeg',.72);
+        _personaFotoTemp=b64;
+        document.getElementById('vinPersonaFotoData').value=b64;
+        var img=document.getElementById('vinPersonaFotoImg'); var em=document.getElementById('vinPersonaEmojiShow');
+        img.src=b64; img.style.display=''; em.style.display='none';
+      }; im.src=e.target.result;
+    }; rd.readAsDataURL(file);
+  };
+
+  window.vinPersonaGuardar=function(){
+    var nombre=document.getElementById('vinPersonaNombre').value.trim();
+    if(!nombre){ document.getElementById('vinPersonaNombre').focus(); return; }
+    personaLoad();
+    var obj={ id:_editPersonaId||uid(), nombre:nombre,
+      relacion:document.getElementById('vinPersonaRelacion').value.trim(),
+      cumple:document.getElementById('vinPersonaCumple').value,
+      detalles:document.getElementById('vinPersonaDetalles').value.trim(),
+      regalos:_personaRegalos.slice(),
+      avatar:document.getElementById('vinPersonaFotoData').value||null,
+      emoji:_personaEmojiSel };
+    if(_editPersonaId){ var i=_personas.findIndex(function(x){return x.id===_editPersonaId;}); if(i>=0)_personas[i]=obj; }
+    else _personas.push(obj);
+    try{ personaSave(); }catch(e){ alert('La foto es muy grande. Se guardará sin foto.'); obj.avatar=null; var fi=_personas.findIndex(function(x){return x.id===obj.id;}); if(fi>=0)_personas[fi]=obj; try{personaSave();}catch(e2){} }
+    vinPersonaCerrar(); personaRender();
+  };
+
+  window.vinPersonaEliminar=function(){
+    if(!_editPersonaId)return;
+    personaLoad(); _personas=_personas.filter(function(x){return x.id!==_editPersonaId;});
+    personaSave(); vinPersonaCerrar(); personaRender();
+  };
+
+  /* ══════════════════════════════════════════
+     MI PAREJA
+  ══════════════════════════════════════════ */
+  var VIN_PAREJA_KEY = 'yuki_vinculos_pareja';
+  var _parejaData = null;
+  var _parejaRegalos = [];
+  var _parejaFotoTemp = null;
+  var _parejaEmojiSel = '💗';
+
+  var PAREJA_EMOJIS = ['💗','💖','💝','🌹','✨','🌙','⭐','🫶','💫','🎀','🌸','🦋','💌','🍓','🌷','🐱'];
+
+  function parejaLoad(){ try{_parejaData=JSON.parse(localStorage.getItem(VIN_PAREJA_KEY)||'null');}catch(e){_parejaData=null;} }
+  function parejaSave(){ localStorage.setItem(VIN_PAREJA_KEY,JSON.stringify(_parejaData)); if(window.cloudSave) window.cloudSave(VIN_PAREJA_KEY,_parejaData); }
+
+  function fmtDate(d){ if(!d)return ''; var p=d.split('-'); var m=['enero','feb','marzo','abril','mayo','junio','julio','agosto','sep','oct','nov','dic']; return parseInt(p[2],10)+' de '+m[parseInt(p[1],10)-1]; }
+
+  function parejaRender(){
+    parejaLoad();
+    var wrap=document.getElementById('vinParejaContent'); if(!wrap)return;
+    if(!_parejaData){
+      wrap.innerHTML='<div class="vin-pareja-empty"><div style="font-size:3rem">💗</div><p style="color:var(--muted);font-size:.85rem;margin:.5rem 0">Añade a tu persona especial 🌸</p><button class="vin-pareja-edit-btn" onclick="vinParejaAbrir()">＋ Agregar mi pareja</button></div>';
+      return;
+    }
+    var p=_parejaData;
+    var avHtml = p.avatar
+      ? '<img src="'+p.avatar+'" alt="">'
+      : (p.emoji||'💗');
+    var regalosHtml = (p.regalos||[]).map(function(r){ return '<span class="vin-pareja-regalo-chip">🎁 '+r+'</span>'; }).join('');
+    wrap.innerHTML=
+      '<div class="vin-pareja-card">'+
+        '<div class="vin-pareja-avatar-big">'+avHtml+'</div>'+
+        '<div class="vin-pareja-name">'+p.nombre+'</div>'+
+        '<div class="vin-pareja-dates">'+
+          (p.cumple?'<div class="vin-pareja-date-item">🎂 '+fmtDate(p.cumple)+'</div>':'')+
+          (p.aniversario?'<div class="vin-pareja-date-item">💑 '+fmtDate(p.aniversario)+'</div>':'')+
+        '</div>'+
+        (p.amor?'<div class="vin-pareja-amor">'+p.amor+'</div>':'')+
+        (p.recuerdos?'<div class="vin-pareja-recuerdos">🌟 '+p.recuerdos+'</div>':'')+
+        (regalosHtml?'<div class="vin-pareja-regalos">'+regalosHtml+'</div>':'')+
+        (p.notas?'<div class="vin-pareja-recuerdos" style="margin-top:.4rem">📝 '+p.notas+'</div>':'')+
+        '<button class="vin-pareja-edit-btn" onclick="vinParejaAbrir()">✏️ Editar</button>'+
+      '</div>';
+  }
+
+  function renderParejaRegalos(){
+    var list=document.getElementById('vinParejaRegalosList'); if(!list)return;
+    list.innerHTML='';
+    _parejaRegalos.forEach(function(r,i){
+      var c=document.createElement('span');
+      c.style.cssText='background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:.22rem .6rem;font-size:.72rem;font-weight:700;color:var(--text);display:flex;align-items:center;gap:.3rem';
+      c.innerHTML='🎁 '+r+' <button onclick="vinParejaRemoveRegalo('+i+')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:.75rem;padding:0;line-height:1">✕</button>';
+      list.appendChild(c);
+    });
+  }
+
+  window.vinParejaAddRegalo=function(){
+    var inp=document.getElementById('vinParejaRegaloInput'); var v=(inp.value||'').trim(); if(!v)return;
+    _parejaRegalos.push(v); inp.value=''; renderParejaRegalos();
+  };
+  window.vinParejaRemoveRegalo=function(i){ _parejaRegalos.splice(i,1); renderParejaRegalos(); };
+
+  window.vinParejaAbrir=function(){
+    parejaLoad(); _parejaRegalos=[]; _parejaFotoTemp=null;
+    var p=_parejaData;
+    _parejaEmojiSel=p?(p.emoji||'💗'):'💗';
+    document.getElementById('vinParejaNombre').value=p?(p.nombre||''):'';
+    document.getElementById('vinParejaCumple').value=p?(p.cumple||''):'';
+    document.getElementById('vinParejaAniversario').value=p?(p.aniversario||''):'';
+    document.getElementById('vinParejaAmor').value=p?(p.amor||''):'';
+    document.getElementById('vinParejaRecuerdos').value=p?(p.recuerdos||''):'';
+    document.getElementById('vinParejaNotas').value=p?(p.notas||''):'';
+    _parejaRegalos=p?(p.regalos||[]).slice():[];
+    _parejaFotoTemp=p?(p.avatar||null):null;
+    document.getElementById('vinParejaFotoData').value=_parejaFotoTemp||'';
+    var img=document.getElementById('vinParejaFotoImg'); var em=document.getElementById('vinParejaEmojiShow');
+    if(_parejaFotoTemp){ img.src=_parejaFotoTemp; img.style.display=''; em.style.display='none'; }
+    else { img.style.display='none'; em.textContent=_parejaEmojiSel; em.style.display=''; }
+    // Emoji picker pareja
+    var picker=document.getElementById('vinParejaEmojiPicker'); picker.innerHTML='';
+    PAREJA_EMOJIS.forEach(function(e){
+      var sp=document.createElement('span');
+      sp.className='emoji-opt'+(e===_parejaEmojiSel?' selected':'');
+      sp.dataset.emoji=e; sp.textContent=e;
+      sp.onclick=function(){
+        picker.querySelectorAll('.emoji-opt').forEach(function(o){o.classList.remove('selected');});
+        sp.classList.add('selected');
+        _parejaEmojiSel=e;
+        if(!_parejaFotoTemp){ document.getElementById('vinParejaEmojiShow').textContent=e; }
+      };
+      picker.appendChild(sp);
+    });
+    renderParejaRegalos();
+    document.getElementById('vinParejaBackdrop').style.display='flex';
+    setTimeout(function(){ document.getElementById('vinParejaNombre').focus(); },80);
+  };
+
+  window.vinParejaCerrar=function(){
+    document.getElementById('vinParejaBackdrop').style.display='none';
+    document.getElementById('vinParejaFotoFile').value='';
+  };
+
+  window.vinParejaHandleFoto=function(input){
+    var file=input.files&&input.files[0]; if(!file)return;
+    var rd=new FileReader(); rd.onload=function(e){
+      var im=new Image(); im.onload=function(){
+        var sc=Math.min(1,400/Math.max(im.width,im.height));
+        var cv=document.createElement('canvas'); cv.width=Math.round(im.width*sc); cv.height=Math.round(im.height*sc);
+        cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);
+        var b64=cv.toDataURL('image/jpeg',.72);
+        _parejaFotoTemp=b64;
+        document.getElementById('vinParejaFotoData').value=b64;
+        var img=document.getElementById('vinParejaFotoImg'); var em=document.getElementById('vinParejaEmojiShow');
+        img.src=b64; img.style.display=''; em.style.display='none';
+      }; im.src=e.target.result;
+    }; rd.readAsDataURL(file);
+  };
+
+  window.vinParejaGuardar=function(){
+    var nombre=document.getElementById('vinParejaNombre').value.trim();
+    if(!nombre){ document.getElementById('vinParejaNombre').focus(); return; }
+    _parejaData={ nombre:nombre,
+      cumple:document.getElementById('vinParejaCumple').value,
+      aniversario:document.getElementById('vinParejaAniversario').value,
+      amor:document.getElementById('vinParejaAmor').value.trim(),
+      recuerdos:document.getElementById('vinParejaRecuerdos').value.trim(),
+      notas:document.getElementById('vinParejaNotas').value.trim(),
+      regalos:_parejaRegalos.slice(),
+      avatar:document.getElementById('vinParejaFotoData').value||null,
+      emoji:_parejaEmojiSel };
+    try{ parejaSave(); }catch(e){ alert('La foto es muy grande. Se guardará sin foto.'); _parejaData.avatar=null; try{parejaSave();}catch(e2){} }
+    vinParejaCerrar(); parejaRender();
+  };
+
+
+  /* ══════════════════════════════════════════
+     MIS ESTÁNDARES (pareja)
+  ══════════════════════════════════════════ */
+  var ESTANDARES_KEY = 'yuki_vinculos_estandares';
+  var _estandaresData = {};
+
+  var ESTANDARES_SECTIONS = [
+    {
+      id: 'dignidad',
+      icon: '👑',
+      titulo: 'Dignidad e inteligencia',
+      preguntas: [
+        { id: 'q1', texto: '¿Es, en la escala de inteligencia y excelencia moral, en conducta y maneras educadas, de tal naturaleza que sentirías orgullo en presentarlo a tu familia y reconocerlo en toda sociedad como el objeto de tu elección?', tipo: 'sino' },
+        { id: 'q2', texto: '¿Cuál ha sido su pasado? ¿Es pura su vida?', tipo: 'texto' },
+        { id: 'q3', texto: '¿Es de un carácter noble y elevado el amor que expresa, o es un simple cariño emotivo?', tipo: 'sino' },
+      ]
+    },
+    {
+      id: 'felicidad',
+      icon: '🌸',
+      titulo: 'Paz y felicidad',
+      preguntas: [
+        { id: 'q4', texto: '¿Tiene los rasgos de carácter que te harán feliz?', tipo: 'sino' },
+        { id: 'q5', texto: '¿Puedes encontrar verdadera paz y gozo en su afecto?', tipo: 'sino' },
+        { id: 'q6', texto: '¿Te permitirá preservar tu individualidad, o deberás entregar tu juicio y tu conciencia al dominio de él?', tipo: 'sino' },
+      ]
+    },
+    {
+      id: 'fe',
+      icon: '✝️',
+      titulo: 'Fe y valores',
+      preguntas: [
+        { id: 'q7', texto: '¿Puede honrar los requerimientos del Salvador como supremos?', tipo: 'sino' },
+        { id: 'q8', texto: '¿Conservará su alma y su cuerpo, sus pensamientos y propósitos, puros y santos?', tipo: 'sino' },
+        { id: 'q9', texto: '¿Me ayudará esta unión en mi avance hacia el cielo?', tipo: 'sino' },
+        { id: 'q10', texto: '¿Aumentará mi amor por Dios y ampliará mi esfera de utilidad en esta vida?', tipo: 'sino' },
+      ]
+    },
+    {
+      id: 'madre',
+      icon: '🤍',
+      titulo: 'Su relación con su madre',
+      preguntas: [
+        { id: 'q11', texto: '¿Tiene madre? ¿Cuáles son las características del carácter de ella?', tipo: 'texto' },
+        { id: 'q12', texto: '¿Reconoce él sus obligaciones hacia ella? ¿Es considerado con sus deseos y felicidad?', tipo: 'sino' },
+        { id: 'q13', texto: 'Si no respeta y honra a su madre, ¿manifestará respeto y amor, bondad y consideración hacia su esposa?', tipo: 'sino' },
+      ]
+    },
+    {
+      id: 'futuro',
+      icon: '💫',
+      titulo: 'Amor duradero',
+      preguntas: [
+        { id: 'q14', texto: 'Cuando haya pasado la novedad del matrimonio, ¿me seguirá amando?', tipo: 'sino' },
+        { id: 'q15', texto: '¿Será paciente para con mis errores, o será crítico, exigente y dictatorial?', tipo: 'sino' },
+        { id: 'q16', texto: '¿Posee rasgos de carácter puros y viriles, es diligente, rebosa de aspiraciones, es honrado y teme a Dios?', tipo: 'sino' },
+      ]
+    },
+    {
+      id: 'amor',
+      icon: '🌿',
+      titulo: 'Naturaleza del amor',
+      preguntas: [
+        { id: 'q17', texto: '¿Es su amor sereno y profundo, y no una pasión impetuosa y arrolladora? ¿Mira más allá de lo externo?', tipo: 'sino' },
+        { id: 'q18', texto: '¿Muestra mansedumbre, amabilidad, tolerancia y longanimidad? ¿No se siente fácilmente provocado?', tipo: 'sino' },
+        { id: 'q19', texto: 'Reflexiones y notas adicionales sobre estos estándares:', tipo: 'texto' },
+      ]
+    },
+  ];
+
+  function estandaresLoad(){ try{_estandaresData=JSON.parse(localStorage.getItem(ESTANDARES_KEY)||'{}')||{};}catch(e){_estandaresData={};} }
+  function estandaresSave(){ localStorage.setItem(ESTANDARES_KEY,JSON.stringify(_estandaresData)); if(window.cloudSave) window.cloudSave(ESTANDARES_KEY,_estandaresData); }
+
+  function estandaresRender(){
+    estandaresLoad();
+    var wrap = document.getElementById('vinParejaSubPanelEstandares');
+    if(!wrap) return;
+    var html = '<div class="estandares-wrap">';
+
+    ESTANDARES_SECTIONS.forEach(function(sec){
+      html += '<div>';
+      html += '<div class="estandares-section-title">'+sec.icon+' '+sec.titulo+'</div>';
+      sec.preguntas.forEach(function(q){
+        html += '<div class="estandares-question">';
+        html += '<p class="est-pregunta-texto">'+q.texto+'</p>';
+        if(q.tipo === 'sino'){
+          var val = _estandaresData[q.id] || '';
+          html += '<div class="estandares-opt-group">';
+          html += '<button class="estandares-opt'+(val==='si'?' sel-si':'')+'" onclick="estSetVal(\'' +q.id+ '\',\'si\',this)">✓ Sí</button>';
+          html += '<button class="estandares-opt'+(val==='no'?' sel-no':'')+'" onclick="estSetVal(\'' +q.id+ '\',\'no\',this)">✗ No</button>';
+          html += '<button class="estandares-opt'+(val==='nd'?' sel-nd':'')+'" onclick="estSetVal(\'' +q.id+ '\',\'nd\',this)">? No sé</button>';
+          html += '</div>';
+        } else {
+          var val = _estandaresData[q.id] || '';
+          html += '<textarea class="estandares-textarea" id="est_'+q.id+'" rows="3" oninput="estSetTxt(\'' +q.id+ '\',this.value)">'+val+'</textarea>';
+        }
+        html += '</div>';
+      });
+      html += '<hr class="estandares-divider"></div>';
+    });
+
+    html += '<button class="estandares-save-btn" onclick="estandaresGuardar()">Guardar estándares 🌸</button>';
+    html += '</div>';
+    wrap.innerHTML = html;
+  }
+
+  window.estSetVal = function(id, val, btn){
+    _estandaresData[id] = val;
+    var group = btn.closest('.estandares-opt-group');
+    group.querySelectorAll('.estandares-opt').forEach(function(b){
+      b.classList.remove('sel-si','sel-no','sel-nd');
+    });
+    btn.classList.add('sel-'+val);
+  };
+
+  window.estSetTxt = function(id, val){
+    _estandaresData[id] = val;
+  };
+
+  window.estandaresGuardar = function(){
+    // collect textareas that may not have fired oninput
+    ESTANDARES_SECTIONS.forEach(function(sec){
+      sec.preguntas.forEach(function(q){
+        if(q.tipo === 'texto'){
+          var el = document.getElementById('est_'+q.id);
+          if(el) _estandaresData[q.id] = el.value;
+        }
+      });
+    });
+    estandaresSave();
+    // little feedback
+    var btn = document.querySelector('.estandares-save-btn');
+    if(btn){ var orig=btn.textContent; btn.textContent='¡Guardado! 💗'; setTimeout(function(){ btn.textContent=orig; },1800); }
+  };
+
+  window.vinParejaSubTab = function(sub){
+    document.getElementById('vinParejaSubPanelMiPareja').style.display   = sub==='mipareja'   ? '' : 'none';
+    document.getElementById('vinParejaSubPanelEstandares').style.display = sub==='estandares' ? '' : 'none';
+    document.getElementById('vinParejaSubPanelNosotros').style.display   = sub==='nosotros'   ? '' : 'none';
+    document.getElementById('vinParejaSubPanelCorazon').style.display    = sub==='corazon'    ? '' : 'none';
+    document.getElementById('vinParejaSubMiPareja').classList.toggle('active',   sub==='mipareja');
+    document.getElementById('vinParejaSubEstandares').classList.toggle('active', sub==='estandares');
+    document.getElementById('vinParejaSubNosotros').classList.toggle('active',   sub==='nosotros');
+    document.getElementById('vinParejaSubCorazon').classList.toggle('active',    sub==='corazon');
+    if(sub==='estandares') estandaresRender();
+    if(sub==='nosotros')   nosotrosRender();
+    if(sub==='corazon')    corazonRender();
+  };
+
+
+  /* ══════════════════════════════════════════
+     NOSOTROS (tab pareja)
+  ══════════════════════════════════════════ */
+  var NOSOTROS_KEY = 'yuki_vinculos_nosotros';
+  var _nosotrosData = {};
+
+  var NOSOTROS_STRUCTURE = [
+    {
+      id: 'fe',
+      icon: '🙏',
+      titulo: 'Fe y crecimiento espiritual',
+      campos: [
+        { id: 'fe_iglesia',    label: '¿A qué iglesia o comunidad pertenece?', tipo: 'short' },
+        { id: 'fe_versiculo',  label: 'Versículo favorito', tipo: 'short' },
+        { id: 'fe_oracion',    label: '¿Cómo ora? ¿Tiene hábitos espirituales?', tipo: 'long' },
+        { id: 'fe_crecer',     label: '¿Cómo podríamos crecer en la fe juntos?', tipo: 'long' },
+        { id: 'fe_suenos',     label: 'Sus sueños en la fe / propósito de vida', tipo: 'long' },
+      ]
+    },
+    {
+      id: 'gustos',
+      icon: '🍓',
+      titulo: 'Sus gustos',
+      campos: [
+        { id: 'g_comida',      label: 'Comida favorita', tipo: 'short' },
+        { id: 'g_comida_no',   label: 'Comida que no le gusta', tipo: 'short' },
+        { id: 'g_musica',      label: 'Música que le gusta', tipo: 'short' },
+        { id: 'g_pelicula',    label: 'Película o serie favorita', tipo: 'short' },
+        { id: 'g_libro',       label: 'Libro favorito', tipo: 'short' },
+        { id: 'g_color',       label: 'Color favorito', tipo: 'short' },
+        { id: 'g_hobbie',      label: 'Hobbies / pasatiempos', tipo: 'long' },
+        { id: 'g_lugar',       label: 'Lugar favorito o que sueña visitar', tipo: 'short' },
+        { id: 'g_extras',      label: 'Otros gustos que quiero recordar', tipo: 'long' },
+      ]
+    },
+    {
+      id: 'relacion',
+      icon: '💬',
+      titulo: 'Nuestra relación',
+      campos: [
+        { id: 'r_primer',      label: 'Cómo nos conocimos', tipo: 'long' },
+        { id: 'r_recuerdo',    label: 'Recuerdo favorito juntos', tipo: 'long' },
+        { id: 'r_tradicion',   label: 'Tradiciones o cosas que hacemos juntos', tipo: 'long' },
+        { id: 'r_metas',       label: 'Metas y sueños que compartimos', tipo: 'long' },
+        { id: 'r_cancion',     label: 'Nuestra canción', tipo: 'short' },
+        { id: 'r_apodo',       label: 'Apodos especiales', tipo: 'short' },
+      ]
+    },
+    {
+      id: 'fechas',
+      icon: '🎂',
+      titulo: 'Fechas importantes',
+      campos: [
+        { id: 'f_primercita',  label: 'Primera cita', tipo: 'date' },
+        { id: 'f_primerviaje', label: 'Primer viaje juntos', tipo: 'date' },
+        { id: 'f_extra1_lbl',  label: 'Fecha especial (nombre)', tipo: 'short' },
+        { id: 'f_extra1_date', label: 'Fecha especial (fecha)', tipo: 'date' },
+        { id: 'f_extra2_lbl',  label: 'Otra fecha (nombre)', tipo: 'short' },
+        { id: 'f_extra2_date', label: 'Otra fecha (fecha)', tipo: 'date' },
+      ]
+    },
+    {
+      id: 'preguntas',
+      icon: '💭',
+      titulo: 'Cosas que quiero preguntarle / aprender de él',
+      campos: [
+        { id: 'p_pendientes',  label: 'Preguntas pendientes', tipo: 'tags', placeholder: 'Ej: ¿Cuál es tu mayor miedo?' },
+        { id: 'p_aprender',    label: 'Cosas que quiero aprender de él o con él', tipo: 'tags', placeholder: 'Ej: Su idioma nativo' },
+        { id: 'p_notas',       label: 'Notas libres', tipo: 'long' },
+      ]
+    },
+    {
+      id: 'regalos',
+      icon: '🎁',
+      titulo: 'Ideas de regalos y detalles',
+      campos: [
+        { id: 'reg_ideas',     label: 'Ideas de regalos', tipo: 'tags', placeholder: 'Ej: Libro de astronomía' },
+        { id: 'reg_detalle',   label: 'Detalles que le gustarían', tipo: 'tags', placeholder: 'Ej: Su café favorito' },
+        { id: 'reg_notas',     label: 'Notas de regalos', tipo: 'long' },
+      ]
+    },
+  ];
+
+  function nosotrosLoad(){ try{_nosotrosData=JSON.parse(localStorage.getItem(NOSOTROS_KEY)||'{}')||{};}catch(e){_nosotrosData={};} }
+  function nosotrosSave(){ localStorage.setItem(NOSOTROS_KEY,JSON.stringify(_nosotrosData)); if(window.cloudSave) window.cloudSave(NOSOTROS_KEY,_nosotrosData); }
+
+  function nosotrosRenderTags(id){
+    var arr = Array.isArray(_nosotrosData[id]) ? _nosotrosData[id] : [];
+    var row = document.getElementById('nos_tags_'+id);
+    if(!row) return;
+    row.innerHTML = arr.map(function(t,i){
+      return '<span class="nosotros-tag">'+t+' <button onclick="nosotrosRemoveTag(\''+id+'\','+i+')">✕</button></span>';
+    }).join('');
+  }
+
+  window.nosotrosAddTag = function(id){
+    var inp = document.getElementById('nos_inp_'+id);
+    var v = (inp.value||'').trim(); if(!v) return;
+    if(!Array.isArray(_nosotrosData[id])) _nosotrosData[id]=[];
+    _nosotrosData[id].push(v); inp.value='';
+    nosotrosRenderTags(id);
+  };
+
+  window.nosotrosRemoveTag = function(id, i){
+    if(!Array.isArray(_nosotrosData[id])) return;
+    _nosotrosData[id].splice(i,1);
+    nosotrosRenderTags(id);
+  };
+
+  function nosotrosRender(){
+    nosotrosLoad();
+    var wrap = document.getElementById('vinParejaSubPanelNosotros');
+    if(!wrap) return;
+    var html = '<div class="nosotros-wrap">';
+
+    NOSOTROS_STRUCTURE.forEach(function(sec){
+      html += '<div class="nosotros-section">';
+      html += '<div class="nosotros-section-title">'+sec.icon+' '+sec.titulo+'</div>';
+
+      sec.campos.forEach(function(c){
+        var val = _nosotrosData[c.id] || '';
+        html += '<div class="nosotros-field"><label>'+c.label+'</label>';
+
+        if(c.tipo === 'short'){
+          html += '<input class="nosotros-input" id="nos_'+c.id+'" type="text" value="'+val.toString().replace(/"/g,'&quot;')+'" oninput="nosotrosSet(\''+c.id+'\',this.value)">';
+        } else if(c.tipo === 'date'){
+          html += '<input class="nosotros-input" id="nos_'+c.id+'" type="date" value="'+val+'" oninput="nosotrosSet(\''+c.id+'\',this.value)">';
+        } else if(c.tipo === 'long'){
+          html += '<textarea class="nosotros-textarea" id="nos_'+c.id+'" rows="3" oninput="nosotrosSet(\''+c.id+'\',this.value)">'+val+'</textarea>';
+        } else if(c.tipo === 'tags'){
+          html += '<div class="nosotros-add-row">';
+          html += '<input class="nosotros-add-input" id="nos_inp_'+c.id+'" placeholder="'+(c.placeholder||'')+'" onkeydown="if(event.key===\'Enter\'){nosotrosAddTag(\''+c.id+'\');event.preventDefault()}">';
+          html += '<button class="nosotros-add-btn" onclick="nosotrosAddTag(\''+c.id+'\')">+</button>';
+          html += '</div>';
+          html += '<div class="nosotros-tag-row" id="nos_tags_'+c.id+'"></div>';
+        }
+        html += '</div>';
+      });
+
+      html += '<hr class="nosotros-divider"></div>';
+    });
+
+    html += '<button class="nosotros-save-btn" onclick="nosotrosGuardar()">Guardar 🌷</button>';
+    html += '</div>';
+    wrap.innerHTML = html;
+
+    // render tags after DOM is set
+    NOSOTROS_STRUCTURE.forEach(function(sec){
+      sec.campos.forEach(function(c){
+        if(c.tipo==='tags') nosotrosRenderTags(c.id);
+      });
+    });
+  }
+
+  window.nosotrosSet = function(id, val){ _nosotrosData[id] = val; };
+
+  window.nosotrosGuardar = function(){
+    // collect all inputs/textareas
+    NOSOTROS_STRUCTURE.forEach(function(sec){
+      sec.campos.forEach(function(c){
+        if(c.tipo !== 'tags'){
+          var el = document.getElementById('nos_'+c.id);
+          if(el) _nosotrosData[c.id] = el.value;
+        }
+      });
+    });
+    nosotrosSave();
+    var btn = document.querySelector('.nosotros-save-btn');
+    if(btn){ var orig=btn.textContent; btn.textContent='¡Guardado! 💗'; setTimeout(function(){ btn.textContent=orig; },1800); }
+  };
+
+
+  /* ══════════════════════════════════════════
+     MI CORAZÓN (tab pareja)
+  ══════════════════════════════════════════ */
+  var CORAZON_KEY = 'yuki_vinculos_corazon';
+  var _corazonData = {};
+
+  var CORAZON_STRUCTURE = [
+    {
+      id: 'intro',
+      tipo: 'intro',
+      icon: '✍️',
+      texto: 'Antes de comenzar, crea un espacio de tranquilidad. Puedes iniciar cada sesión con una oración: "Examíname, oh Dios, y conoce mi corazón; pruébame y conoce mis pensamientos." Este no es un examen para pasar, sino una oportunidad para crecer. Sé brutalmente honesta; este diario es un espacio seguro solo para ti y para Dios.',
+      verso: '— Salmos 139:23'
+    },
+    {
+      id: 'dios',
+      icon: '🙏',
+      titulo: 'Mi relación personal con Dios',
+      verso: 'La base de todo. Nuestra relación con Cristo debe ser lo primero, incluso antes de cualquier relación terrenal.',
+      campos: [
+        { id: 'dios_oracion', label: 'Vida devocional — ¿Cómo es mi vida de oración y estudio de la Biblia realmente? ¿Estoy cultivando ese hábito ahora? ¿Dependo de Dios en mis decisiones diarias?' },
+        { id: 'dios_identidad', label: 'Identidad en Cristo — ¿Quién soy yo en Cristo, independientemente de si tengo o no una pareja? ¿Siento que mi valor cambia si estoy en una relación? ¿Busco mi seguridad en Dios o en una futura relación?' },
+        { id: 'dios_discernimiento', label: 'Discernimiento — ¿Cómo distingo entre la voz de Dios, mis propios deseos y las presiones externas? ¿Estoy dispuesta a obedecer a Dios incluso si su guía es diferente a lo que yo quiero?' },
+      ]
+    },
+    {
+      id: 'interior',
+      icon: '💖',
+      titulo: 'Mi mundo interior',
+      verso: 'Para conocerme a mí misma.',
+      campos: [
+        { id: 'int_motivaciones', label: 'Motivaciones y madurez — ¿Por qué deseo tener una relación? ¿Es por soledad, presión social, o un deseo genuino? ¿Me considero lo suficientemente madura emocional y espiritualmente?' },
+        { id: 'int_heridas', label: 'Heridas y patrones — ¿Hay experiencias pasadas que podrían influir en cómo elijo o me relaciono? ¿Tiendo a idealizar a las personas o a repetir patrones en mis amistades?' },
+        { id: 'int_caracter', label: 'Carácter personal — ¿Cuáles son mis mayores fortalezas y debilidades? ¿Cómo manejo el enojo, la frustración o la crítica? ¿Soy una persona que guarda rencor o que perdona con facilidad?' },
+        { id: 'int_vision', label: 'Visión de futuro — ¿Cuáles son mis metas personales, profesionales y espirituales? ¿Cómo impactaría un noviazgo o matrimonio en esos planes que Dios ha puesto en mi corazón?' },
+      ]
+    },
+    {
+      id: 'palabra',
+      icon: '📜',
+      titulo: 'Principios de la Palabra de Dios',
+      verso: null,
+      subcards: [
+        { icon: '📖', ref: '2 Timoteo 3:16-17', titulo: 'Un fundamento firme', pregunta: '¿Estoy permitiendo que la Biblia corrija mis propias actitudes y me prepare diariamente para toda buena obra?' },
+        { icon: '✝️', ref: 'Gálatas 5:22-23', titulo: 'El modelo de carácter', pregunta: '¿Qué tanto del fruto del Espíritu —amor, gozo, paz, paciencia, benignidad, bondad, fe, mansedumbre, templanza— se manifiesta en mí cuando estoy bajo presión o cuando las cosas no salen como quiero?' },
+        { icon: '💎', ref: 'Mateo 6:33', titulo: 'La prioridad del Reino', pregunta: '¿Es el Reino de Dios mi prioridad real, o es una actividad entre otras? ¿Confío en que Dios se encargará de los "añadiduras" en su tiempo?' },
+      ]
+    },
+    {
+      id: 'reflexion',
+      icon: '✍️',
+      titulo: 'Preguntas para reflexionar y escribir',
+      verso: null,
+      campos: [
+        { id: 'ref_identidad', label: 'Madurez e identidad — ¿Quién soy yo en Cristo, aparte de mi rol como hija, amiga o posible futura esposa? ¿Cuáles son mis mayores temores e inseguridades, y cómo los estoy llevando a Dios para que Él los sane?' },
+        { id: 'ref_preparacion', label: 'Preparación para la vida — ¿Qué habilidades prácticas y emocionales necesito desarrollar para ser una mujer autosuficiente? ¿Sé cómo administrar mi tiempo y mis finanzas? ¿Cómo cultivo un espíritu de servicio?' },
+        { id: 'ref_paciencia', label: 'Paciencia y confianza — ¿Estoy confiando plenamente en el tiempo de Dios, o lucho contra la ansiedad? ¿Puedo decir con sinceridad: "Señor, quiero lo que Tú quieras, cuando Tú quieras"?' },
+        { id: 'ref_relacion', label: 'Mi relación con Dios — ¿Cómo puedo describir mi vida de oración y estudio de la Biblia? ¿Es una disciplina o una conversación constante y un deleite? ¿Qué evidencias hay en mi vida de que estoy siendo transformada por la renovación de mi mente? (Romanos 12:2)' },
+      ]
+    },
+  ];
+
+  function corazonLoad(){ try{_corazonData=JSON.parse(localStorage.getItem(CORAZON_KEY)||'{}')||{};}catch(e){_corazonData={};} }
+  function corazonSave(){ localStorage.setItem(CORAZON_KEY,JSON.stringify(_corazonData)); if(window.cloudSave) window.cloudSave(CORAZON_KEY,_corazonData); }
+
+  function corazonRender(){
+    corazonLoad();
+    var wrap = document.getElementById('vinParejaSubPanelCorazon');
+    if(!wrap) return;
+    var html = '<div class="corazon-wrap">';
+
+    CORAZON_STRUCTURE.forEach(function(sec){
+      if(sec.tipo === 'intro'){
+        html += '<div class="corazon-intro">';
+        html += '<div class="corazon-intro-icon">'+sec.icon+'</div>';
+        html += '<div class="corazon-intro-text">'+sec.texto+'</div>';
+        html += '<div class="corazon-intro-verse">'+sec.verso+'</div>';
+        html += '</div>';
+        return;
+      }
+
+      html += '<div class="corazon-section">';
+      html += '<div class="corazon-section-title">'+sec.icon+' '+sec.titulo+'</div>';
+      if(sec.verso) html += '<div class="corazon-section-verse">'+sec.verso+'</div>';
+
+      // subcards (Palabra de Dios)
+      if(sec.subcards){
+        sec.subcards.forEach(function(sc){
+          var val = _corazonData[sec.id+'_'+sc.titulo.replace(/\s+/g,'_')] || '';
+          html += '<div class="corazon-field">';
+          html += '<label>'+sc.icon+' '+sc.ref+' · '+sc.titulo+'</label>';
+          html += '<p style="font-size:.78rem;color:var(--text);font-style:italic;margin:0 0 .35rem;line-height:1.55;">'+sc.pregunta+'</p>';
+          var fid = 'cor_'+sec.id+'_'+sc.titulo.replace(/\s+/g,'_');
+          html += '<textarea class="corazon-textarea" id="'+fid+'" rows="3" oninput="corazonSet(\''+fid+'\',this.value)">'+val+'</textarea>';
+          html += '</div>';
+        });
+      }
+
+      // regular campos
+      if(sec.campos){
+        sec.campos.forEach(function(c){
+          var val = _corazonData[c.id] || '';
+          html += '<div class="corazon-field">';
+          html += '<label>'+c.label+'</label>';
+          html += '<textarea class="corazon-textarea" id="cor_'+c.id+'" rows="3" oninput="corazonSet(\''+c.id+'\',this.value)">'+val+'</textarea>';
+          html += '</div>';
+        });
+      }
+
+      html += '<hr class="corazon-divider"></div>';
+    });
+
+    html += '<button class="corazon-save-btn" onclick="corazonGuardar()">Guardar 🌿</button>';
+    html += '</div>';
+    wrap.innerHTML = html;
+  }
+
+  window.corazonSet = function(id, val){ _corazonData[id] = val; };
+
+  window.corazonGuardar = function(){
+    // collect all textareas
+    var wrap = document.getElementById('vinParejaSubPanelCorazon');
+    if(!wrap) return;
+    wrap.querySelectorAll('.corazon-textarea').forEach(function(el){
+      var rawId = el.id.replace(/^cor_/, '');
+      _corazonData[rawId] = el.value;
+    });
+    corazonSave();
+    var btn = document.querySelector('.corazon-save-btn');
+    if(btn){ var orig=btn.textContent; btn.textContent='¡Guardado! 💗'; setTimeout(function(){ btn.textContent=orig; },1800); }
+  };
+
+  /* ══════════════════════════════════════════
+     MASCOTAS (lógica completa)
+  ══════════════════════════════════════════ */
   var PETS_KEY = 'yuki_mascotas';
   var pets = [];
   var editingId = null;
 
-  function load() {
-    try { pets = JSON.parse(localStorage.getItem(PETS_KEY)) || []; } catch(e){ pets=[]; }
-  }
-  function save() {
-    localStorage.setItem(PETS_KEY, JSON.stringify(pets));
-    if (window.cloudSave) window.cloudSave(PETS_KEY, pets);
-  }
+  function petsLoad(){ try{pets=JSON.parse(localStorage.getItem(PETS_KEY))||[];}catch(e){pets=[];} }
+  function petsSaveD(){ localStorage.setItem(PETS_KEY,JSON.stringify(pets)); if(window.cloudSave) window.cloudSave(PETS_KEY,pets); }
 
-  function calcEdad(fechaNac) {
-    if (!fechaNac) return '';
-    var hoy = new Date(), nac = new Date(fechaNac);
-    var anos = hoy.getFullYear() - nac.getFullYear();
-    var meses = hoy.getMonth() - nac.getMonth();
-    if (meses < 0) { anos--; meses += 12; }
-    if (anos > 0) return anos + (anos === 1 ? ' año' : ' años');
-    if (meses > 0) return meses + (meses === 1 ? ' mes' : ' meses');
-    return 'recién llegado 🐣';
+  function calcEdad(fechaNac){
+    if(!fechaNac)return '';
+    var hoy=new Date(),nac=new Date(fechaNac);
+    var anos=hoy.getFullYear()-nac.getFullYear(),meses=hoy.getMonth()-nac.getMonth();
+    if(meses<0){anos--;meses+=12;} if(anos>0)return anos+(anos===1?' año':' años'); if(meses>0)return meses+(meses===1?' mes':' meses'); return 'recién llegado 🐣';
   }
+  function especieEmoji(esp){ esp=esp.toLowerCase(); if(esp.includes('perro')||esp.includes('dog'))return'🐶'; if(esp.includes('gato')||esp.includes('cat'))return'🐱'; if(esp.includes('conejo'))return'🐰'; if(esp.includes('pez')||esp.includes('peces'))return'🐠'; if(esp.includes('ave')||esp.includes('pájaro')||esp.includes('loro'))return'🦜'; if(esp.includes('hamster')||esp.includes('hámster'))return'🐹'; if(esp.includes('tortuga'))return'🐢'; return'🐾'; }
+  function getCuidadoStatus(c){ if(!c.fecha)return''; var hoy=new Date();hoy.setHours(0,0,0,0);var f=new Date(c.fecha);f.setHours(0,0,0,0); if(f<hoy)return'vencido'; if(f.getTime()===hoy.getTime())return'vence-hoy'; return''; }
 
-  function render() {
-    load();
-    var grid = document.getElementById('petsGrid');
-    var empty = document.getElementById('petsEmpty');
-    if (!grid) return;
-    // Clear cards but keep empty
-    Array.from(grid.querySelectorAll('.pets-card')).forEach(el => el.remove());
-    if (pets.length === 0) { if(empty) empty.style.display='flex'; return; }
-    if(empty) empty.style.display='none';
-    pets.forEach(function(pet) {
-      var card = document.createElement('div');
-      card.className = 'pets-card';
-      var photoHtml = pet.foto
-        ? '<img src="'+pet.foto+'" style="width:100%;height:100%;object-fit:cover">'
-        : (pet.especie ? especieEmoji(pet.especie) : '🐾');
-      var cuidadosHtml = (pet.cuidados||[]).map(function(c){
-        var cls = getCuidadoStatus(c);
-        return '<span class="pets-card-cuidado-chip '+cls+'">'+c.nombre+'</span>';
-      }).join('');
-      card.innerHTML =
-        '<div class="pets-card-top">'+
-          '<div class="pets-card-photo">'+photoHtml+'</div>'+
-          '<div class="pets-card-info">'+
-            '<div class="pets-card-name">'+pet.nombre+'</div>'+
-            '<div class="pets-card-especie">'+(pet.especie||'')+(pet.raza?' · '+pet.raza:'')+'</div>'+
-            (pet.fechaNac?'<div class="pets-card-edad">'+calcEdad(pet.fechaNac)+'</div>':'')+
-          '</div>'+
-        '</div>'+
-        '<div class="pets-card-body">'+
-          (pet.notas?'<div class="pets-card-notas">'+pet.notas+'</div>':'')+
-          (cuidadosHtml?'<div class="pets-card-cuidados">'+cuidadosHtml+'</div>':'')+
-        '</div>'+
-        '<div class="pets-card-footer">'+
-          '<button class="pets-card-btn" title="Editar" onclick="petsOpenModal(\''+pet.id+'\');event.stopPropagation()">✏️</button>'+
-          '<button class="pets-card-btn" title="Eliminar" onclick="petsDelete(\''+pet.id+'\');event.stopPropagation()">🗑️</button>'+
-        '</div>';
-      card.onclick = (function(pid){ return function(){ petsOpenModal(pid); }; })(pet.id);
+  function petsRender(){
+    petsLoad();
+    var grid=document.getElementById('petsGrid'); var empty=document.getElementById('petsEmpty');
+    if(!grid)return;
+    Array.from(grid.querySelectorAll('.pets-card')).forEach(function(el){el.remove();});
+    if(pets.length===0){if(empty)empty.style.display='flex';return;} if(empty)empty.style.display='none';
+    pets.forEach(function(pet){
+      var card=document.createElement('div'); card.className='pets-card';
+      var photoHtml=pet.foto?'<img src="'+pet.foto+'" style="width:100%;height:100%;object-fit:cover">':(pet.especie?especieEmoji(pet.especie):'🐾');
+      var cuidadosHtml=(pet.cuidados||[]).map(function(c){return'<span class="pets-card-cuidado-chip '+getCuidadoStatus(c)+'">'+c.nombre+'</span>';}).join('');
+      card.innerHTML='<div class="pets-card-top"><div class="pets-card-photo">'+photoHtml+'</div><div class="pets-card-info"><div class="pets-card-name">'+pet.nombre+'</div><div class="pets-card-especie">'+(pet.especie||'')+(pet.raza?' · '+pet.raza:'')+'</div>'+(pet.fechaNac?'<div class="pets-card-edad">'+calcEdad(pet.fechaNac)+'</div>':'')+'</div></div><div class="pets-card-body">'+(pet.notas?'<div class="pets-card-notas">'+pet.notas+'</div>':'')+(cuidadosHtml?'<div class="pets-card-cuidados">'+cuidadosHtml+'</div>':'')+'</div><div class="pets-card-footer"><button class="pets-card-btn" onclick="petsOpenModal(\''+pet.id+'\');event.stopPropagation()">✏️</button><button class="pets-card-btn" onclick="petsDelete(\''+pet.id+'\');event.stopPropagation()">🗑️</button></div>';
+      card.onclick=(function(pid){return function(){petsOpenModal(pid);};})(pet.id);
       grid.appendChild(card);
     });
   }
 
-  function especieEmoji(esp) {
-    esp = esp.toLowerCase();
-    if (esp.includes('perro') || esp.includes('dog')) return '🐶';
-    if (esp.includes('gato') || esp.includes('cat')) return '🐱';
-    if (esp.includes('conejo')) return '🐰';
-    if (esp.includes('pez') || esp.includes('peces')) return '🐠';
-    if (esp.includes('ave') || esp.includes('pájaro') || esp.includes('pajaro') || esp.includes('loro')) return '🦜';
-    if (esp.includes('hamster') || esp.includes('hámster')) return '🐹';
-    if (esp.includes('tortuga')) return '🐢';
-    return '🐾';
-  }
-
-  function getCuidadoStatus(c) {
-    if (!c.fecha) return '';
-    var hoy = new Date(); hoy.setHours(0,0,0,0);
-    var f = new Date(c.fecha); f.setHours(0,0,0,0);
-    if (f < hoy) return 'vencido';
-    if (f.getTime() === hoy.getTime()) return 'vence-hoy';
-    return '';
-  }
-
-  window.petsOpenModal = function(id) {
-    load();
-    editingId = id ? id : null;
-    var pet = id ? pets.find(function(p){ return p.id===id; }) : null;
-    document.getElementById('petsModalTitle').textContent = pet ? 'Editar mascota' : 'Nueva mascota';
-    document.getElementById('petsNombre').value = pet ? pet.nombre : '';
-    document.getElementById('petsEspecie').value = pet ? (pet.especie||'') : '';
-    document.getElementById('petsRaza').value = pet ? (pet.raza||'') : '';
-    document.getElementById('petsFechaNac').value = pet ? (pet.fechaNac||'') : '';
-    document.getElementById('petsColor').value = pet ? (pet.color||'') : '';
-    document.getElementById('petsNotas').value = pet ? (pet.notas||'') : '';
-    document.getElementById('petsPhotoData').value = pet ? (pet.foto||'') : '';
-    // Resetear file input para evitar bugs en móvil
-    var fileInp = document.getElementById('petsPhotoInput');
-    fileInp.value = '';
-    var img = document.getElementById('petsPhotoImg');
-    var ph = document.getElementById('petsPhotoPlaceholder');
-    if (pet && pet.foto) { img.src = pet.foto; img.style.display=''; ph.style.display='none'; }
-    else { img.src=''; img.style.display='none'; ph.style.display=''; }
-    // Cuidados
-    var cl = document.getElementById('petsCuidadosList'); cl.innerHTML='';
-    (pet ? pet.cuidados||[] : []).forEach(function(c){ addCuidadoRow(c); });
-    // Diario
-    var dl = document.getElementById('petsDiarioList'); dl.innerHTML='';
-    (pet ? pet.diario||[] : []).forEach(function(d){ addDiarioRow(d); });
+  window.petsOpenModal=function(id){
+    petsLoad(); editingId=id?id:null;
+    var pet=id?pets.find(function(p){return p.id===id;}):null;
+    document.getElementById('petsModalTitle').textContent=pet?'Editar mascota':'Nueva mascota';
+    document.getElementById('petsNombre').value=pet?pet.nombre:'';
+    document.getElementById('petsEspecie').value=pet?(pet.especie||''):'';
+    document.getElementById('petsRaza').value=pet?(pet.raza||''):'';
+    document.getElementById('petsFechaNac').value=pet?(pet.fechaNac||''):'';
+    document.getElementById('petsColor').value=pet?(pet.color||''):'';
+    document.getElementById('petsNotas').value=pet?(pet.notas||''):'';
+    document.getElementById('petsPhotoData').value=pet?(pet.foto||''):'';
+    var fileInp=document.getElementById('petsPhotoInput'); if(fileInp)fileInp.value='';
+    var img=document.getElementById('petsPhotoImg'); var ph=document.getElementById('petsPhotoPlaceholder');
+    if(pet&&pet.foto){img.src=pet.foto;img.style.display='';ph.style.display='none';}else{img.src='';img.style.display='none';ph.style.display='';}
+    var cl=document.getElementById('petsCuidadosList');cl.innerHTML='';
+    (pet?pet.cuidados||[]:[]).forEach(function(c){petsAddCuidadoRow(c);});
+    var dl=document.getElementById('petsDiarioList');dl.innerHTML='';
+    (pet?pet.diario||[]:[]).forEach(function(d){petsAddDiarioRow(d);});
     document.getElementById('petsModalBackdrop').style.display='flex';
   };
-
-  window.petsCloseModal = function() {
-    document.getElementById('petsModalBackdrop').style.display='none';
-    // Limpiar file input siempre al cerrar
-    var fileInp = document.getElementById('petsPhotoInput');
-    if (fileInp) fileInp.value = '';
-    editingId = null;
+  window.petsCloseModal=function(){document.getElementById('petsModalBackdrop').style.display='none';var fi=document.getElementById('petsPhotoInput');if(fi)fi.value='';editingId=null;};
+  window.petsHandlePhoto=function(input){
+    var file=input.files&&input.files[0];if(!file)return;
+    var rd=new FileReader();rd.onload=function(e){var im=new Image();im.onload=function(){var sc=Math.min(1,400/Math.max(im.width,im.height));var cv=document.createElement('canvas');cv.width=Math.round(im.width*sc);cv.height=Math.round(im.height*sc);cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);var b64=cv.toDataURL('image/jpeg',.72);document.getElementById('petsPhotoData').value=b64;var img=document.getElementById('petsPhotoImg');var ph=document.getElementById('petsPhotoPlaceholder');img.src=b64;img.style.display='';ph.style.display='none';};im.src=e.target.result;};rd.readAsDataURL(file);
   };
-
-  window.petsHandlePhoto = function(input) {
-    var file = input.files && input.files[0];
-    if (!file) return;
-    function compressImg(f, maxSz, qual, cb) {
-      var rd = new FileReader();
-      rd.onload = function(e) {
-        var im = new Image();
-        im.onload = function() {
-          var sc = Math.min(1, maxSz / Math.max(im.width, im.height));
-          var cv = document.createElement('canvas');
-          cv.width = Math.round(im.width * sc); cv.height = Math.round(im.height * sc);
-          cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
-          cb(cv.toDataURL('image/jpeg', qual));
-        };
-        im.src = e.target.result;
-      };
-      rd.readAsDataURL(f);
-    }
-    compressImg(file, 400, 0.72, function(b64) {
-      document.getElementById('petsPhotoData').value = b64;
-      var img = document.getElementById('petsPhotoImg');
-      var ph = document.getElementById('petsPhotoPlaceholder');
-      img.src = b64; img.style.display=''; ph.style.display='none';
-    });
+  var pfi=document.getElementById('petsPhotoInput');if(pfi)pfi.onchange=function(){window.petsHandlePhoto(this);};
+  function petsAddCuidadoRow(c){c=c||{nombre:'',fecha:''};var row=document.createElement('div');row.className='pets-cuidado-row';row.innerHTML='<input class="pets-input" placeholder="Ej: Vacuna rabia…" value="'+(c.nombre||'')+'" style="font-size:.78rem"><input class="pets-input" type="date" value="'+(c.fecha||'')+'" style="font-size:.78rem"><button class="pets-remove-btn" onclick="this.parentElement.remove()">✕</button>';document.getElementById('petsCuidadosList').appendChild(row);}
+  function petsAddDiarioRow(d){d=d||{fecha:new Date().toISOString().slice(0,10),texto:''};var row=document.createElement('div');row.className='pets-diario-row';row.innerHTML='<input class="pets-input" type="date" value="'+(d.fecha||'')+'" style="font-size:.78rem;width:130px"><input class="pets-input" placeholder="¿Qué pasó hoy?" value="'+(d.texto||'')+'" style="font-size:.78rem"><button class="pets-remove-btn" onclick="this.parentElement.remove()">✕</button>';document.getElementById('petsDiarioList').appendChild(row);}
+  window.petsAddCuidado=function(){petsAddCuidadoRow();};
+  window.petsAddDiario=function(){petsAddDiarioRow();};
+  window.petsSave=function(){
+    var nombre=document.getElementById('petsNombre').value.trim();if(!nombre){alert('El nombre es obligatorio 🐾');return;}
+    var cuidados=Array.from(document.querySelectorAll('#petsCuidadosList .pets-cuidado-row')).map(function(row){var inputs=row.querySelectorAll('input');return{nombre:inputs[0].value.trim(),fecha:inputs[1].value};}).filter(function(c){return c.nombre;});
+    var diario=Array.from(document.querySelectorAll('#petsDiarioList .pets-diario-row')).map(function(row){var inputs=row.querySelectorAll('input');return{fecha:inputs[0].value,texto:inputs[1].value.trim()};}).filter(function(d){return d.texto;});
+    var pet={id:editingId||('pet_'+Date.now()),nombre:nombre,especie:document.getElementById('petsEspecie').value.trim(),raza:document.getElementById('petsRaza').value.trim(),fechaNac:document.getElementById('petsFechaNac').value,color:document.getElementById('petsColor').value.trim(),notas:document.getElementById('petsNotas').value.trim(),foto:document.getElementById('petsPhotoData').value,cuidados:cuidados,diario:diario};
+    if(editingId){var idx=pets.findIndex(function(p){return p.id===editingId;});if(idx>=0)pets[idx]=pet;}else pets.push(pet);
+    editingId=null;
+    try{petsSaveD();}catch(e){alert('La foto es muy grande. Se guardará sin foto.');pet.foto='';var fi=pets.findIndex(function(x){return x.id===pet.id;});if(fi>=0)pets[fi]=pet;try{petsSaveD();}catch(e2){}}
+    petsCloseModal();petsRender();
   };
+  window.petsDelete=function(id){if(!confirm('¿Eliminar esta mascota?'))return;pets=pets.filter(function(p){return p.id!==id;});petsSaveD();petsRender();};
 
-  // Asignar onchange por JS para evitar problemas al mover el modal al body
-  var petsPhotoInp = document.getElementById('petsPhotoInput');
-  if (petsPhotoInp) petsPhotoInp.onchange = function(){ window.petsHandlePhoto(this); };
+  /* ── Cloud sync registry ── */
+  window._yukiSyncRegistry=window._yukiSyncRegistry||[];
+  window._yukiSyncRegistry.push(function(){
+    if(window._personasData){_personas=window._personasData;personaRender();}
+    if(window._parejaData2){_parejaData=window._parejaData2;parejaRender();}
+    if(window._petsData){pets=window._petsData;petsRender();}
+  });
 
-  function addCuidadoRow(c) {
-    c = c || { nombre:'', fecha:'' };
-    var row = document.createElement('div');
-    row.className = 'pets-cuidado-row';
-    row.innerHTML =
-      '<input class="pets-input" placeholder="Ej: Vacuna rabia, desparasitar…" value="'+(c.nombre||'')+'" style="font-size:.78rem">'+
-      '<input class="pets-input" type="date" value="'+(c.fecha||'')+'" style="font-size:.78rem">'+
-      '<button class="pets-remove-btn" onclick="this.parentElement.remove()">✕</button>';
-    document.getElementById('petsCuidadosList').appendChild(row);
-  }
+  /* ── INIT ── */
+  personaRender(); parejaRender(); petsRender();
 
-  function addDiarioRow(d) {
-    d = d || { fecha: new Date().toISOString().slice(0,10), texto:'' };
-    var row = document.createElement('div');
-    row.className = 'pets-diario-row';
-    row.innerHTML =
-      '<input class="pets-input" type="date" value="'+(d.fecha||'')+'" style="font-size:.78rem;width:130px">'+
-      '<input class="pets-input" placeholder="¿Qué pasó hoy?" value="'+(d.texto||'')+'" style="font-size:.78rem">'+
-      '<button class="pets-remove-btn" onclick="this.parentElement.remove()">✕</button>';
-    document.getElementById('petsDiarioList').appendChild(row);
-  }
-
-  window.petsAddCuidado = function() { addCuidadoRow(); };
-  window.petsAddDiario  = function() { addDiarioRow(); };
-
-  window.petsSave = function() {
-    var nombre = document.getElementById('petsNombre').value.trim();
-    if (!nombre) { alert('El nombre es obligatorio 🐾'); return; }
-    var cuidados = Array.from(document.querySelectorAll('#petsCuidadosList .pets-cuidado-row')).map(function(row){
-      var inputs = row.querySelectorAll('input');
-      return { nombre: inputs[0].value.trim(), fecha: inputs[1].value };
-    }).filter(function(c){ return c.nombre; });
-    var diario = Array.from(document.querySelectorAll('#petsDiarioList .pets-diario-row')).map(function(row){
-      var inputs = row.querySelectorAll('input');
-      return { fecha: inputs[0].value, texto: inputs[1].value.trim() };
-    }).filter(function(d){ return d.texto; });
-    var pet = {
-      id: editingId || ('pet_' + Date.now()),
-      nombre: nombre,
-      especie: document.getElementById('petsEspecie').value.trim(),
-      raza: document.getElementById('petsRaza').value.trim(),
-      fechaNac: document.getElementById('petsFechaNac').value,
-      color: document.getElementById('petsColor').value.trim(),
-      notas: document.getElementById('petsNotas').value.trim(),
-      foto: document.getElementById('petsPhotoData').value,
-      cuidados: cuidados,
-      diario: diario,
-    };
-    if (editingId) {
-      var idx = pets.findIndex(function(p){ return p.id===editingId; });
-      if (idx >= 0) pets[idx] = pet;
-    } else {
-      pets.push(pet);
-    }
-    editingId = null;
-    try{save();}catch(e){alert('La foto es muy grande. Se guardará sin foto.');pet.foto='';if(pets[pets.length-1]&&pets[pets.length-1].id===pet.id)pets[pets.length-1]=pet;else{var fi=pets.findIndex(function(x){return x.id===pet.id;});if(fi>=0)pets[fi]=pet;}try{save();}catch(e2){}}
-    petsCloseModal(); render();
-  };
-
-  window.petsDelete = function(id) {
-    if (!confirm('¿Eliminar esta mascota?')) return;
-    pets = pets.filter(function(p){ return p.id!==id; });
-    save(); render();
-  };
-
-  // Init
-  load(); render();
-
-  // Cloud sync
-  if (window._watchCloud) window._watchCloud(PETS_KEY, function(val){ pets = val||[]; render(); });
 })();
 </script>
-</div><!-- end page-mascotas -->
 
-
+</div><!-- end page-vinculos -->
 <!-- ══════════════════════════════════════════
      PÁGINA · PLANTAS 🪴
 ══════════════════════════════════════════ -->
@@ -27928,12 +28879,12 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
   .insumo-btn:hover { background: var(--surface); }
 
   /* MODAL */
-  .paste-backdrop { position: fixed; inset: 0; background: rgba(200,150,170,.18); backdrop-filter: blur(3px); z-index: 9000; display: flex; align-items: center; justify-content: center; padding: 1rem; }
-  .paste-modal { background: var(--card); border-radius: 20px; width: 100%; max-width: 500px; max-height: 88vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,.18); }
-  .paste-modal-hdr { display: flex; justify-content: space-between; align-items: center; padding: 1.1rem 1.3rem .8rem; font-family: var(--font-title); font-style: italic; font-size: 1.05rem; font-weight: 700; border-bottom: 1px solid var(--border); }
+  .paste-backdrop { position:fixed;inset:0;z-index:9000;background:transparent;display:flex;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto; }
+  .paste-modal { background: var(--card); border-radius: 20px; padding:1.5rem; width: 100%; max-width: 500px; box-shadow: 0 20px 60px rgba(0,0,0,.3); margin:auto; }
+  .paste-modal-hdr { display: flex; justify-content: space-between; align-items: center; padding: 0 0 .8rem; font-family: var(--font-title); font-style: italic; font-size: 1.05rem; font-weight: 700; border-bottom: 1px solid var(--border); margin-bottom:.8rem; }
   .paste-modal-close { background: none; border: none; font-size: 1.1rem; cursor: pointer; color: var(--muted); }
-  .paste-modal-body { padding: 1rem 1.3rem; display: flex; flex-direction: column; gap: .7rem; }
-  .paste-modal-ftr { display: flex; justify-content: flex-end; gap: .6rem; padding: .9rem 1.3rem; border-top: 1px solid var(--border); }
+  .paste-modal-body { padding: 0; display: flex; flex-direction: column; gap: .7rem; }
+  .paste-modal-ftr { display: flex; justify-content: flex-end; gap: .6rem; padding: .9rem 0 0; border-top: 1px solid var(--border); }
   .paste-field { display: flex; flex-direction: column; gap: .25rem; }
   .paste-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
   .paste-label { font-size: .67rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
@@ -27976,8 +28927,9 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
   var CAT_LABELS_R = { pastel:'🎂 Pastel', cupcake:'🧁 Cupcake', galleta:'🍪 Galleta', tarta:'🥧 Tarta', brownie:'🍫 Brownie', otro:'✨ Otro' };
   var LISTA_LABELS = { prueba:'🧪 En pruebas', casi:'🌟 Casi lista', si:'✅ ¡Lista para vender!' };
 
-  function recetaLoad() { try{ recetas=JSON.parse(localStorage.getItem(RECETAS_KEY))||[]; }catch(e){ recetas=[]; } }
+  function recetaLoad() { try{ recetas=(window._pasteRecetas)||JSON.parse(localStorage.getItem(RECETAS_KEY))||[]; }catch(e){ recetas=[]; } }
   function recetaSaveD() {
+    window._pasteRecetas = recetas;
     localStorage.setItem(RECETAS_KEY, JSON.stringify(recetas));
     if(window.cloudSave) window.cloudSave(RECETAS_KEY, recetas);
   }
@@ -28027,9 +28979,9 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
     document.getElementById('recetaDecoracion').value = r?(r.decoracion||''):'';
     document.getElementById('recetaNotas').value = r?(r.notas||''):'';
     document.getElementById('recetaLista').value = r?(r.lista||'prueba'):'prueba';
-    document.getElementById('recetaBackdrop').style.display='flex';
+    document.getElementById('recetaBackdrop').style.display='flex';document.body.style.overflow='hidden';
   };
-  window.recetaCloseModal = function(){ document.getElementById('recetaBackdrop').style.display='none'; };
+  window.recetaCloseModal = function(){ document.getElementById('recetaBackdrop').style.display='none';document.body.style.overflow=''; };
   window.recetaSave = function(){
     var n = document.getElementById('recetaNombre').value.trim();
     if(!n){ alert('El nombre es obligatorio 🧁'); return; }
@@ -28060,8 +29012,8 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
   var moodEditId = null;
   var moodFiltroActivo = '';
 
-  function moodLoad(){ try{ moods=JSON.parse(localStorage.getItem(MOOD_KEY))||[]; }catch(e){ moods=[]; } }
-  function moodSaveD(){ localStorage.setItem(MOOD_KEY,JSON.stringify(moods)); if(window.cloudSave) window.cloudSave(MOOD_KEY,moods); }
+  function moodLoad(){ try{ moods=(window._pasteMood)||JSON.parse(localStorage.getItem(MOOD_KEY))||[]; }catch(e){ moods=[]; } }
+  function moodSaveD(){ window._pasteMood=moods; localStorage.setItem(MOOD_KEY,JSON.stringify(moods)); if(window.cloudSave) window.cloudSave(MOOD_KEY,moods); }
 
   window.moodFiltrar = function(el, est){
     moodFiltroActivo = est;
@@ -28109,17 +29061,17 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
     var img=document.getElementById('moodPhotoImg'); var ph=document.getElementById('moodPhotoPlaceholder');
     if(m&&m.foto){ img.src=m.foto; img.style.display=''; ph.style.display='none'; }
     else { img.style.display='none'; ph.style.display=''; }
-    document.getElementById('moodBackdrop').style.display='flex';
+    document.getElementById('moodBackdrop').style.display='flex';document.body.style.overflow='hidden';
   };
-  window.moodCloseModal = function(){ document.getElementById('moodBackdrop').style.display='none'; };
+  window.moodCloseModal = function(){ document.getElementById('moodBackdrop').style.display='none';document.body.style.overflow=''; };
   window.moodHandlePhoto = function(input){
     var file=input.files&&input.files[0]; if(!file) return;
     var rd=new FileReader(); rd.onload=function(e){
       var im=new Image(); im.onload=function(){
-        var sc=Math.min(1,600/Math.max(im.width,im.height));
+        var sc=Math.min(1,400/Math.max(im.width,im.height));
         var cv=document.createElement('canvas'); cv.width=Math.round(im.width*sc); cv.height=Math.round(im.height*sc);
         cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);
-        var b64=cv.toDataURL('image/jpeg',0.75);
+        var b64=cv.toDataURL('image/jpeg',0.65);
         document.getElementById('moodPhotoData').value=b64;
         var img=document.getElementById('moodPhotoImg'); var ph=document.getElementById('moodPhotoPlaceholder');
         img.src=b64; img.style.display=''; ph.style.display='none';
@@ -28152,8 +29104,8 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
   var costos = [];
   var costoEditId = null;
 
-  function costoLoad(){ try{ costos=JSON.parse(localStorage.getItem(COSTOS_KEY))||[]; }catch(e){ costos=[]; } }
-  function costoSaveD(){ localStorage.setItem(COSTOS_KEY,JSON.stringify(costos)); if(window.cloudSave) window.cloudSave(COSTOS_KEY,costos); }
+  function costoLoad(){ try{ costos=(window._pasteCostos)||JSON.parse(localStorage.getItem(COSTOS_KEY))||[]; }catch(e){ costos=[]; } }
+  function costoSaveD(){ window._pasteCostos=costos; localStorage.setItem(COSTOS_KEY,JSON.stringify(costos)); if(window.cloudSave) window.cloudSave(COSTOS_KEY,costos); }
 
   window.costoCalcular = function(){
     var ing = parseFloat(document.getElementById('costoIngredientes').value)||0;
@@ -28207,9 +29159,9 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
     document.getElementById('costoMargen').value=c?(c.margen||30):30;
     document.getElementById('costoNotas').value=c?(c.notas||''):'';
     costoCalcular();
-    document.getElementById('costoBackdrop').style.display='flex';
+    document.getElementById('costoBackdrop').style.display='flex';document.body.style.overflow='hidden';
   };
-  window.costoCloseModal=function(){ document.getElementById('costoBackdrop').style.display='none'; };
+  window.costoCloseModal=function(){ document.getElementById('costoBackdrop').style.display='none';document.body.style.overflow=''; };
   window.costoSave=function(){
     var n=document.getElementById('costoNombre').value.trim(); if(!n){ alert('Ponle nombre al pastel 🎂'); return; }
     costoLoad();
@@ -28239,8 +29191,8 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
   var pedidoFiltroActivo = '';
   var ESTADO_LABELS_P = { pendiente:'⏳ Pendiente', en_proceso:'🔥 En proceso', listo:'✅ Listo', entregado:'📦 Entregado' };
 
-  function pedidoLoad(){ try{ pedidos=JSON.parse(localStorage.getItem(PEDIDOS_KEY))||[]; }catch(e){ pedidos=[]; } }
-  function pedidoSaveD(){ localStorage.setItem(PEDIDOS_KEY,JSON.stringify(pedidos)); if(window.cloudSave) window.cloudSave(PEDIDOS_KEY,pedidos); }
+  function pedidoLoad(){ try{ pedidos=(window._pastePedidos)||JSON.parse(localStorage.getItem(PEDIDOS_KEY))||[]; }catch(e){ pedidos=[]; } }
+  function pedidoSaveD(){ window._pastePedidos=pedidos; localStorage.setItem(PEDIDOS_KEY,JSON.stringify(pedidos)); if(window.cloudSave) window.cloudSave(PEDIDOS_KEY,pedidos); }
 
   window.pedidoFiltrar=function(el,est){
     pedidoFiltroActivo=est;
@@ -28293,9 +29245,9 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
     document.getElementById('pedidoAnticipo').value=p?(p.anticipo||''):'';
     document.getElementById('pedidoEstado').value=p?(p.estado||'pendiente'):'pendiente';
     document.getElementById('pedidoNotas').value=p?(p.notas||''):'';
-    document.getElementById('pedidoBackdrop').style.display='flex';
+    document.getElementById('pedidoBackdrop').style.display='flex';document.body.style.overflow='hidden';
   };
-  window.pedidoCloseModal=function(){ document.getElementById('pedidoBackdrop').style.display='none'; };
+  window.pedidoCloseModal=function(){ document.getElementById('pedidoBackdrop').style.display='none';document.body.style.overflow=''; };
   window.pedidoSave=function(){
     var cl=document.getElementById('pedidoCliente').value.trim();
     var det=document.getElementById('pedidoDetalle').value.trim();
@@ -28326,8 +29278,8 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
   var insumoCatActiva = '';
   var CAT_EMOJIS_I = { harina:'🌾', endulzante:'🍬', grasa:'🧈', decoracion:'🌸', empaque:'📦', otro:'✨' };
 
-  function insumoLoad(){ try{ insumos=JSON.parse(localStorage.getItem(INSUMOS_KEY))||[]; }catch(e){ insumos=[]; } }
-  function insumoSaveD(){ localStorage.setItem(INSUMOS_KEY,JSON.stringify(insumos)); if(window.cloudSave) window.cloudSave(INSUMOS_KEY,insumos); }
+  function insumoLoad(){ try{ insumos=(window._pasteInsumos)||JSON.parse(localStorage.getItem(INSUMOS_KEY))||[]; }catch(e){ insumos=[]; } }
+  function insumoSaveD(){ window._pasteInsumos=insumos; localStorage.setItem(INSUMOS_KEY,JSON.stringify(insumos)); if(window.cloudSave) window.cloudSave(INSUMOS_KEY,insumos); }
 
   window.insumoFiltrarCat=function(el,cat){
     insumoCatActiva=cat;
@@ -28377,9 +29329,9 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
     document.getElementById('insumoUnidad').value=ins?(ins.unidad||''):'';
     document.getElementById('insumoProveedor').value=ins?(ins.proveedor||''):'';
     document.getElementById('insumoNotas').value=ins?(ins.notas||''):'';
-    document.getElementById('insumoBackdrop').style.display='flex';
+    document.getElementById('insumoBackdrop').style.display='flex';document.body.style.overflow='hidden';
   };
-  window.insumoCloseModal=function(){ document.getElementById('insumoBackdrop').style.display='none'; };
+  window.insumoCloseModal=function(){ document.getElementById('insumoBackdrop').style.display='none';document.body.style.overflow=''; };
   window.insumoSave=function(){
     var n=document.getElementById('insumoNombre').value.trim(); if(!n){ alert('El nombre es obligatorio 🛒'); return; }
     insumoLoad();
@@ -28401,13 +29353,16 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
   /* ── INIT ── */
   recetaRender(); moodRender(); costoRender(); pedidoRender(); insumoRender();
 
-  if(window._watchCloud){
-    window._watchCloud(RECETAS_KEY, function(v){ recetas=v||[]; recetaRender(); });
-    window._watchCloud(MOOD_KEY, function(v){ moods=v||[]; moodRender(); });
-    window._watchCloud(COSTOS_KEY, function(v){ costos=v||[]; costoRender(); });
-    window._watchCloud(PEDIDOS_KEY, function(v){ pedidos=v||[]; pedidoRender(); });
-    window._watchCloud(INSUMOS_KEY, function(v){ insumos=v||[]; insumoRender(); });
-  }
+  // Registrar en el registry global para syncFromCloud
+  window._yukiSyncRegistry = window._yukiSyncRegistry || [];
+  window._yukiSyncRegistry.push(function() {
+    var d;
+    d = window._pasteRecetas;  if(d){ recetas  = d; recetaRender();  }
+    d = window._pasteMood;     if(d){ moods    = d; moodRender();    }
+    d = window._pasteCostos;   if(d){ costos   = d; costoRender();   }
+    d = window._pastePedidos;  if(d){ pedidos  = d; pedidoRender();  }
+    d = window._pasteInsumos;  if(d){ insumos  = d; insumoRender();  }
+  });
 
 })();
 </script>
@@ -28442,6 +29397,7 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
       <button class="jardin-sub-tab active" onclick="jardinShowSub(this,'suelto')">🌬️ Lo que suelto</button>
       <button class="jardin-sub-tab" onclick="jardinShowSub(this,'patrones')">🔁 Patrones</button>
       <button class="jardin-sub-tab" onclick="jardinShowSub(this,'miedos')">🌑 Miedos</button>
+      <button class="jardin-sub-tab" onclick="jardinShowSub(this,'anclas')">⚓ Anclas espirituales</button>
     </div>
 
     <!-- ─ SUELTO ─ -->
@@ -28489,6 +29445,28 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
       </div>
     </div>
 
+    <!-- ─ ANCLAS ESPIRITUALES ─ -->
+    <div id="jardinSubAnclas" style="display:none">
+      <div class="jardin-tab-intro">Lo que te mantiene firme cuando te sientes lejos de Dios. Tus recursos espirituales personales para días difíciles. ⚓</div>
+      <div class="jardin-tab-actions">
+        <button class="jardin-btn-primary" onclick="anclaOpenModal(null)">＋ Agregar ancla</button>
+      </div>
+      <div class="jardin-ancla-filtros">
+        <span class="jardin-chip active" onclick="anclaFiltrar(this,'')">Todas</span>
+        <span class="jardin-chip" onclick="anclaFiltrar(this,'versiculo')">📖 Versículo</span>
+        <span class="jardin-chip" onclick="anclaFiltrar(this,'musica')">🎵 Música</span>
+        <span class="jardin-chip" onclick="anclaFiltrar(this,'oracion')">🙏 Oración</span>
+        <span class="jardin-chip" onclick="anclaFiltrar(this,'persona')">🤍 Persona</span>
+        <span class="jardin-chip" onclick="anclaFiltrar(this,'habito')">🌿 Hábito</span>
+        <span class="jardin-chip" onclick="anclaFiltrar(this,'otro')">✨ Otro</span>
+      </div>
+      <div id="anclasList" class="jardin-cards-col"></div>
+      <div id="anclasEmpty" class="jardin-empty">
+        <div style="font-size:2.5rem">⚓</div>
+        <p>¿Qué te sostiene cuando las olas son fuertes? Agrégalo aquí.</p>
+      </div>
+    </div>
+
   </div><!-- end jardinTabInterior -->
 
   <!-- ══ TAB 2: FE & ESENCIA ══ -->
@@ -28499,6 +29477,11 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
       <button class="jardin-sub-tab active" onclick="jardinShowSub2(this,'dios')">🙏 Lo que Dios me enseña</button>
       <button class="jardin-sub-tab" onclick="jardinShowSub2(this,'valores')">💛 Valores & Fortalezas</button>
       <button class="jardin-sub-tab" onclick="jardinShowSub2(this,'cartas')">💌 Cartas a mi yo futura</button>
+      <button class="jardin-sub-tab" onclick="jardinShowSub2(this,'promesas')">✨ Promesas que reclamo</button>
+      <button class="jardin-sub-tab" onclick="jardinShowSub2(this,'sabado')">🕯️ Mi sábado</button>
+      <button class="jardin-sub-tab" onclick="jardinShowSub2(this,'oracion')">🙏 Peticiones de oración</button>
+      <button class="jardin-sub-tab" onclick="jardinShowSub2(this,'caracter')">🌱 Mi carácter</button>
+      <button class="jardin-sub-tab" onclick="jardinShowSub2(this,'trabajando')">🌿 Lo que estoy trabajando</button>
     </div>
 
     <!-- ─ LO QUE DIOS ME ENSEÑA ─ -->
@@ -28808,6 +29791,92 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
 
     </div><!-- end jardinSubCartas -->
 
+    <!-- ─ PROMESAS QUE RECLAMO ─ -->
+    <div id="jardinSubPromesas" style="display:none">
+      <div class="jardin-tab-intro">Versículos que sientes como promesas personales de Dios para tu vida. Reclámalos, y registra cómo los ves cumplirse. ✨</div>
+      <div class="jardin-tab-actions">
+        <button class="jardin-btn-primary" onclick="promesaOpenModal(null)">＋ Registrar promesa</button>
+      </div>
+      <div class="jardin-ancla-filtros">
+        <span class="jardin-chip active" onclick="promesaFiltrar(this,'')">Todas</span>
+        <span class="jardin-chip" onclick="promesaFiltrar(this,'creyendo')">🌱 Creyendo</span>
+        <span class="jardin-chip" onclick="promesaFiltrar(this,'cumplida')">✅ Cumplida</span>
+      </div>
+      <div id="promesasList" class="jardin-cards-col"></div>
+      <div id="promesasEmpty" class="jardin-empty">
+        <div style="font-size:2.5rem">✨</div>
+        <p>¿Qué promesa de Dios estás reclamando hoy? Escríbela.</p>
+      </div>
+    </div>
+
+    <!-- ─ MI SÁBADO ─ -->
+    <div id="jardinSubSabado" style="display:none">
+      <div class="jardin-tab-intro">Tu diario del día de reposo. Cada sábado es un regalo — guarda lo que viviste, aprendiste y sentiste. 🕯️</div>
+      <div class="jardin-tab-actions">
+        <button class="jardin-btn-primary" onclick="sabadoOpenModal(null)">＋ Registrar sábado</button>
+      </div>
+      <div id="sabadoList" class="jardin-cards-col"></div>
+      <div id="sabadoEmpty" class="jardin-empty">
+        <div style="font-size:2.5rem">🕯️</div>
+        <p>Comienza a registrar tus sábados. Cada uno es único.</p>
+      </div>
+    </div>
+
+    <!-- ─ PETICIONES DE ORACIÓN ─ -->
+    <div id="jardinSubOracion" style="display:none">
+      <div class="jardin-tab-intro">Tus peticiones son íntimas y sagradas. Registra lo que llevas ante Dios y cómo Él responde. 🙏</div>
+      <div class="jardin-tab-actions">
+        <button class="jardin-btn-primary" onclick="oracionOpenModal(null)">＋ Nueva petición</button>
+      </div>
+      <div class="jardin-ancla-filtros">
+        <span class="jardin-chip active" onclick="oracionFiltrar(this,'')">Todas</span>
+        <span class="jardin-chip" onclick="oracionFiltrar(this,'orando')">🙏 Orando</span>
+        <span class="jardin-chip" onclick="oracionFiltrar(this,'respondida')">✅ Respondida</span>
+        <span class="jardin-chip" onclick="oracionFiltrar(this,'espera')">⏳ En espera</span>
+      </div>
+      <div id="oracionList" class="jardin-cards-col"></div>
+      <div id="oracionEmpty" class="jardin-empty">
+        <div style="font-size:2.5rem">🙏</div>
+        <p>Lleva tus peticiones a Dios y regístralas aquí.</p>
+      </div>
+    </div>
+
+    <!-- ─ MI CARÁCTER ─ -->
+    <div id="jardinSubCaracter" style="display:none">
+      <div class="jardin-tab-intro">Las virtudes que quieres cultivar con la ayuda de Dios. El carácter se forma un día a la vez. 🌱</div>
+      <div class="jardin-tab-actions">
+        <button class="jardin-btn-primary" onclick="caracterOpenModal(null)">＋ Agregar virtud</button>
+      </div>
+      <div id="caracterList" class="jardin-cards-col"></div>
+      <div id="caracterEmpty" class="jardin-empty">
+        <div style="font-size:2.5rem">🌱</div>
+        <p>¿Qué virtud quieres cultivar hoy? La fe, la paciencia, la templanza… empieza aquí.</p>
+      </div>
+    </div>
+
+    <!-- ─ LO QUE ESTOY TRABAJANDO ─ -->
+    <div id="jardinSubTrabajando" style="display:none">
+      <div class="jardin-tab-intro">Honestidad sin juicio. Reconocer lo que aún necesitas trabajar es la primera forma de transformarlo. 🌿</div>
+      <div class="jardin-tab-actions">
+        <button class="jardin-btn-primary" onclick="trabajandoOpenModal(null)">＋ Agregar</button>
+      </div>
+      <div class="jardin-ancla-filtros">
+        <span class="jardin-chip active" onclick="trabajandoFiltrar(this,'')">Todo</span>
+        <span class="jardin-chip" onclick="trabajandoFiltrar(this,'higiene')">🪥 Higiene & autocuidado</span>
+        <span class="jardin-chip" onclick="trabajandoFiltrar(this,'orden')">🗂️ Orden & organización</span>
+        <span class="jardin-chip" onclick="trabajandoFiltrar(this,'habitos')">🔄 Hábitos</span>
+        <span class="jardin-chip" onclick="trabajandoFiltrar(this,'relaciones')">🤍 Relaciones</span>
+        <span class="jardin-chip" onclick="trabajandoFiltrar(this,'emociones')">🌊 Emociones</span>
+        <span class="jardin-chip" onclick="trabajandoFiltrar(this,'fe')">🕊️ Fe & espiritual</span>
+        <span class="jardin-chip" onclick="trabajandoFiltrar(this,'otro')">✨ Otro</span>
+      </div>
+      <div id="trabajandoList" class="jardin-cards-col"></div>
+      <div id="trabajandoEmpty" class="jardin-empty">
+        <div style="font-size:2.5rem">🌿</div>
+        <p>Este es un espacio seguro y honesto. Solo tú lo ves.</p>
+      </div>
+    </div>
+
   </div><!-- end jardinTabEsencia -->
 
 </section>
@@ -28981,7 +30050,7 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
   .jardin-sub-tab.active { background:var(--verde-soft,#e8f5e9); border-color:var(--verde); color:var(--verde); }
 
   /* CHIPS FILTRO */
-  .jardin-chip { font-size:.7rem; font-weight:700; padding:.22rem .65rem; border-radius:20px; background:var(--surface); border:1.5px solid var(--border); color:var(--muted); cursor:pointer; transition:all .18s; }
+  .jardin-chip { font-size:.7rem; font-weight:700; padding:.22rem .65rem; border-radius:20px; background:var(--surface); border:1.5px solid var(--border); color:var(--muted); cursor:pointer; transition:all .18s; white-space:nowrap; }
   .jardin-chip:hover { border-color:var(--verde); color:var(--verde); }
   .jardin-chip.active { background:var(--verde-soft,#e8f5e9); border-color:var(--verde); color:var(--verde); }
   .jardin-miedo-filtros, .jardin-dios-filtros { display:flex; flex-wrap:wrap; gap:.35rem; margin-bottom:.9rem; }
@@ -29010,6 +30079,7 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
   /* VALORES / FORTALEZAS */
   .jardin-bloque-titulo { font-size:.72rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:.5rem; }
   .jardin-chips-list { display:flex; flex-wrap:wrap; gap:.45rem; min-height:2rem; }
+  .jardin-ancla-filtros { display:flex; flex-wrap:wrap; gap:.45rem; margin-bottom:.9rem; }
   .jardin-vf-chip { background:var(--surface); border:1.5px solid var(--border); border-radius:20px; padding:.3rem .8rem; font-size:.78rem; font-weight:700; color:var(--text); cursor:pointer; display:flex; align-items:center; gap:.35rem; transition:border-color .2s; }
   .jardin-vf-chip:hover { border-color:var(--rosa); }
   .jardin-vf-del { background:none; border:none; font-size:.75rem; cursor:pointer; color:var(--muted); padding:0; line-height:1; }
@@ -29061,7 +30131,7 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
   var _activeSub1 = 'suelto';
   window.jardinShowSub = function(el, sub) {
     _activeSub1 = sub;
-    ['suelto','patrones','miedos'].forEach(function(s){
+    ['suelto','patrones','miedos','anclas'].forEach(function(s){
       document.getElementById('jardinSub'+s.charAt(0).toUpperCase()+s.slice(1)).style.display = s===sub?'':'none';
     });
     document.querySelectorAll('.jardin-sub-tabs .jardin-sub-tab').forEach(function(b){ b.classList.remove('active'); });
@@ -29071,7 +30141,7 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
   var _activeSub2 = 'dios';
   window.jardinShowSub2 = function(el, sub) {
     _activeSub2 = sub;
-    ['dios','valores','cartas'].forEach(function(s){
+    ['dios','valores','cartas','promesas','sabado','oracion','caracter','trabajando'].forEach(function(s){
       document.getElementById('jardinSub'+s.charAt(0).toUpperCase()+s.slice(1)).style.display = s===sub?'':'none';
     });
     var btns = document.querySelectorAll('#jardinTabEsencia .jardin-sub-tab');
@@ -29393,17 +30463,637 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
   if(window._watchCloud) window._watchCloud(QK,function(v){var t=document.getElementById('jardinQuienText');if(t&&v)t.value=v;});
 
   /* ── CLOUD SYNC ── */
-  if(window._watchCloud){
-    window._watchCloud('yuki_jardin_suelto',function(v){sueltos=v||[];sueltoRender();});
-    window._watchCloud('yuki_jardin_patrones',function(v){patrones=v||[];patronRender();});
-    window._watchCloud('yuki_jardin_miedos',function(v){miedos=v||[];miedoRender();});
-    window._watchCloud('yuki_jardin_dios',function(v){dios=v||[];diosRender();});
-    window._watchCloud('yuki_jardin_valores',function(v){valores=v||[];valorRender();});
-    window._watchCloud('yuki_jardin_fortalezas',function(v){fortalezas=v||[];fortalezaRender();});
-  }
+  window._yukiSyncRegistry = window._yukiSyncRegistry || [];
+  window._yukiSyncRegistry.push(function() {
+    var d;
+    d = window._jardinSuelto;     if(d){ sueltos    = d; sueltoRender();    }
+    d = window._jardinPatrones;   if(d){ patrones   = d; patronRender();    }
+    d = window._jardinMiedos;     if(d){ miedos     = d; miedoRender();     }
+    d = window._jardinDios;       if(d){ dios       = d; diosRender();      }
+    d = window._jardinValores;    if(d){ valores    = d; valorRender();     }
+    d = window._jardinFortalezas; if(d){ fortalezas = d; fortalezaRender(); }
+    if(window._jardinQuien){
+      var qEl = document.getElementById('jardinQuienText');
+      if(qEl && !qEl.matches(':focus')) qEl.value = window._jardinQuien;
+    }
+  });
 
   /* ── INIT ── */
   sueltoRender(); patronRender(); miedoRender(); diosRender(); valorRender(); fortalezaRender(); quienLoad();
+
+})();
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   JARDÍN — SECCIONES ADVENTISTAS
+   Anclas espirituales · Promesas · Mi Sábado · Oración · Carácter
+═══════════════════════════════════════════════════════════ */
+(function(){
+
+  /* ── HELPERS ── */
+  var JA_BADGE = {
+    versiculo:'📖 Versículo', musica:'🎵 Música', oracion:'🙏 Oración',
+    persona:'🤍 Persona', habito:'🌿 Hábito', otro:'✨ Otro'
+  };
+  var EST_BADGE_PROMESA = { creyendo:'🌱 Creyendo', cumplida:'✅ Cumplida' };
+  var EST_BADGE_ORACION = { orando:'🙏 Orando', respondida:'✅ Respondida', espera:'⏳ En espera' };
+  var EST_COLOR_ORACION = { orando:'var(--rosa)', respondida:'#22c55e', espera:'#f59e0b' };
+
+  function jaFmt(date){ return date ? new Date(date+'T12:00:00').toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) : ''; }
+
+  function jaModal(html, id){
+    var old = document.getElementById(id); if(old) old.remove();
+    var m = document.createElement('div');
+    m.id = id;
+    m.style.cssText = 'position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;padding:1.2rem;overflow-y:auto';
+    m.innerHTML = '<div style="background:var(--card);border-radius:20px;padding:1.5rem;max-width:480px;width:100%;margin:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)" onclick="event.stopPropagation()">'+html+'</div>';
+    m.onclick = function(e){ if(e.target===m){ m.remove(); document.body.style.overflow=''; } };
+    document.body.appendChild(m);
+    document.body.style.overflow = 'hidden';
+  }
+  window.jaCloseModal = function(id){ var m=document.getElementById(id); if(m){ m.remove(); document.body.style.overflow=''; } }
+
+  function jaInput(id, placeholder, val, type){
+    type = type||'text';
+    return '<input id="'+id+'" type="'+type+'" placeholder="'+placeholder+'" value="'+(val||'')+'" style="width:100%;box-sizing:border-box;margin:.35rem 0 .9rem;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:.6rem .8rem;font-family:var(--font-body);font-size:.84rem;color:var(--text);outline:none">';
+  }
+  function jaTA(id, placeholder, val, rows){
+    return '<textarea id="'+id+'" rows="'+(rows||3)+'" placeholder="'+placeholder+'" style="width:100%;box-sizing:border-box;margin:.35rem 0 .9rem;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:.6rem .8rem;font-family:var(--font-body);font-size:.84rem;color:var(--text);outline:none;resize:vertical">'+(val||'')+'</textarea>';
+  }
+  function jaLabel(txt){
+    return '<label style="font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.07em">'+txt+'</label>';
+  }
+  function jaSelect(id, opts, val){
+    return '<select id="'+id+'" style="width:100%;box-sizing:border-box;margin:.35rem 0 .9rem;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:.6rem .8rem;font-family:var(--font-body);font-size:.84rem;color:var(--text);outline:none">'+
+      opts.map(function(o){ return '<option value="'+o.v+'"'+(o.v===val?' selected':'')+'>'+o.l+'</option>'; }).join('')+'</select>';
+  }
+  function jaBtn(label, onclick, secondary){
+    var bg = secondary ? 'none' : 'var(--rosa)';
+    var col = secondary ? 'var(--muted)' : '#fff';
+    var border = secondary ? '1.5px solid var(--border)' : 'none';
+    return '<button onclick="'+onclick+'" style="padding:.65rem 1.1rem;border-radius:12px;border:'+border+';background:'+bg+';color:'+col+';font-family:var(--font-body);font-size:.84rem;font-weight:800;cursor:pointer">'+label+'</button>';
+  }
+  function jaTitle(txt){
+    return '<h3 style="font-family:var(--font-title);font-size:1.1rem;color:var(--rosa);margin-bottom:1rem;font-style:italic">'+txt+'</h3>';
+  }
+  function jaCard(inner){ return '<div style="background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:1rem 1.1rem;margin-bottom:.7rem">'+inner+'</div>'; }
+  function jaBadge(txt, color){
+    color = color||'var(--rosa)';
+    return '<span style="background:'+color+'22;color:'+color+';border-radius:20px;padding:.15rem .6rem;font-size:.65rem;font-weight:800">'+txt+'</span>';
+  }
+  function jaEmpty(el){ return document.getElementById(el); }
+
+
+  /* ══════════════════════════════════════════
+     1. ANCLAS ESPIRITUALES
+  ══════════════════════════════════════════ */
+  var AK = 'yuki_jardin_anclas'; var anclas = []; var anclaEditId = null; var anclaFiltroActivo = '';
+
+  function anclaLoad(){ try{ anclas = window._jardinAnclas || JSON.parse(localStorage.getItem(AK))||[]; }catch(e){ anclas=[]; } }
+  function anclaSave(){ window._jardinAnclas=anclas; localStorage.setItem(AK,JSON.stringify(anclas)); if(window.cloudSave) window.cloudSave(AK,anclas); }
+
+  window.anclaFiltrar = function(el, f){
+    anclaFiltroActivo = f;
+    document.querySelectorAll('#jardinSubAnclas .jardin-chip').forEach(function(c){ c.classList.remove('active'); });
+    el.classList.add('active');
+    anclaRender();
+  };
+
+  function anclaRender(){
+    anclaLoad();
+    var lista = anclaFiltroActivo ? anclas.filter(function(a){ return a.tipo===anclaFiltroActivo; }) : anclas;
+    var el = document.getElementById('anclasList');
+    var em = document.getElementById('anclasEmpty');
+    if(!el) return;
+    if(!lista.length){ el.innerHTML=''; em.style.display=''; return; }
+    em.style.display='none';
+    el.innerHTML = lista.map(function(a){
+      return jaCard(
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem">'+
+          '<div style="flex:1">'+
+            '<div style="font-family:var(--font-title);font-style:italic;font-weight:700;font-size:.95rem;color:var(--text);margin-bottom:.3rem">'+a.titulo+'</div>'+
+            (a.descripcion ? '<div style="font-size:.78rem;color:var(--muted);font-weight:600;line-height:1.5;margin-bottom:.4rem">'+a.descripcion+'</div>' : '')+
+            jaBadge(JA_BADGE[a.tipo]||'✨ Otro')+
+          '</div>'+
+          '<div style="display:flex;gap:.4rem;flex-shrink:0">'+
+            '<button onclick="anclaOpenModal(\''+a.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:.85rem">✏️</button>'+
+            '<button onclick="anclaDelete(\''+a.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:.85rem">🗑</button>'+
+          '</div>'+
+        '</div>'
+      );
+    }).join('');
+  }
+
+  window.anclaOpenModal = function(id){
+    anclaLoad(); anclaEditId = id||null;
+    var a = id ? anclas.find(function(x){ return x.id===id; }) : null;
+    jaModal(
+      jaTitle((a?'Editar':'Nueva')+' ancla espiritual ⚓')+
+      jaLabel('Título / descripción breve')+
+      jaInput('ancTitulo','Ej: El Salmo 23, cantar "A Dios sea la gloria"…', a?a.titulo:'')+
+      jaLabel('Tipo')+
+      jaSelect('ancTipo',[
+        {v:'versiculo',l:'📖 Versículo'},{v:'musica',l:'🎵 Música'},
+        {v:'oracion',l:'🙏 Oración'},{v:'persona',l:'🤍 Persona'},
+        {v:'habito',l:'🌿 Hábito'},{v:'otro',l:'✨ Otro'}
+      ], a?a.tipo:'versiculo')+
+      jaLabel('¿Por qué esta ancla te sostiene?')+
+      jaTA('ancDesc','Cuéntame…', a?a.descripcion:'', 2)+
+      '<div style="display:flex;gap:.6rem;justify-content:flex-end;margin-top:.3rem">'+
+        jaBtn('Cancelar','jaCloseModal(\'anclaModal\')',true)+
+        jaBtn('Guardar ⚓','anclaSaveItem()')+
+      '</div>',
+      'anclaModal'
+    );
+  };
+
+  window.anclaSaveItem = function(){
+    var t = document.getElementById('ancTitulo').value.trim();
+    if(!t){ alert('Escribe un título para tu ancla 🙏'); return; }
+    anclaLoad();
+    var obj = { id: anclaEditId||('anc_'+Date.now()), titulo:t,
+      tipo: document.getElementById('ancTipo').value,
+      descripcion: document.getElementById('ancDesc').value.trim() };
+    if(anclaEditId){ var i=anclas.findIndex(function(x){return x.id===anclaEditId;}); if(i>=0) anclas[i]=obj; }
+    else anclas.push(obj);
+    anclaEditId=null; anclaSave(); jaCloseModal('anclaModal'); anclaRender();
+  };
+
+  window.anclaDelete = function(id){
+    if(!confirm('¿Quitar esta ancla?')) return;
+    anclaLoad(); anclas=anclas.filter(function(x){return x.id!==id;}); anclaSave(); anclaRender();
+  };
+
+
+  /* ══════════════════════════════════════════
+     2. PROMESAS QUE RECLAMO
+  ══════════════════════════════════════════ */
+  var PK = 'yuki_jardin_promesas'; var promesas = []; var promesaEditId = null; var promesaFiltroActivo = '';
+
+  function promesaLoad(){ try{ promesas = window._jardinPromesas || JSON.parse(localStorage.getItem(PK))||[]; }catch(e){ promesas=[]; } }
+  function promesaSave(){ window._jardinPromesas=promesas; localStorage.setItem(PK,JSON.stringify(promesas)); if(window.cloudSave) window.cloudSave(PK,promesas); }
+
+  window.promesaFiltrar = function(el, f){
+    promesaFiltroActivo = f;
+    document.querySelectorAll('#jardinSubPromesas .jardin-chip').forEach(function(c){ c.classList.remove('active'); });
+    el.classList.add('active');
+    promesaRender();
+  };
+
+  function promesaRender(){
+    promesaLoad();
+    var lista = promesaFiltroActivo ? promesas.filter(function(p){ return p.estado===promesaFiltroActivo; }) : promesas;
+    var el = document.getElementById('promesasList');
+    var em = document.getElementById('promesasEmpty');
+    if(!el) return;
+    if(!lista.length){ el.innerHTML=''; em.style.display=''; return; }
+    em.style.display='none';
+    el.innerHTML = lista.map(function(p){
+      return jaCard(
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem">'+
+          '<div style="flex:1">'+
+            '<div style="font-family:var(--font-title);font-style:italic;font-weight:700;font-size:.88rem;color:var(--rosa);margin-bottom:.25rem">'+p.versiculo+'</div>'+
+            '<div style="font-size:.82rem;color:var(--text);font-weight:600;line-height:1.5;margin-bottom:.4rem">'+p.texto+'</div>'+
+            (p.fechaReclamo ? '<div style="font-size:.68rem;color:var(--muted);font-weight:600;margin-bottom:.3rem">📅 Reclamada el '+jaFmt(p.fechaReclamo)+'</div>' : '')+
+            (p.cumplimiento ? '<div style="font-size:.78rem;color:#22c55e;font-weight:600;line-height:1.5;margin-bottom:.3rem">✅ '+p.cumplimiento+'</div>' : '')+
+            jaBadge(EST_BADGE_PROMESA[p.estado]||'🌱 Creyendo', p.estado==='cumplida'?'#22c55e':'var(--rosa)')+
+          '</div>'+
+          '<div style="display:flex;gap:.4rem;flex-shrink:0">'+
+            '<button onclick="promesaOpenModal(\''+p.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:.85rem">✏️</button>'+
+            '<button onclick="promesaDelete(\''+p.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:.85rem">🗑</button>'+
+          '</div>'+
+        '</div>'
+      );
+    }).join('');
+  }
+
+  window.promesaOpenModal = function(id){
+    promesaLoad(); promesaEditId = id||null;
+    var p = id ? promesas.find(function(x){ return x.id===id; }) : null;
+    jaModal(
+      jaTitle((p?'Editar':'Nueva')+' promesa ✨')+
+      jaLabel('Referencia bíblica (Ej: Jeremías 29:11)')+
+      jaInput('pmVersiculo','Libro capítulo:versículo', p?p.versiculo:'')+
+      jaLabel('Texto de la promesa')+
+      jaTA('pmTexto','Escribe o pega el versículo…', p?p.texto:'', 3)+
+      jaLabel('Fecha en que la reclamaste')+
+      jaInput('pmFecha','', p?p.fechaReclamo:'', 'date')+
+      jaLabel('Estado')+
+      jaSelect('pmEstado',[{v:'creyendo',l:'🌱 Creyendo'},{v:'cumplida',l:'✅ Cumplida'}], p?p.estado:'creyendo')+
+      jaLabel('¿Cómo la viste cumplirse? (opcional)')+
+      jaTA('pmCumplimiento','Cuéntame cómo Dios actuó…', p?p.cumplimiento:'', 2)+
+      '<div style="display:flex;gap:.6rem;justify-content:flex-end;margin-top:.3rem">'+
+        jaBtn('Cancelar','jaCloseModal(\'promesaModal\')',true)+
+        jaBtn('Guardar ✨','promesaSaveItem()')+
+      '</div>',
+      'promesaModal'
+    );
+  };
+
+  window.promesaSaveItem = function(){
+    var v = document.getElementById('pmVersiculo').value.trim();
+    var t = document.getElementById('pmTexto').value.trim();
+    if(!v||!t){ alert('La referencia y el texto son necesarios 📖'); return; }
+    promesaLoad();
+    var obj = { id: promesaEditId||('pm_'+Date.now()), versiculo:v, texto:t,
+      fechaReclamo: document.getElementById('pmFecha').value,
+      estado: document.getElementById('pmEstado').value,
+      cumplimiento: document.getElementById('pmCumplimiento').value.trim() };
+    if(promesaEditId){ var i=promesas.findIndex(function(x){return x.id===promesaEditId;}); if(i>=0) promesas[i]=obj; }
+    else promesas.push(obj);
+    promesaEditId=null; promesaSave(); jaCloseModal('promesaModal'); promesaRender();
+  };
+
+  window.promesaDelete = function(id){
+    if(!confirm('¿Eliminar esta promesa?')) return;
+    promesaLoad(); promesas=promesas.filter(function(x){return x.id!==id;}); promesaSave(); promesaRender();
+  };
+
+
+  /* ══════════════════════════════════════════
+     3. MI SÁBADO
+  ══════════════════════════════════════════ */
+  var SBK = 'yuki_jardin_sabados'; var sabados = []; var sabadoEditId = null;
+
+  function sabadoLoad(){ try{ sabados = window._jardinSabados || JSON.parse(localStorage.getItem(SBK))||[]; }catch(e){ sabados=[]; } }
+  function sabadoSave(){ window._jardinSabados=sabados; localStorage.setItem(SBK,JSON.stringify(sabados)); if(window.cloudSave) window.cloudSave(SBK,sabados); }
+
+  function sabadoRender(){
+    sabadoLoad();
+    var el = document.getElementById('sabadoList');
+    var em = document.getElementById('sabadoEmpty');
+    if(!el) return;
+    if(!sabados.length){ el.innerHTML=''; em.style.display=''; return; }
+    em.style.display='none';
+    var sorted = sabados.slice().sort(function(a,b){ return b.fecha.localeCompare(a.fecha); });
+    el.innerHTML = sorted.map(function(s){
+      return jaCard(
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem">'+
+          '<div style="flex:1">'+
+            '<div style="font-size:.7rem;font-weight:800;color:var(--rosa);letter-spacing:.07em;text-transform:uppercase;margin-bottom:.2rem">🕯️ Sábado '+jaFmt(s.fecha)+'</div>'+
+            (s.tema ? '<div style="font-family:var(--font-title);font-style:italic;font-weight:700;font-size:.92rem;color:var(--text);margin-bottom:.3rem">'+s.tema+'</div>' : '')+
+            (s.escuela ? '<div style="font-size:.78rem;color:var(--muted);font-weight:600;margin-bottom:.25rem">📚 Escuela Sabática: '+s.escuela+'</div>' : '')+
+            (s.reflexion ? '<div style="font-size:.78rem;color:var(--text);font-weight:600;line-height:1.5;margin-bottom:.3rem">'+s.reflexion+'</div>' : '')+
+            (s.especial ? '<div style="font-size:.75rem;color:var(--muted);font-weight:600;font-style:italic;line-height:1.4">✨ '+s.especial+'</div>' : '')+
+          '</div>'+
+          '<div style="display:flex;gap:.4rem;flex-shrink:0">'+
+            '<button onclick="sabadoOpenModal(\''+s.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:.85rem">✏️</button>'+
+            '<button onclick="sabadoDelete(\''+s.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:.85rem">🗑</button>'+
+          '</div>'+
+        '</div>'
+      );
+    }).join('');
+  }
+
+  window.sabadoOpenModal = function(id){
+    sabadoLoad(); sabadoEditId = id||null;
+    var s = id ? sabados.find(function(x){ return x.id===id; }) : null;
+    var hoy = new Date().toISOString().slice(0,10);
+    jaModal(
+      jaTitle((s?'Editar':'Registrar')+' mi sábado 🕯️')+
+      jaLabel('Fecha del sábado')+
+      jaInput('sbFecha','', s?s.fecha:hoy, 'date')+
+      jaLabel('Tema del sermón o lección')+
+      jaInput('sbTema','¿De qué habló el pastor?', s?s.tema:'')+
+      jaLabel('Tema de la Escuela Sabática')+
+      jaInput('sbEscuela','Lección de esta semana…', s?s.escuela:'')+
+      jaLabel('Mi reflexión personal')+
+      jaTA('sbReflexion','¿Qué te habló Dios hoy? ¿Qué te llevaste?', s?s.reflexion:'', 3)+
+      jaLabel('Momento especial del día')+
+      jaTA('sbEspecial','Algo bonito que pasó, una persona especial, un momento de alabanza…', s?s.especial:'', 2)+
+      '<div style="display:flex;gap:.6rem;justify-content:flex-end;margin-top:.3rem">'+
+        jaBtn('Cancelar','jaCloseModal(\'sabadoModal\')',true)+
+        jaBtn('Guardar 🕯️','sabadoSaveItem()')+
+      '</div>',
+      'sabadoModal'
+    );
+  };
+
+  window.sabadoSaveItem = function(){
+    var f = document.getElementById('sbFecha').value;
+    if(!f){ alert('Elige la fecha del sábado 🕯️'); return; }
+    sabadoLoad();
+    var obj = { id: sabadoEditId||('sb_'+Date.now()), fecha:f,
+      tema: document.getElementById('sbTema').value.trim(),
+      escuela: document.getElementById('sbEscuela').value.trim(),
+      reflexion: document.getElementById('sbReflexion').value.trim(),
+      especial: document.getElementById('sbEspecial').value.trim() };
+    if(sabadoEditId){ var i=sabados.findIndex(function(x){return x.id===sabadoEditId;}); if(i>=0) sabados[i]=obj; }
+    else sabados.push(obj);
+    sabadoEditId=null; sabadoSave(); jaCloseModal('sabadoModal'); sabadoRender();
+  };
+
+  window.sabadoDelete = function(id){
+    if(!confirm('¿Eliminar este registro?')) return;
+    sabadoLoad(); sabados=sabados.filter(function(x){return x.id!==id;}); sabadoSave(); sabadoRender();
+  };
+
+
+  /* ══════════════════════════════════════════
+     4. PETICIONES DE ORACIÓN
+  ══════════════════════════════════════════ */
+  var OK = 'yuki_jardin_oracion'; var oraciones = []; var oracionEditId = null; var oracionFiltroActivo = '';
+
+  function oracionLoad(){ try{ oraciones = window._jardinOracion || JSON.parse(localStorage.getItem(OK))||[]; }catch(e){ oraciones=[]; } }
+  function oracionSave(){ window._jardinOracion=oraciones; localStorage.setItem(OK,JSON.stringify(oraciones)); if(window.cloudSave) window.cloudSave(OK,oraciones); }
+
+  window.oracionFiltrar = function(el, f){
+    oracionFiltroActivo = f;
+    document.querySelectorAll('#jardinSubOracion .jardin-chip').forEach(function(c){ c.classList.remove('active'); });
+    el.classList.add('active');
+    oracionRender();
+  };
+
+  function oracionRender(){
+    oracionLoad();
+    var lista = oracionFiltroActivo ? oraciones.filter(function(o){ return o.estado===oracionFiltroActivo; }) : oraciones;
+    var el = document.getElementById('oracionList');
+    var em = document.getElementById('oracionEmpty');
+    if(!el) return;
+    if(!lista.length){ el.innerHTML=''; em.style.display=''; return; }
+    em.style.display='none';
+    var sorted = lista.slice().sort(function(a,b){ return b.fecha.localeCompare(a.fecha); });
+    el.innerHTML = sorted.map(function(o){
+      var col = EST_COLOR_ORACION[o.estado]||'var(--rosa)';
+      return jaCard(
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem">'+
+          '<div style="flex:1">'+
+            '<div style="font-family:var(--font-title);font-style:italic;font-weight:700;font-size:.95rem;color:var(--text);margin-bottom:.25rem">'+o.titulo+'</div>'+
+            (o.detalle ? '<div style="font-size:.78rem;color:var(--muted);font-weight:600;line-height:1.5;margin-bottom:.4rem">'+o.detalle+'</div>' : '')+
+            '<div style="font-size:.68rem;color:var(--muted);font-weight:600;margin-bottom:.35rem">📅 '+jaFmt(o.fecha)+'</div>'+
+            (o.respuesta ? '<div style="font-size:.78rem;color:#22c55e;font-weight:600;line-height:1.5;margin-bottom:.3rem">🌟 '+o.respuesta+'</div>' : '')+
+            jaBadge(EST_BADGE_ORACION[o.estado]||'🙏 Orando', col)+
+          '</div>'+
+          '<div style="display:flex;gap:.4rem;flex-shrink:0">'+
+            '<button onclick="oracionOpenModal(\''+o.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:.85rem">✏️</button>'+
+            '<button onclick="oracionDelete(\''+o.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:.85rem">🗑</button>'+
+          '</div>'+
+        '</div>'
+      );
+    }).join('');
+  }
+
+  window.oracionOpenModal = function(id){
+    oracionLoad(); oracionEditId = id||null;
+    var o = id ? oraciones.find(function(x){ return x.id===id; }) : null;
+    var hoy = new Date().toISOString().slice(0,10);
+    jaModal(
+      jaTitle((o?'Editar':'Nueva')+' petición de oración 🙏')+
+      jaLabel('Petición')+
+      jaInput('orTitulo','¿Qué llevas ante Dios?', o?o.titulo:'')+
+      jaLabel('Detalle (opcional)')+
+      jaTA('orDetalle','Cuéntale a Dios con más detalle…', o?o.detalle:'', 2)+
+      jaLabel('Fecha')+
+      jaInput('orFecha','', o?o.fecha:hoy, 'date')+
+      jaLabel('Estado')+
+      jaSelect('orEstado',[
+        {v:'orando',l:'🙏 Orando'},{v:'espera',l:'⏳ En espera'},{v:'respondida',l:'✅ Respondida'}
+      ], o?o.estado:'orando')+
+      jaLabel('¿Cómo respondió Dios? (cuando sea respondida)')+
+      jaTA('orRespuesta','Cuenta el milagro, grande o pequeño…', o?o.respuesta:'', 2)+
+      '<div style="display:flex;gap:.6rem;justify-content:flex-end;margin-top:.3rem">'+
+        jaBtn('Cancelar','jaCloseModal(\'oracionModal\')',true)+
+        jaBtn('Guardar 🙏','oracionSaveItem()')+
+      '</div>',
+      'oracionModal'
+    );
+  };
+
+  window.oracionSaveItem = function(){
+    var t = document.getElementById('orTitulo').value.trim();
+    if(!t){ alert('Escribe tu petición 🙏'); return; }
+    oracionLoad();
+    var obj = { id: oracionEditId||('or_'+Date.now()), titulo:t,
+      detalle: document.getElementById('orDetalle').value.trim(),
+      fecha: document.getElementById('orFecha').value,
+      estado: document.getElementById('orEstado').value,
+      respuesta: document.getElementById('orRespuesta').value.trim() };
+    if(oracionEditId){ var i=oraciones.findIndex(function(x){return x.id===oracionEditId;}); if(i>=0) oraciones[i]=obj; }
+    else oraciones.push(obj);
+    oracionEditId=null; oracionSave(); jaCloseModal('oracionModal'); oracionRender();
+  };
+
+  window.oracionDelete = function(id){
+    if(!confirm('¿Eliminar esta petición?')) return;
+    oracionLoad(); oraciones=oraciones.filter(function(x){return x.id!==id;}); oracionSave(); oracionRender();
+  };
+
+
+  /* ══════════════════════════════════════════
+     5. MI CARÁCTER
+  ══════════════════════════════════════════ */
+  var CK = 'yuki_jardin_caracter'; var caracteres = []; var caracterEditId = null;
+
+  var VIRTUDES_SUGERIDAS = ['Paciencia','Fe','Templanza','Mansedumbre','Amor','Gozo','Paz','Bondad','Benignidad','Fidelidad','Dominio propio','Humildad','Gratitud','Pureza','Generosidad'];
+  var CAR_ESTADOS = { cultivando:'🌱 Cultivando', progresando:'🌿 Progresando', florecida:'🌸 Florecida' };
+  var CAR_COLORS = { cultivando:'var(--rosa)', progresando:'#f59e0b', florecida:'#22c55e' };
+
+  function caracterLoad(){ try{ caracteres = window._jardinCaracter || JSON.parse(localStorage.getItem(CK))||[]; }catch(e){ caracteres=[]; } }
+  function caracterSave(){ window._jardinCaracter=caracteres; localStorage.setItem(CK,JSON.stringify(caracteres)); if(window.cloudSave) window.cloudSave(CK,caracteres); }
+
+  function caracterRender(){
+    caracterLoad();
+    var el = document.getElementById('caracterList');
+    var em = document.getElementById('caracterEmpty');
+    if(!el) return;
+    if(!caracteres.length){ el.innerHTML=''; em.style.display=''; return; }
+    em.style.display='none';
+    el.innerHTML = caracteres.map(function(c){
+      var col = CAR_COLORS[c.estado]||'var(--rosa)';
+      return jaCard(
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem">'+
+          '<div style="flex:1">'+
+            '<div style="font-family:var(--font-title);font-style:italic;font-weight:700;font-size:.98rem;color:var(--text);margin-bottom:.2rem">'+c.virtud+'</div>'+
+            (c.porQue ? '<div style="font-size:.78rem;color:var(--muted);font-weight:600;line-height:1.5;margin-bottom:.3rem">'+c.porQue+'</div>' : '')+
+            (c.como ? '<div style="font-size:.75rem;color:var(--text);font-weight:600;line-height:1.4;margin-bottom:.3rem">🛤️ '+c.como+'</div>' : '')+
+            jaBadge(CAR_ESTADOS[c.estado]||'🌱 Cultivando', col)+
+          '</div>'+
+          '<div style="display:flex;gap:.4rem;flex-shrink:0">'+
+            '<button onclick="caracterOpenModal(\''+c.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:.85rem">✏️</button>'+
+            '<button onclick="caracterDelete(\''+c.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:.85rem">🗑</button>'+
+          '</div>'+
+        '</div>'
+      );
+    }).join('');
+  }
+
+  window.caracterOpenModal = function(id){
+    caracterLoad(); caracterEditId = id||null;
+    var c = id ? caracteres.find(function(x){ return x.id===id; }) : null;
+    var sugs = VIRTUDES_SUGERIDAS.map(function(v){ return '<span onclick="document.getElementById(\'carVirtud\').value=\''+v+'\'" style="display:inline-block;background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:.2rem .65rem;font-size:.68rem;font-weight:700;color:var(--muted);cursor:pointer;margin:.15rem">'+v+'</span>'; }).join('');
+    jaModal(
+      jaTitle((c?'Editar':'Nueva')+' virtud 🌱')+
+      jaLabel('Virtud que quieres cultivar')+
+      jaInput('carVirtud','Paciencia, templanza, fe…', c?c.virtud:'')+
+      '<div style="margin:-.5rem 0 .8rem;line-height:1.8">'+sugs+'</div>'+
+      jaLabel('¿Por qué quieres cultivarla?')+
+      jaTA('carPorQue','¿Qué te motivó a trabajar en esto?', c?c.porQue:'', 2)+
+      jaLabel('¿Cómo la estás trabajando?')+
+      jaTA('carComo','Ej: orando cada mañana, memorizando un versículo, pidiendo ayuda a Dios cuando…', c?c.como:'', 2)+
+      jaLabel('Estado')+
+      jaSelect('carEstado',[
+        {v:'cultivando',l:'🌱 Cultivando'},{v:'progresando',l:'🌿 Progresando'},{v:'florecida',l:'🌸 Florecida'}
+      ], c?c.estado:'cultivando')+
+      '<div style="display:flex;gap:.6rem;justify-content:flex-end;margin-top:.3rem">'+
+        jaBtn('Cancelar','jaCloseModal(\'caracterModal\')',true)+
+        jaBtn('Guardar 🌱','caracterSaveItem()')+
+      '</div>',
+      'caracterModal'
+    );
+  };
+
+  window.caracterSaveItem = function(){
+    var v = document.getElementById('carVirtud').value.trim();
+    if(!v){ alert('Escribe la virtud que quieres cultivar 🌱'); return; }
+    caracterLoad();
+    var obj = { id: caracterEditId||('car_'+Date.now()), virtud:v,
+      porQue: document.getElementById('carPorQue').value.trim(),
+      como: document.getElementById('carComo').value.trim(),
+      estado: document.getElementById('carEstado').value };
+    if(caracterEditId){ var i=caracteres.findIndex(function(x){return x.id===caracterEditId;}); if(i>=0) caracteres[i]=obj; }
+    else caracteres.push(obj);
+    caracterEditId=null; caracterSave(); jaCloseModal('caracterModal'); caracterRender();
+  };
+
+  window.caracterDelete = function(id){
+    if(!confirm('¿Eliminar esta virtud?')) return;
+    caracterLoad(); caracteres=caracteres.filter(function(x){return x.id!==id;}); caracterSave(); caracterRender();
+  };
+
+
+  /* ══════════════════════════════════════════
+     6. LO QUE ESTOY TRABAJANDO
+  ══════════════════════════════════════════ */
+  var TK = 'yuki_jardin_trabajando'; var trabajandos = []; var trabajandoEditId = null; var trabajandoFiltroActivo = '';
+
+  var TRAB_CATS = {
+    higiene:   '🪥 Higiene & autocuidado',
+    orden:     '🗂️ Orden & organización',
+    habitos:   '🔄 Hábitos',
+    relaciones:'🤍 Relaciones',
+    emociones: '🌊 Emociones',
+    fe:        '🕊️ Fe & espiritual',
+    otro:      '✨ Otro'
+  };
+
+  function trabajandoLoad(){ try{ trabajandos = window._jardinTrabajando || JSON.parse(localStorage.getItem(TK))||[]; }catch(e){ trabajandos=[]; } }
+  function trabajandoSave(){ window._jardinTrabajando=trabajandos; localStorage.setItem(TK,JSON.stringify(trabajandos)); if(window.cloudSave) window.cloudSave(TK,trabajandos); }
+
+  window.trabajandoFiltrar = function(el, f){
+    trabajandoFiltroActivo = f;
+    document.querySelectorAll('#jardinSubTrabajando .jardin-chip').forEach(function(c){ c.classList.remove('active'); });
+    el.classList.add('active');
+    trabajandoRender();
+  };
+
+  function trabajandoRender(){
+    trabajandoLoad();
+    var lista = trabajandoFiltroActivo ? trabajandos.filter(function(t){ return t.cat===trabajandoFiltroActivo; }) : trabajandos;
+    var el = document.getElementById('trabajandoList');
+    var em = document.getElementById('trabajandoEmpty');
+    if(!el) return;
+    if(!lista.length){ el.innerHTML=''; em.style.display=''; return; }
+    em.style.display='none';
+    el.innerHTML = lista.map(function(t){
+      return jaCard(
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem">'+
+          '<div style="flex:1">'+
+            '<div style="font-family:var(--font-title);font-style:italic;font-weight:700;font-size:.95rem;color:var(--text);margin-bottom:.25rem">'+t.titulo+'</div>'+
+            (t.descripcion ? '<div style="font-size:.79rem;color:var(--muted);font-weight:600;line-height:1.55;margin-bottom:.35rem">'+t.descripcion+'</div>' : '')+
+            (t.afecta ? '<div style="font-size:.76rem;color:var(--text);font-weight:600;line-height:1.5;border-left:2.5px solid var(--rosa);padding-left:.55rem;margin-bottom:.35rem;font-style:italic">'+t.afecta+'</div>' : '')+
+            jaBadge(TRAB_CATS[t.cat] || ('🏷️ '+t.cat))+
+          '</div>'+
+          '<div style="display:flex;gap:.4rem;flex-shrink:0">'+
+            '<button onclick="trabajandoOpenModal(\''+t.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:.85rem">✏️</button>'+
+            '<button onclick="trabajandoDelete(\''+t.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:.85rem">🗑</button>'+
+          '</div>'+
+        '</div>'
+      );
+    }).join('');
+  }
+
+  window.trabajandoOpenModal = function(id){
+    trabajandoLoad(); trabajandoEditId = id||null;
+    var t = id ? trabajandos.find(function(x){ return x.id===id; }) : null;
+    jaModal(
+      jaTitle((t?'Editar':'Agregar')+' — lo que estoy trabajando 🌿')+
+      '<p style="font-size:.75rem;color:var(--muted);font-weight:600;margin:-.5rem 0 .9rem;line-height:1.5">Nómbralo con honestidad. Reconocerlo ya es un paso enorme. 🤍</p>'+
+      jaLabel('¿Qué es?')+
+      jaInput('trTitulo','Ej: Me cuesta cuidar mi higiene, soy desordenada…', t?t.titulo:'')+
+      jaLabel('Categoría')+
+      jaSelect('trCat',[
+        {v:'higiene',   l:'🪥 Higiene & autocuidado'},
+        {v:'orden',     l:'🗂️ Orden & organización'},
+        {v:'habitos',   l:'🔄 Hábitos'},
+        {v:'relaciones',l:'🤍 Relaciones'},
+        {v:'emociones', l:'🌊 Emociones'},
+        {v:'fe',        l:'🕊️ Fe & espiritual'},
+        {v:'otro',      l:'✨ Otro'},
+        {v:'_custom',   l:'＋ Escribir categoría propia…'}
+      ], t?t.cat:'otro')+
+      '<div id="trCatCustomWrap" style="display:'+(t&&!TRAB_CATS[t.cat]&&t.cat?'':'none')+'">'+
+        jaInput('trCatCustom','Escribe tu categoría…', t&&!TRAB_CATS[t.cat]?t.cat:'')+
+      '</div>'+
+      jaLabel('Descripción (opcional)')+
+      jaTA('trDesc','Cuéntate a ti misma con más detalle…', t?t.descripcion:'', 2)+
+      jaLabel('¿Cómo afecta mi vida?')+
+      jaTA('trAfecta','Ej: Me genera vergüenza, hace que no quiera salir, crea conflictos con mi familia…', t?t.afecta:'', 2)+
+      '<div style="display:flex;gap:.6rem;justify-content:flex-end;margin-top:.3rem">'+
+        jaBtn('Cancelar','jaCloseModal(\'trabajandoModal\')',true)+
+        jaBtn('Guardar 🌿','trabajandoSaveItem()')+
+      '</div>',
+      'trabajandoModal'
+    );
+    // Mostrar/ocultar input de categoría personalizada
+    var sel = document.getElementById('trCat');
+    if(sel) sel.onchange = function(){
+      var wrap = document.getElementById('trCatCustomWrap');
+      if(wrap) wrap.style.display = sel.value==='_custom' ? '' : 'none';
+    };
+    // Si la categoría guardada no es de las predefinidas, seleccionar _custom
+    if(t && !TRAB_CATS[t.cat] && t.cat){
+      if(sel){ sel.value='_custom'; document.getElementById('trCatCustomWrap').style.display=''; }
+    }
+  };
+
+  window.trabajandoSaveItem = function(){
+    var t = document.getElementById('trTitulo').value.trim();
+    if(!t){ alert('Nómbralo, aunque sea en pocas palabras 🌿'); return; }
+    var catSel = document.getElementById('trCat').value;
+    var cat = catSel === '_custom'
+      ? (document.getElementById('trCatCustom').value.trim() || 'otro')
+      : catSel;
+    trabajandoLoad();
+    var obj = { id: trabajandoEditId||('tr_'+Date.now()), titulo:t,
+      cat:         cat,
+      descripcion: document.getElementById('trDesc').value.trim(),
+      afecta:      document.getElementById('trAfecta').value.trim() };
+    if(trabajandoEditId){ var i=trabajandos.findIndex(function(x){return x.id===trabajandoEditId;}); if(i>=0) trabajandos[i]=obj; }
+    else trabajandos.push(obj);
+    trabajandoEditId=null; trabajandoSave(); jaCloseModal('trabajandoModal'); trabajandoRender();
+  };
+
+  window.trabajandoDelete = function(id){
+    if(!confirm('¿Eliminar este registro?')) return;
+    trabajandoLoad(); trabajandos=trabajandos.filter(function(x){return x.id!==id;}); trabajandoSave(); trabajandoRender();
+  };
+
+
+  /* ══════════════════════════════════════════
+     SYNC & INIT
+  ══════════════════════════════════════════ */
+  window._yukiSyncRegistry = window._yukiSyncRegistry || [];
+  window._yukiSyncRegistry.push(function(){
+    if(window._jardinAnclas)   { anclas=window._jardinAnclas;     anclaRender();    }
+    if(window._jardinPromesas) { promesas=window._jardinPromesas;  promesaRender();  }
+    if(window._jardinSabados)  { sabados=window._jardinSabados;    sabadoRender();   }
+    if(window._jardinOracion)  { oraciones=window._jardinOracion;  oracionRender();  }
+    if(window._jardinCaracter) { caracteres=window._jardinCaracter; caracterRender(); }
+    if(window._jardinTrabajando){ trabajandos=window._jardinTrabajando; trabajandoRender(); }
+  });
+
+  anclaRender(); promesaRender(); sabadoRender(); oracionRender(); caracterRender(); trabajandoRender();
 
 })();
 </script>
@@ -30234,6 +31924,7 @@ var FIN_COLORS = ['#f9a8d4','#f0abfc','#c4b5fd','#ddd6fe','#bae6fd','#6ee7b7','#
 
 function saveFinanzas() {
   var data = { categorias: finCategorias, movimientos: finMovimientos };
+  window._finanzasData = data;
   try { localStorage.setItem('finanzas_data', JSON.stringify(data)); } catch(e){}
   if (window.cloudSave) window.cloudSave('finanzas_data', data);
 }
@@ -34585,7 +36276,7 @@ const NAV_PAGES = [
   { icon:'🍏', label:'Salud',           page:'page-salud'        },
   { icon:'🚀', label:'Logros',          page:'page-logros'       },
   { icon:'🙏', label:'Fe',              page:'page-fe'           },
-  { icon:'👥', label:'Personas',        page:'page-personas'     },
+  { icon:'🫧', label:'Vínculos',         page:'page-vinculos'     },
   { icon:'💙', label:'Universidad',     page:'page-univ'         },
   { icon:'🦄', label:'Intereses',       page:'page-intereses'    },
   { icon:'📚', label:'Biblioteca',      page:'page-biblioteca'   },
@@ -34594,7 +36285,7 @@ const NAV_PAGES = [
   { icon:'🌿', label:'Mi Nutrición',    page:'page-recetario'    },
   { icon:'🧺', label:'Despensa',        page:'page-despensa'     },
   { icon:'🧹', label:'Limpieza',        page:'page-limpieza'     },
-  { icon:'🐾', label:'Mascotas',        page:'page-mascotas'     },
+  { icon:'🫧', label:'Vínculos',         page:'page-vinculos'     },
   { icon:'🪴', label:'Plantas',         page:'page-plantas'      },
   { icon:'🎂', label:'Pastelería',      page:'page-pasteleria'   },
   { icon:'🌿', label:'Jardín Interior', page:'page-jardin'       },
@@ -34624,11 +36315,12 @@ const DRAWER_STRUCTURE = {
       { icon:'♡', label:'Braindump',       page:'page-braindump'    },
     ]},
     { id:'yo', icon:'🌸', label:'Florecer', items: [
+      { icon:'♡', label:'Fe',              page:'page-fe'           },
       { icon:'♡', label:'Selfcare',        page:'page-selfcare'     },
       { icon:'♡', label:'Salud',           page:'page-salud'        },
       { icon:'♡', label:'Logros',          page:'page-logros'       },
-      { icon:'♡', label:'Fe',              page:'page-fe'           },
-      { icon:'♡', label:'Personas',        page:'page-personas'     },
+      { icon:'♡', label:'Vínculos',        page:'page-vinculos'     },
+      { icon:'♡', label:'Jardín Interior', page:'page-jardin'       },
     ]},
     { id:'crear', icon:'🍓', label:'Crear & Aprender', items: [
       { icon:'♡', label:'Universidad',     page:'page-univ'         },
@@ -34637,14 +36329,12 @@ const DRAWER_STRUCTURE = {
       { icon:'♡', label:'Atelier',         page:'page-estudio'      },
       { icon:'♡', label:'Plantas',         page:'page-plantas'      },
       { icon:'♡', label:'Pastelería',      page:'page-pasteleria'   },
-      { icon:'♡', label:'Jardín Interior', page:'page-jardin'       },
     ]},
     { id:'mundo', icon:'💌', label:'Mi Mundo', items: [
       { icon:'♡', label:'Armario',         page:'page-armario'      },
       { icon:'♡', label:'Mi Nutrición',    page:'page-recetario'    },
       { icon:'♡', label:'Despensa',        page:'page-despensa'     },
       { icon:'♡', label:'Limpieza',        page:'page-limpieza'     },
-      { icon:'♡', label:'Mascotas',        page:'page-mascotas'     },
       { icon:'♡', label:'Finanzas',        page:'page-finanzas'     },
       { icon:'♡', label:'Listas',          page:'page-listas'       },
     ]},
@@ -39565,155 +41255,6 @@ function interesesShowTab(idx) {
 })();
 </script>
 </div><!-- end page-listas -->
-<div id="page-personas" class="page-section">
-<style>
-  .personas-section { max-width:860px;margin:2rem auto 0;padding:0 1rem 4rem;animation:fadeUp .5s .1s ease both;opacity:0;animation-fill-mode:both; }
-  .personas-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:.9rem;margin-top:1.2rem; }
-  .persona-card { background:var(--card);border:1.5px solid var(--border);border-radius:18px;padding:1rem .9rem;display:flex;flex-direction:column;align-items:center;gap:.5rem;cursor:pointer;transition:all .18s;position:relative;text-align:center; }
-  .persona-card:hover { border-color:var(--rosa);transform:translateY(-2px);box-shadow:0 4px 16px rgba(244,167,192,.18); }
-  .persona-avatar { width:62px;height:62px;border-radius:50%;background:var(--surface);border:2.5px solid var(--border);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:1.6rem;flex-shrink:0; }
-  .persona-avatar img { width:100%;height:100%;object-fit:cover;display:block; }
-  .persona-name { font-family:var(--font-title);font-style:italic;font-size:.92rem;font-weight:700;color:var(--text); }
-  .persona-relation { font-size:.65rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em; }
-  .persona-bday-badge { position:absolute;top:8px;right:8px;background:var(--rosa);color:white;font-size:.58rem;font-weight:800;padding:.15rem .38rem;border-radius:20px;display:none; }
-  .persona-add-btn { background:var(--card);border:2px dashed var(--border);border-radius:18px;padding:1rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.4rem;cursor:pointer;transition:all .18s;min-height:130px;color:var(--muted);font-size:.78rem;font-weight:700; }
-  .persona-add-btn:hover { border-color:var(--rosa);color:var(--rosa); }
-  .persona-modal-backdrop { display:none;position:fixed;inset:0;background:rgba(244,167,192,.22);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:9100;align-items:flex-start;justify-content:center;padding:1rem;padding-top:max(1rem,5vh);overflow-y:auto; }
-  .persona-modal-backdrop.open { display:flex; }
-  .persona-modal { background:var(--card);border-radius:22px;width:100%;max-width:480px;max-height:none;overflow-y:visible;margin:auto 0; }
-  .persona-modal-header { display:flex;justify-content:space-between;align-items:center;padding:1.1rem 1.3rem .8rem;border-bottom:1px solid var(--border);font-family:var(--font-title);font-style:italic;font-size:1.05rem;font-weight:700; }
-  .persona-modal-body { padding:1rem 1.3rem;display:flex;flex-direction:column;gap:.75rem; }
-  .persona-modal-label { font-size:.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.25rem;display:block; }
-  .persona-modal-input { width:100%;border:1.5px solid var(--border);border-radius:10px;padding:.5rem .7rem;font-family:var(--font-body);font-size:.88rem;color:var(--text);background:var(--surface);outline:none;box-sizing:border-box;transition:border-color .2s;font-weight:600; }
-  .persona-modal-input:focus { border-color:var(--rosa); }
-  .persona-modal-textarea { width:100%;border:1.5px solid var(--border);border-radius:10px;padding:.5rem .7rem;font-family:var(--font-body);font-size:.85rem;color:var(--text);background:var(--surface);outline:none;box-sizing:border-box;resize:none;min-height:70px;font-weight:600;transition:border-color .2s; }
-  .persona-modal-textarea:focus { border-color:var(--rosa); }
-  .persona-modal-footer { display:flex;justify-content:space-between;align-items:center;gap:.6rem;padding:.9rem 1.3rem;border-top:1px solid var(--border); }
-  .persona-avatar-upload { width:72px;height:72px;border-radius:50%;background:var(--surface);border:2.5px dashed var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;font-size:1.8rem;flex-shrink:0;transition:border-color .2s;margin:0 auto .5rem; }
-  .persona-avatar-upload:hover { border-color:var(--rosa); }
-  .persona-regalo-row { display:flex;gap:.5rem;align-items:center; }
-  .persona-regalo-input { flex:1;border:1.5px solid var(--border);border-radius:10px;padding:.42rem .7rem;font-family:var(--font-body);font-size:.85rem;color:var(--text);background:var(--surface);outline:none;font-weight:600; }
-  .persona-regalo-add { background:var(--rosa);color:white;border:none;border-radius:50%;width:28px;height:28px;font-size:1.1rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center; }
-  .persona-regalos-list { display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.4rem; }
-  .persona-regalo-chip { background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:.22rem .6rem;font-size:.72rem;font-weight:700;color:var(--text);display:flex;align-items:center;gap:.3rem; }
-  .persona-regalo-chip button { background:none;border:none;cursor:pointer;color:var(--muted);font-size:.75rem;padding:0;line-height:1; }
-</style>
-<section class="personas-section">
-  <span class="section-sub">mis vínculos</span>
-  <h2 class="section-title"><em>Personas</em> Importantes <span style="font-style:normal;font-weight:400">₍ᐢ. .ᐢ₎ ₊˚⊹♡</span></h2>
-  <div class="personas-grid" id="personasGrid"></div>
-</section>
-
-<div class="persona-modal-backdrop" id="personaModalBackdrop" onclick="if(event.target===this)personaCerrarModal()">
-  <div class="persona-modal">
-    <div class="persona-modal-header">
-      <span id="personaModalTitle">Nueva persona</span>
-      <button onclick="personaCerrarModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted)">✕</button>
-    </div>
-    <div class="persona-modal-body">
-      <div style="text-align:center">
-        <div class="persona-avatar-upload" id="personaAvatarUpload" onclick="document.getElementById('personaAvatarFile').click()">
-          <img id="personaAvatarPreview" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover">
-          <span id="personaAvatarEmoji">🧡</span>
-        </div>
-        <input type="file" id="personaAvatarFile" accept="image/*" style="display:none" onchange="personaHandleAvatar(this)">
-        <div style="font-size:.65rem;color:var(--muted);font-weight:600">toca para cambiar foto</div>
-      </div>
-      <div><label class="persona-modal-label">Nombre</label><input class="persona-modal-input" id="personaNombre" placeholder="Ej: Mamá, Sofia, Abuelita…"></div>
-      <div><label class="persona-modal-label">Relación</label><input class="persona-modal-input" id="personaRelacion" placeholder="Ej: mejor amiga, hermana, pareja…"></div>
-      <div><label class="persona-modal-label">🎂 Cumpleaños</label><input class="persona-modal-input" id="personaCumple" type="date"></div>
-      <div><label class="persona-modal-label">💬 Detalles personales</label><textarea class="persona-modal-textarea" id="personaDetalles" placeholder="Gustos, alergias, cosas importantes a recordar…"></textarea></div>
-      <div>
-        <label class="persona-modal-label">🎁 Ideas de regalos</label>
-        <div class="persona-regalo-row">
-          <input class="persona-regalo-input" id="personaRegaloInput" placeholder="Agrega una idea…" onkeydown="if(event.key==='Enter')personaAddRegalo()">
-          <button class="persona-regalo-add" onclick="personaAddRegalo()">+</button>
-        </div>
-        <div class="persona-regalos-list" id="personaRegalosList"></div>
-      </div>
-    </div>
-    <div class="persona-modal-footer">
-      <button id="personaDeleteBtn" onclick="personaEliminar()" style="background:none;border:none;color:#e07;font-size:.78rem;font-weight:700;cursor:pointer;display:none">🗑️ Eliminar</button>
-      <div style="display:flex;gap:.6rem;margin-left:auto">
-        <button onclick="personaCerrarModal()" style="background:var(--surface);border:1.5px solid var(--border);border-radius:20px;padding:.45rem 1.1rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:var(--muted)">Cancelar</button>
-        <button onclick="personaGuardar()" style="background:var(--rosa);border:none;border-radius:20px;padding:.45rem 1.2rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font-body);color:white">Guardar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-(function(){
-  var KEY='yuki_personas';var _personas=[];var _editId=null;var _regalosTemp=[];var _avatarTemp=null;
-  function load(){try{_personas=JSON.parse(localStorage.getItem(KEY)||'[]');}catch(e){_personas=[];}}
-  function save(){localStorage.setItem(KEY,JSON.stringify(_personas));}
-  function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
-  function isBdaySoon(d){if(!d)return false;var t=new Date();var b=new Date(d);var n=new Date(t.getFullYear(),b.getMonth(),b.getDate());if(n<t)n.setFullYear(t.getFullYear()+1);return(n-t)/(864e5)<=14;}
-  function render(){
-    var grid=document.getElementById('personasGrid');if(!grid)return;
-    grid.innerHTML='';
-    _personas.forEach(function(p){
-      var card=document.createElement('div');card.className='persona-card';
-      var av=p.avatar?'<div class="persona-avatar"><img src="'+p.avatar+'" alt=""></div>':'<div class="persona-avatar">🧡</div>';
-      card.innerHTML=av+'<div class="persona-bday-badge" style="'+(isBdaySoon(p.cumple)?'display:block':'')+'">🎂 pronto</div><div class="persona-name">'+p.nombre+'</div><div class="persona-relation">'+(p.relacion||'')+'</div>';
-      card.onclick=function(){personaAbrirModal(p.id);};
-      grid.appendChild(card);
-    });
-    var add=document.createElement('div');add.className='persona-add-btn';
-    add.innerHTML='<span style="font-size:1.5rem">＋</span><span>Agregar persona</span>';
-    add.onclick=function(){personaAbrirModal(null);};grid.appendChild(add);
-  }
-  function renderRegalos(){var list=document.getElementById('personaRegalosList');if(!list)return;list.innerHTML='';_regalosTemp.forEach(function(r,i){var c=document.createElement('span');c.className='persona-regalo-chip';c.innerHTML='🎁 '+r+' <button onclick="personaRemoveRegalo('+i+')">✕</button>';list.appendChild(c);});}
-  window.personaAbrirModal=function(id){
-    load();_editId=id;_regalosTemp=[];_avatarTemp=null;
-    var p=id?_personas.find(function(x){return x.id===id;}):null;
-    document.getElementById('personaModalTitle').textContent=p?'Editar persona':'Nueva persona';
-    document.getElementById('personaNombre').value=p?(p.nombre||''):'';
-    document.getElementById('personaRelacion').value=p?(p.relacion||''):'';
-    document.getElementById('personaCumple').value=p?(p.cumple||''):'';
-    document.getElementById('personaDetalles').value=p?(p.detalles||''):'';
-    _regalosTemp=p?(p.regalos||[]).slice():[];_avatarTemp=p?(p.avatar||null):null;
-    document.getElementById('personaDeleteBtn').style.display=p?'':'none';
-    var img=document.getElementById('personaAvatarPreview');var em=document.getElementById('personaAvatarEmoji');
-    if(_avatarTemp){img.src=_avatarTemp;img.style.display='';em.style.display='none';}else{img.style.display='none';em.style.display='';}
-    renderRegalos();document.getElementById('personaModalBackdrop').classList.add('open');
-  };
-  window.personaCerrarModal=function(){document.getElementById('personaModalBackdrop').classList.remove('open');document.getElementById('personaAvatarFile').value='';};
-  function compressImage(file, maxSize, quality, callback) {
-    var r = new FileReader();
-    r.onload = function(e) {
-      var image = new Image();
-      image.onload = function() {
-        var w = image.width, h = image.height;
-        var scale = Math.min(1, maxSize / Math.max(w, h));
-        var canvas = document.createElement('canvas');
-        canvas.width = Math.round(w * scale);
-        canvas.height = Math.round(h * scale);
-        var ctx = canvas.getContext('2d');
-        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-        callback(canvas.toDataURL('image/jpeg', quality));
-      };
-      image.src = e.target.result;
-    };
-    r.readAsDataURL(file);
-  }
-  window.personaHandleAvatar=function(input){var file=input.files&&input.files[0];if(!file)return;compressImage(file,400,0.72,function(b64){_avatarTemp=b64;var img=document.getElementById('personaAvatarPreview');var em=document.getElementById('personaAvatarEmoji');img.src=_avatarTemp;img.style.display='';em.style.display='none';});};
-  window.personaAddRegalo=function(){var inp=document.getElementById('personaRegaloInput');var v=inp.value.trim();if(!v)return;_regalosTemp.push(v);inp.value='';renderRegalos();};
-  window.personaRemoveRegalo=function(i){_regalosTemp.splice(i,1);renderRegalos();};
-  window.personaGuardar=function(){
-    var nombre=document.getElementById('personaNombre').value.trim();if(!nombre){document.getElementById('personaNombre').focus();return;}
-    load();
-    var obj={id:_editId||uid(),nombre:nombre,relacion:document.getElementById('personaRelacion').value.trim(),cumple:document.getElementById('personaCumple').value,detalles:document.getElementById('personaDetalles').value.trim(),regalos:_regalosTemp.slice(),avatar:_avatarTemp};
-    if(_editId){var idx=_personas.findIndex(function(x){return x.id===_editId;});if(idx>-1)_personas[idx]=obj;}else _personas.push(obj);
-    try{save();}catch(e){alert('La foto es muy grande. Se guardará sin foto.');obj.avatar=null;if(_editId){var idx2=_personas.findIndex(function(x){return x.id===obj.id;});if(idx2>-1)_personas[idx2]=obj;}else _personas[_personas.length-1]=obj;try{save();}catch(e2){}}render();personaCerrarModal();
-  };
-  window.personaEliminar=function(){if(!_editId)return;load();_personas=_personas.filter(function(x){return x.id!==_editId;});save();render();personaCerrarModal();};
-  document.addEventListener('DOMContentLoaded',function(){load();render();});
-})();
-</script>
-</div><!-- end page-personas -->
-
-
 <div id="page-estudio" class="page-section">
 <style>
   .est-section { max-width:860px;margin:0 auto;padding:1.5rem 1rem 4rem; }
@@ -40039,8 +41580,9 @@ function interesesShowTab(idx) {
   var editPedId = null, editProdId = null, editInspoId = null;
   var filtroPedido = 'todos', filtrocat = 'todas', filtroinspo = 'todas';
 
-  function load(key, arr){ try{ return JSON.parse(localStorage.getItem(key))||[]; }catch(e){ return []; } }
-  function save(key, arr){ localStorage.setItem(key, JSON.stringify(arr)); if(window.cloudSave) window.cloudSave(key, arr); }
+  var _EST_CACHE = { 'yuki_est_pedidos':'_estPedidos', 'yuki_est_catalogo':'_estCatalogo', 'yuki_est_inspo':'_estInspo' };
+  function load(key){ try{ return window[_EST_CACHE[key]] || JSON.parse(localStorage.getItem(key))||[]; }catch(e){ return []; } }
+  function save(key, arr){ window[_EST_CACHE[key]]=arr; localStorage.setItem(key, JSON.stringify(arr)); if(window.cloudSave) window.cloudSave(key, arr); }
 
   // ── Imagen utils
   function estCompressImg(file, cb){
@@ -40048,14 +41590,12 @@ function interesesShowTab(idx) {
     reader.onload = function(e){
       var img = new Image();
       img.onload = function(){
-        var SIZE = 220;
+        var SIZE = 400;
+        var sc = Math.min(1, SIZE / Math.max(img.width, img.height));
         var canvas = document.createElement('canvas');
-        canvas.width = SIZE; canvas.height = SIZE;
-        var ctx = canvas.getContext('2d');
-        var s = Math.min(img.width, img.height);
-        var sx = (img.width-s)/2, sy = (img.height-s)/2;
-        ctx.drawImage(img, sx, sy, s, s, 0, 0, SIZE, SIZE);
-        cb(canvas.toDataURL('image/jpeg', 0.72));
+        canvas.width = Math.round(img.width * sc); canvas.height = Math.round(img.height * sc);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        cb(canvas.toDataURL('image/jpeg', 0.65));
       };
       img.src = e.target.result;
     };
@@ -40358,11 +41898,13 @@ function interesesShowTab(idx) {
   };
 
   // Cloud sync
-  if(window._watchCloud){
-    window._watchCloud(PEDIDOS_KEY,  function(val){ pedidos=val||[];  renderPedidos(); });
-    window._watchCloud(CATALOGO_KEY, function(val){ catalogo=val||[]; renderCatalogo(); });
-    window._watchCloud(INSPO_KEY,    function(val){ inspo=val||[];    renderInspo(); });
-  }
+  window._yukiSyncRegistry = window._yukiSyncRegistry || [];
+  window._yukiSyncRegistry.push(function() {
+    var d;
+    d = window._estPedidos;  if(d){ pedidos  = d; renderPedidos();  renderStats(); }
+    d = window._estCatalogo; if(d){ catalogo = d; renderCatalogo(); }
+    d = window._estInspo;    if(d){ inspo    = d; renderInspo();    }
+  });
 
   // Init
   renderStats();
@@ -42419,7 +43961,7 @@ window.buscarPageShowTab = function(tab) {
       'rutina_asignaciones','rutina_completions','gratitud_data','sueno_data','mens_data',
       'ej_templates','ej_registros','belleza_templates','belleza_registros','dios_data',
       'finanzas_data','limpieza_data','braindump_notes','mood_data','metas_data',
-      'ql_lists','wl_items','wishlist_items','vb_items','config_display_name','config_avatar_url','config_theme','yuki_mascotas','yuki_plantas','yuki_biblioteca_playlists','yuki_biblioteca_dopamina','yuki_diario'];
+      'ql_lists','wl_items','wishlist_items','vb_items','config_display_name','config_avatar_url','config_theme','yuki_mascotas','yuki_plantas','yuki_vinculos_pareja','yuki_vinculos_estandares','yuki_vinculos_nosotros','yuki_vinculos_corazon','yuki_personas','yuki_biblioteca_playlists','yuki_biblioteca_dopamina','yuki_diario'];
     var data = { exportDate: new Date().toISOString(), version: '1.0' };
     keys.forEach(function(k){
       try { var v=localStorage.getItem(k); if(v) data[k]=JSON.parse(v); } catch(e){ data[k]=localStorage.getItem(k); }
