@@ -36313,6 +36313,7 @@ const DRAWER_STRUCTURE = {
       { icon:'♡', label:'Journal',         page:'page-journal'      },
       { icon:'♡', label:'Diario',          page:'page-diario'       },
       { icon:'♡', label:'Braindump',       page:'page-braindump'    },
+      { icon:'♡', label:'Energía 🥄',      page:'page-energia'      },
     ]},
     { id:'yo', icon:'🌸', label:'Florecer', items: [
       { icon:'♡', label:'Fe',              page:'page-fe'           },
@@ -40049,6 +40050,611 @@ function interesesShowTab(idx) {
 })();
 </script>
 </div><!-- end page-braindump -->
+
+<div id="page-energia" class="page-section">
+<style>
+  .en-wrap { max-width:760px; margin:2rem auto 0; padding:0 1rem 4rem; animation:fadeUp .5s .1s ease both; opacity:0; animation-fill-mode:both; }
+  .en-header { text-align:center; margin-bottom:1.6rem; }
+  .en-tabs { display:flex; gap:3px; border-bottom:1.5px solid var(--border); margin-bottom:1.4rem; }
+  .en-tab { font-family:var(--font-body); font-size:.72rem; font-weight:800; color:var(--muted); padding:.4rem .9rem; border:none; background:none; cursor:pointer; border-bottom:2.5px solid transparent; margin-bottom:-1.5px; border-radius:8px 8px 0 0; letter-spacing:.04em; transition:all .15s; }
+  .en-tab.active { color:var(--rosa); border-bottom-color:var(--rosa); background:var(--card); }
+  .en-panel { display:none; }
+  .en-panel.active { display:block; }
+  .en-card { background:var(--card); border:1.5px solid var(--border); border-radius:var(--radius); padding:1rem 1.1rem; margin-bottom:.9rem; }
+  .en-card-title { font-family:var(--font-body); font-size:.7rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--rosa); margin-bottom:.8rem; }
+  .en-stat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:1rem; }
+  .en-stat { background:var(--card); border:1.5px solid var(--border); border-radius:12px; padding:.7rem .5rem; text-align:center; }
+  .en-stat-num { font-family:var(--font-body); font-size:1.4rem; font-weight:800; color:var(--rosa); line-height:1; }
+  .en-stat-lbl { font-family:var(--font-body); font-size:.62rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-top:3px; line-height:1.2; }
+  .en-range { -webkit-appearance:none; appearance:none; width:100%; height:5px; border-radius:10px; background:var(--border); outline:none; cursor:pointer; }
+  .en-range::-webkit-slider-thumb { -webkit-appearance:none; width:17px; height:17px; border-radius:50%; background:var(--rosa); cursor:pointer; border:2px solid var(--bg); box-shadow:0 0 0 1.5px var(--rosa); }
+  .en-range::-moz-range-thumb { width:17px; height:17px; border-radius:50%; background:var(--rosa); cursor:pointer; border:2px solid var(--bg); }
+  .en-row { display:flex; align-items:center; gap:.8rem; margin-bottom:.7rem; }
+  .en-lbl { font-family:var(--font-body); font-size:.82rem; font-weight:700; color:var(--text); flex:1; line-height:1.3; }
+  .en-lbl small { display:block; font-weight:600; color:var(--muted); font-size:.7rem; }
+  .en-val { font-family:var(--font-body); font-size:.85rem; font-weight:800; color:var(--rosa); min-width:20px; text-align:right; }
+  .en-chips { display:flex; flex-wrap:wrap; gap:.35rem; margin-top:.45rem; }
+  .en-chip { font-family:var(--font-body); font-size:.7rem; font-weight:800; padding:.28rem .7rem; border-radius:20px; border:1.5px solid var(--border); background:var(--bg); color:var(--muted); cursor:pointer; transition:all .15s; user-select:none; }
+  .en-chip.active-drain { border-color:#e57391; background:#fce4ec; color:#c62828; }
+  .en-chip.active-charge { border-color:#66bb6a; background:#e8f5e9; color:#2e7d32; }
+  .en-textarea { width:100%; min-height:54px; background:var(--bg); border:1.5px solid var(--border); border-radius:12px; padding:.6rem .85rem; font-family:var(--font-body); font-size:.82rem; font-weight:600; color:var(--text); resize:none; outline:none; transition:border-color .2s; box-sizing:border-box; margin-top:.45rem; }
+  .en-textarea:focus { border-color:var(--rosa); }
+  .en-textarea::placeholder { color:var(--muted2); font-weight:500; }
+  .en-save-btn { width:100%; padding:.65rem; border-radius:14px; border:none; background:var(--rosa); color:#fff; font-family:var(--font-body); font-size:.82rem; font-weight:800; cursor:pointer; letter-spacing:.04em; transition:opacity .2s; margin-top:.5rem; }
+  .en-save-btn:hover { opacity:.85; }
+  .en-tl-row { display:flex; align-items:flex-start; gap:9px; margin-bottom:.6rem; }
+  .en-tl-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; margin-top:3px; }
+  .en-tl-time { font-family:var(--font-body); font-size:.7rem; font-weight:800; color:var(--muted); min-width:50px; margin-top:1px; }
+  .en-tl-name { font-family:var(--font-body); font-size:.82rem; font-weight:700; color:var(--text); }
+  .en-tl-meta { font-family:var(--font-body); font-size:.7rem; font-weight:600; color:var(--muted); line-height:1.3; }
+  .en-add-moment { display:flex; align-items:center; justify-content:center; gap:6px; font-family:var(--font-body); font-size:.75rem; font-weight:800; color:var(--rosa); background:transparent; border:1.5px dashed var(--rosa); border-radius:10px; padding:.5rem; cursor:pointer; width:100%; margin-top:.3rem; opacity:.7; transition:opacity .15s; }
+  .en-add-moment:hover { opacity:1; }
+  .en-moment-form { background:var(--bg); border:1.5px solid var(--border); border-radius:12px; padding:.8rem .9rem; margin-top:.6rem; display:none; }
+  .en-moment-form.open { display:block; }
+  .en-moment-row { display:flex; gap:.6rem; align-items:center; margin-bottom:.5rem; flex-wrap:wrap; }
+  .en-moment-input { flex:1; min-width:120px; background:var(--card); border:1.5px solid var(--border); border-radius:10px; padding:.4rem .7rem; font-family:var(--font-body); font-size:.78rem; font-weight:600; color:var(--text); outline:none; }
+  .en-moment-input:focus { border-color:var(--rosa); }
+  .en-moment-select { background:var(--card); border:1.5px solid var(--border); border-radius:10px; padding:.4rem .6rem; font-family:var(--font-body); font-size:.75rem; font-weight:700; color:var(--text); outline:none; cursor:pointer; }
+  .en-moment-btn { padding:.4rem .9rem; border-radius:10px; border:none; background:var(--rosa); color:#fff; font-family:var(--font-body); font-size:.75rem; font-weight:800; cursor:pointer; }
+  .en-moment-cancel { padding:.4rem .9rem; border-radius:10px; border:1.5px solid var(--border); background:var(--bg); color:var(--muted); font-family:var(--font-body); font-size:.75rem; font-weight:800; cursor:pointer; }
+  .en-week-row { display:flex; align-items:center; gap:6px; margin-bottom:5px; }
+  .en-week-day { font-family:var(--font-body); font-size:.68rem; font-weight:800; color:var(--muted); width:28px; text-align:right; }
+  .en-week-bg { flex:1; height:18px; background:var(--border); border-radius:5px; overflow:hidden; position:relative; }
+  .en-week-inicio { height:100%; border-radius:5px; }
+  .en-week-fin { position:absolute; top:4px; height:10px; border-radius:3px; left:0; }
+  .en-week-num { font-family:var(--font-body); font-size:.7rem; font-weight:800; color:var(--muted); min-width:40px; }
+  .en-pattern { border-left:3px solid var(--rosa); border-radius:0 8px 8px 0; background:var(--card); padding:.6rem .85rem; margin-bottom:.6rem; }
+  .en-pattern.ok { border-color:#4caf50; }
+  .en-pattern-title { font-family:var(--font-body); font-size:.78rem; font-weight:800; color:var(--text); margin-bottom:2px; }
+  .en-pattern-desc { font-family:var(--font-body); font-size:.72rem; font-weight:600; color:var(--muted); line-height:1.4; }
+  .en-pattern.ok .en-pattern-title { color:var(--text); }
+  .en-act-row { display:flex; align-items:center; gap:8px; padding:.5rem 0; border-bottom:1px solid var(--border); }
+  .en-act-row:last-child { border-bottom:none; }
+  .en-act-icon { width:26px; height:26px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:800; font-family:var(--font-body); flex-shrink:0; }
+  .en-act-drain-ic { background:#fce4ec; color:#c62828; }
+  .en-act-charge-ic { background:#e8f5e9; color:#2e7d32; }
+  .en-act-name { flex:1; font-family:var(--font-body); font-size:.8rem; font-weight:700; color:var(--text); }
+  .en-act-bar-bg { width:80px; height:6px; background:var(--border); border-radius:3px; overflow:hidden; }
+  .en-act-bar-fill { height:100%; border-radius:3px; }
+  .en-act-freq { font-family:var(--font-body); font-size:.68rem; font-weight:800; color:var(--muted); min-width:28px; text-align:right; }
+  .en-insight { display:inline-flex; align-items:center; gap:4px; font-family:var(--font-body); font-size:.7rem; font-weight:800; padding:.28rem .65rem; border-radius:20px; margin:2px; }
+  .en-insight.warn { background:#fff8e1; color:#f57f17; }
+  .en-insight.ok { background:#e8f5e9; color:#2e7d32; }
+  .en-insight.info { background:#ede7f6; color:#4527a0; }
+  .en-empty { text-align:center; color:var(--muted2); font-family:var(--font-body); font-size:.8rem; font-weight:600; padding:2rem 0; }
+  .en-legend { display:flex; gap:12px; margin-top:.7rem; align-items:center; flex-wrap:wrap; }
+  .en-legend-item { font-family:var(--font-body); font-size:.68rem; font-weight:800; color:var(--muted); display:flex; align-items:center; gap:4px; }
+  .en-legend-dot { width:10px; height:10px; border-radius:2px; display:inline-block; }
+  .en-del-btn { background:none; border:none; color:var(--muted2); cursor:pointer; font-size:.8rem; padding:0 .2rem; font-family:var(--font-body); }
+  .en-del-btn:hover { color:var(--rosa); }
+  .en-hist-entry { background:var(--card); border:1.5px solid var(--border); border-radius:12px; padding:.8rem .9rem; margin-bottom:.6rem; }
+  .en-hist-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:.4rem; }
+  .en-hist-fecha { font-family:var(--font-body); font-size:.72rem; font-weight:800; color:var(--muted); }
+  .en-badge { font-family:var(--font-body); font-size:.65rem; font-weight:800; padding:.18rem .55rem; border-radius:8px; }
+  .badge-saldo { background:#e8f5e9; color:#2e7d32; }
+  .badge-eq { background:#fff8e1; color:#f57f17; }
+  .badge-deuda { background:#fce4ec; color:#c62828; }
+  .en-hist-bars { display:flex; gap:.6rem; align-items:center; flex-wrap:wrap; margin-bottom:.35rem; }
+  .en-mini-bar { display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .en-mini-bar span { font-size:.6rem; font-weight:800; color:var(--muted); font-family:var(--font-body); }
+  .en-mini-pill { height:7px; width:56px; border-radius:4px; background:var(--border); overflow:hidden; }
+  .en-mini-fill { height:100%; border-radius:4px; background:var(--rosa); }
+  .en-hist-tags { display:flex; flex-wrap:wrap; gap:.28rem; margin-bottom:.3rem; }
+  .en-hist-tag { font-family:var(--font-body); font-size:.63rem; font-weight:800; padding:.13rem .45rem; border-radius:7px; }
+  .td { background:#fce4ec; color:#c62828; }
+  .tc { background:#e8f5e9; color:#2e7d32; }
+  .en-hist-nota { font-family:var(--font-body); font-size:.75rem; font-weight:600; color:var(--muted); font-style:italic; line-height:1.4; }
+  .en-section-sep { font-family:var(--font-body); font-size:.68rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:1.4rem 0 .6rem; }
+</style>
+
+<section class="en-wrap">
+  <div class="en-header">
+    <span class="section-sub">bienestar energético</span>
+    <h2 class="section-title">Mis <em>Cucharas</em></h2>
+    <p style="font-size:.76rem;color:var(--muted);font-weight:600;line-height:1.5;margin-top:.25rem">registra · descubre patrones · aprende de ti misma 🥄</p>
+  </div>
+
+  <div class="en-tabs">
+    <button class="en-tab active" onclick="enTab('hoy',this)">hoy</button>
+    <button class="en-tab" onclick="enTab('semana',this)">semana</button>
+    <button class="en-tab" onclick="enTab('patrones',this)">patrones</button>
+    <button class="en-tab" onclick="enTab('actividades',this)">actividades</button>
+  </div>
+
+  <!-- TAB HOY -->
+  <div id="en-panel-hoy" class="en-panel active">
+    <div class="en-stat-grid" id="enStatGrid">
+      <div class="en-stat"><div class="en-stat-num" id="enSInicio">—</div><div class="en-stat-lbl">inicio</div></div>
+      <div class="en-stat"><div class="en-stat-num" id="enSFin">—</div><div class="en-stat-lbl">fin</div></div>
+      <div class="en-stat"><div class="en-stat-num" id="enSDiff">—</div><div class="en-stat-lbl">diferencia</div></div>
+      <div class="en-stat"><div class="en-stat-num" id="enSEstado" style="font-size:.9rem;padding-top:.2rem">—</div><div class="en-stat-lbl">estado</div></div>
+    </div>
+
+    <div class="en-card">
+      <div class="en-card-title">línea de tiempo del día</div>
+      <div id="enTimeline"><div class="en-empty">Aún sin momentos · añade el primero 🌸</div></div>
+      <button class="en-add-moment" id="enAddMomentBtn" onclick="enToggleMomentForm()">+ añadir momento del día</button>
+      <div class="en-moment-form" id="enMomentForm">
+        <div class="en-moment-row">
+          <input type="time" class="en-moment-input" id="enMHora" style="max-width:100px;">
+          <input type="text" class="en-moment-input" id="enMNombre" placeholder="qué pasó · ej: clase de álgebra">
+        </div>
+        <div class="en-moment-row">
+          <select class="en-moment-select" id="enMTipo">
+            <option value="drain">↓ me drenó</option>
+            <option value="charge">↑ me recargó</option>
+            <option value="neutro">· neutro</option>
+          </select>
+          <select class="en-moment-select" id="enMCosto">
+            <option value="-3">−3 cucharas</option>
+            <option value="-2">−2 cucharas</option>
+            <option value="-1">−1 cuchara</option>
+            <option value="0">sin costo</option>
+            <option value="1">+1 cuchara</option>
+            <option value="2">+2 cucharas</option>
+            <option value="3">+3 cucharas</option>
+          </select>
+        </div>
+        <div class="en-moment-row">
+          <input type="text" class="en-moment-input" id="enMNota" placeholder="nota breve (opcional)">
+          <button class="en-moment-btn" onclick="enAddMomento()">guardar</button>
+          <button class="en-moment-cancel" onclick="enToggleMomentForm()">cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="en-card">
+      <div class="en-card-title">registro de energía</div>
+      <div class="en-row">
+        <div class="en-lbl">energía al despertar<small>0 = vacía · 10 = lista</small></div>
+        <input type="range" class="en-range" id="enInicioSlider" min="0" max="10" value="5" step="1" style="width:130px;flex-shrink:0;" oninput="enUpdateSlider()">
+        <span class="en-val" id="enInicioVal">5</span>
+      </div>
+      <div class="en-row">
+        <div class="en-lbl">energía al terminar el día<small>¿cuánto queda en el tanque?</small></div>
+        <input type="range" class="en-range" id="enFinSlider" min="0" max="10" value="5" step="1" style="width:130px;flex-shrink:0;" oninput="enUpdateSlider()">
+        <span class="en-val" id="enFinVal">5</span>
+      </div>
+
+      <div style="margin-top:.8rem">
+        <div class="en-card-title" style="margin-bottom:.4rem">¿qué me drenó hoy?</div>
+        <div class="en-chips" id="enChipsDrain">
+          <span class="en-chip" data-val="tarea aburrida">tarea aburrida</span>
+          <span class="en-chip" data-val="transición difícil">transición difícil</span>
+          <span class="en-chip" data-val="baja estimulación">baja estimulación</span>
+          <span class="en-chip" data-val="interacción social">interacción social</span>
+          <span class="en-chip" data-val="masking">masking</span>
+          <span class="en-chip" data-val="decisiones">decisiones</span>
+          <span class="en-chip" data-val="incertidumbre">incertidumbre</span>
+          <span class="en-chip" data-val="hyperfocus tardío">hyperfocus tardío</span>
+        </div>
+      </div>
+      <div style="margin-top:.8rem">
+        <div class="en-card-title" style="margin-bottom:.4rem">¿qué me recargó?</div>
+        <div class="en-chips" id="enChipsCharge">
+          <span class="en-chip" data-val="hyperfocus">hyperfocus 🔥</span>
+          <span class="en-chip" data-val="soledad">soledad</span>
+          <span class="en-chip" data-val="crear">crear</span>
+          <span class="en-chip" data-val="movimiento">movimiento</span>
+          <span class="en-chip" data-val="estimulación sensorial">estimulación sensorial</span>
+          <span class="en-chip" data-val="naturaleza">naturaleza</span>
+          <span class="en-chip" data-val="buen sueño">buen sueño</span>
+          <span class="en-chip" data-val="tiempo libre">tiempo libre</span>
+        </div>
+      </div>
+      <textarea class="en-textarea" id="enNota" placeholder="nota del día — ¿qué fue lo más costoso? ¿termino en deuda o con saldo? 🥄"></textarea>
+      <button class="en-save-btn" onclick="enGuardar()">guardar registro del día 🥄</button>
+    </div>
+
+    <div class="en-section-sep">historial</div>
+    <div id="enHistorial"></div>
+  </div>
+
+  <!-- TAB SEMANA -->
+  <div id="en-panel-semana" class="en-panel">
+    <div class="en-card">
+      <div class="en-card-title">curva de la semana · inicio vs fin</div>
+      <div id="enSemanaChart"></div>
+      <div class="en-legend">
+        <div class="en-legend-item"><span class="en-legend-dot" style="background:var(--rosa)"></span>inicio del día</div>
+        <div class="en-legend-item"><span class="en-legend-dot" style="background:#4caf50"></span>fin (saldo)</div>
+        <div class="en-legend-item"><span class="en-legend-dot" style="background:#e57391"></span>fin (deuda)</div>
+      </div>
+    </div>
+    <div class="en-card">
+      <div class="en-card-title">resumen de la semana</div>
+      <div class="en-stat-grid" style="grid-template-columns:repeat(4,1fr)">
+        <div class="en-stat"><div class="en-stat-num" id="enWPromInicio">—</div><div class="en-stat-lbl">prom. inicio</div></div>
+        <div class="en-stat"><div class="en-stat-num" id="enWDiasDeuda">—</div><div class="en-stat-lbl">días deuda</div></div>
+        <div class="en-stat"><div class="en-stat-num" id="enWDiasSaldo">—</div><div class="en-stat-lbl">días saldo</div></div>
+        <div class="en-stat"><div class="en-stat-num" id="enWMejorDia" style="font-size:.9rem">—</div><div class="en-stat-lbl">mejor día</div></div>
+      </div>
+    </div>
+    <div id="enInsights" style="margin-bottom:.5rem"></div>
+  </div>
+
+  <!-- TAB PATRONES -->
+  <div id="en-panel-patrones" class="en-panel">
+    <div class="en-card">
+      <div class="en-card-title">patrones detectados</div>
+      <div id="enPatrones"><div class="en-empty">Registra al menos 5 días para detectar patrones 🌸</div></div>
+    </div>
+    <div class="en-card">
+      <div class="en-card-title">heatmap de energía · últimas 4 semanas</div>
+      <div id="enHeatmap"></div>
+    </div>
+  </div>
+
+  <!-- TAB ACTIVIDADES -->
+  <div id="en-panel-actividades" class="en-panel">
+    <div class="en-card">
+      <div class="en-card-title">drains más frecuentes</div>
+      <div id="enActDrain"><div class="en-empty">Sin datos aún</div></div>
+    </div>
+    <div class="en-card">
+      <div class="en-card-title">recargas más frecuentes</div>
+      <div id="enActCharge"><div class="en-empty">Sin datos aún</div></div>
+    </div>
+  </div>
+
+</section>
+
+<script>
+(function(){
+  var KEY = 'yuki_energia_v2';
+  var KEY_M = 'yuki_energia_momentos';
+
+  function load(){ try{ return JSON.parse(localStorage.getItem(KEY)||'[]'); }catch(e){ return []; } }
+  function save(d){ localStorage.setItem(KEY, JSON.stringify(d)); }
+  function loadM(){ try{ return JSON.parse(localStorage.getItem(KEY_M)||'{}'); }catch(e){ return {}; } }
+  function saveM(d){ localStorage.setItem(KEY_M, JSON.stringify(d)); }
+
+  var DIAS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  var MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+  function hoy(){ return new Date().toISOString().slice(0,10); }
+
+  function fmtFecha(iso){
+    var d = new Date(iso+'T12:00:00');
+    return DIAS[d.getDay()] + ' ' + d.getDate() + ' ' + MESES[d.getMonth()];
+  }
+
+  function fmtHora12(time24){
+    if(!time24) return '';
+    var parts = time24.split(':');
+    var h = parseInt(parts[0]);
+    var m = parts[1];
+    var ampm = h >= 12 ? 'pm' : 'am';
+    var h12 = h % 12 || 12;
+    return h12 + ':' + m + ' ' + ampm;
+  }
+
+  function deudaInfo(ini, fin){
+    var d = fin - ini;
+    if(d >= 1) return { txt:'saldo', cls:'badge-saldo', color:'#4caf50' };
+    if(d <= -2) return { txt:'deuda', cls:'badge-deuda', color:'#e57391' };
+    return { txt:'equilibrio', cls:'badge-eq', color:'#ff9800' };
+  }
+
+  window.enTab = function(id, btn){
+    document.querySelectorAll('.en-panel').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.en-tab').forEach(function(t){ t.classList.remove('active'); });
+    document.getElementById('en-panel-'+id).classList.add('active');
+    btn.classList.add('active');
+    if(id==='semana') renderSemana();
+    if(id==='patrones') renderPatrones();
+    if(id==='actividades') renderActividades();
+  };
+
+  window.enUpdateSlider = function(){
+    var ini = parseInt(document.getElementById('enInicioSlider').value);
+    var fin = parseInt(document.getElementById('enFinSlider').value);
+    document.getElementById('enInicioVal').textContent = ini;
+    document.getElementById('enFinVal').textContent = fin;
+    var diff = fin - ini;
+    document.getElementById('enSInicio').textContent = ini;
+    document.getElementById('enSFin').textContent = fin;
+    document.getElementById('enSDiff').textContent = (diff > 0 ? '+' : '') + diff;
+    var di = deudaInfo(ini, fin);
+    document.getElementById('enSEstado').textContent = di.txt;
+    document.getElementById('enSEstado').style.color = di.color;
+  };
+
+  window.enToggleMomentForm = function(){
+    var f = document.getElementById('enMomentForm');
+    f.classList.toggle('open');
+    if(f.classList.contains('open')){
+      var now = new Date();
+      var hh = String(now.getHours()).padStart(2,'0');
+      var mm = String(now.getMinutes()).padStart(2,'0');
+      document.getElementById('enMHora').value = hh+':'+mm;
+      document.getElementById('enMNombre').focus();
+    }
+  };
+
+  window.enAddMomento = function(){
+    var hora = document.getElementById('enMHora').value;
+    var nombre = document.getElementById('enMNombre').value.trim();
+    var tipo = document.getElementById('enMTipo').value;
+    var costo = parseInt(document.getElementById('enMCosto').value);
+    var nota = document.getElementById('enMNota').value.trim();
+    if(!nombre) return;
+    var ms = loadM();
+    var fecha = hoy();
+    if(!ms[fecha]) ms[fecha] = [];
+    ms[fecha].push({ hora:hora, nombre:nombre, tipo:tipo, costo:costo, nota:nota });
+    ms[fecha].sort(function(a,b){ return a.hora.localeCompare(b.hora); });
+    saveM(ms);
+    document.getElementById('enMNombre').value = '';
+    document.getElementById('enMNota').value = '';
+    document.getElementById('enMomentForm').classList.remove('open');
+    renderTimeline();
+  };
+
+  window.enDelMomento = function(fecha, idx){
+    var ms = loadM();
+    if(ms[fecha]) ms[fecha].splice(idx, 1);
+    saveM(ms);
+    renderTimeline();
+  };
+
+  function renderTimeline(){
+    var el = document.getElementById('enTimeline');
+    if(!el) return;
+    var ms = loadM();
+    var fecha = hoy();
+    var list = ms[fecha] || [];
+    if(!list.length){
+      el.innerHTML = '<div class="en-empty">Aún sin momentos · añade el primero 🌸</div>';
+      return;
+    }
+    var html = '';
+    list.forEach(function(m, i){
+      var dotColor = m.tipo==='charge' ? '#4caf50' : m.tipo==='drain' ? '#e57391' : '#b0bec5';
+      var costoStr = m.costo > 0 ? '+'+m.costo : (m.costo === 0 ? '·' : m.costo);
+      var hora12 = fmtHora12(m.hora);
+      html += '<div class="en-tl-row">'
+        + '<div class="en-tl-dot" style="background:'+dotColor+'"></div>'
+        + '<div class="en-tl-time">'+hora12+'</div>'
+        + '<div style="flex:1"><div class="en-tl-name">'+m.nombre+' <span style="color:'+dotColor+';font-size:.72rem;font-weight:800">'+costoStr+'</span></div>'
+        + (m.nota ? '<div class="en-tl-meta">'+m.nota+'</div>' : '')
+        + '</div>'
+        + '<button class="en-del-btn" onclick="enDelMomento(\''+fecha+'\','+i+')">✕</button>'
+        + '</div>';
+    });
+    el.innerHTML = html;
+  }
+
+  function getChips(id){
+    return Array.from(document.querySelectorAll('#'+id+' .en-chip.active-drain, #'+id+' .en-chip.active-charge'))
+      .map(function(c){ return c.dataset.val; });
+  }
+
+  window.enGuardar = function(){
+    var ini = parseInt(document.getElementById('enInicioSlider').value);
+    var fin = parseInt(document.getElementById('enFinSlider').value);
+    var nota = document.getElementById('enNota').value.trim();
+    var drain = Array.from(document.querySelectorAll('#enChipsDrain .en-chip.active-drain')).map(function(c){ return c.dataset.val; });
+    var charge = Array.from(document.querySelectorAll('#enChipsCharge .en-chip.active-charge')).map(function(c){ return c.dataset.val; });
+    var fecha = hoy();
+    var data = load().filter(function(r){ return r.fecha !== fecha; });
+    data.unshift({ fecha:fecha, inicio:ini, fin:fin, drain:drain, charge:charge, nota:nota });
+    if(data.length > 90) data = data.slice(0,90);
+    save(data);
+    document.getElementById('enInicioSlider').value = 5;
+    document.getElementById('enFinSlider').value = 5;
+    document.getElementById('enNota').value = '';
+    document.querySelectorAll('.en-chip').forEach(function(c){ c.classList.remove('active-drain','active-charge'); });
+    enUpdateSlider();
+    renderHistorial();
+    renderTimeline();
+    if(window.showToast) window.showToast('¡Registro guardado! 🥄');
+  };
+
+  window.enDel = function(fecha){
+    save(load().filter(function(r){ return r.fecha !== fecha; }));
+    renderHistorial();
+  };
+
+  function renderHistorial(){
+    var el = document.getElementById('enHistorial');
+    if(!el) return;
+    var data = load();
+    if(!data.length){ el.innerHTML = '<div class="en-empty">Aún sin registros. ¡Empieza hoy! 🌸</div>'; return; }
+    var html = '';
+    data.forEach(function(r){
+      var di = deudaInfo(r.inicio, r.fin);
+      var diff = r.fin - r.inicio;
+      var tags = '';
+      (r.drain||[]).forEach(function(d){ tags += '<span class="en-hist-tag td">↓ '+d+'</span>'; });
+      (r.charge||[]).forEach(function(c){ tags += '<span class="en-hist-tag tc">↑ '+c+'</span>'; });
+      html += '<div class="en-hist-entry">'
+        + '<div class="en-hist-top"><span class="en-hist-fecha">'+fmtFecha(r.fecha)+'</span>'
+        + '<span class="en-badge '+di.cls+'">'+di.txt+'</span>'
+        + '<button class="en-del-btn" onclick="enDel(\''+r.fecha+'\')">✕</button></div>'
+        + '<div class="en-hist-bars">'
+        + '<div class="en-mini-bar"><div class="en-mini-pill"><div class="en-mini-fill" style="width:'+(r.inicio*10)+'%"></div></div><span>inicio '+r.inicio+'</span></div>'
+        + '<div class="en-mini-bar"><div class="en-mini-pill"><div class="en-mini-fill" style="width:'+(r.fin*10)+'%;background:'+di.color+'"></div></div><span>fin '+r.fin+'</span></div>'
+        + '<span style="font-size:.72rem;font-weight:800;color:'+di.color+';">'+(diff>0?'+':'')+diff+'</span>'
+        + '</div>'
+        + (tags ? '<div class="en-hist-tags">'+tags+'</div>' : '')
+        + (r.nota ? '<div class="en-hist-nota">"'+r.nota+'"</div>' : '')
+        + '</div>';
+    });
+    el.innerHTML = html;
+    enUpdateSlider();
+  }
+
+  function renderSemana(){
+    var data = load();
+    var chart = document.getElementById('enSemanaChart');
+    var ins = document.getElementById('enInsights');
+    if(!chart) return;
+    var semana = data.slice(0,7).reverse();
+    if(!semana.length){ chart.innerHTML = '<div class="en-empty">Sin datos esta semana</div>'; return; }
+    var html = '';
+    semana.forEach(function(r){
+      var di = deudaInfo(r.inicio, r.fin);
+      var finColor = di.txt === 'saldo' ? '#4caf50' : di.txt === 'deuda' ? '#e57391' : '#ff9800';
+      html += '<div class="en-week-row">'
+        + '<div class="en-week-day">'+fmtFecha(r.fecha).slice(0,3)+'</div>'
+        + '<div class="en-week-bg">'
+        + '<div class="en-week-inicio" style="width:'+(r.inicio*10)+'%;background:var(--rosa);"></div>'
+        + '<div class="en-week-fin" style="width:'+(r.fin*10)+'%;background:'+finColor+';"></div>'
+        + '</div>'
+        + '<div class="en-week-num">'+r.inicio+'→'+r.fin+'</div>'
+        + '</div>';
+    });
+    chart.innerHTML = html;
+    var pInicio = semana.reduce(function(a,r){ return a+r.inicio; },0)/semana.length;
+    var diasDeuda = semana.filter(function(r){ return r.fin-r.inicio<=-2; }).length;
+    var diasSaldo = semana.filter(function(r){ return r.fin-r.inicio>=1; }).length;
+    var mejor = semana.reduce(function(a,r){ return r.fin>a.fin?r:a; }, semana[0]);
+    document.getElementById('enWPromInicio').textContent = pInicio.toFixed(1);
+    document.getElementById('enWDiasDeuda').textContent = diasDeuda;
+    document.getElementById('enWDiasSaldo').textContent = diasSaldo;
+    document.getElementById('enWMejorDia').textContent = fmtFecha(mejor.fecha).slice(0,3);
+    var ihtml = '';
+    if(diasDeuda >= 3) ihtml += '<span class="en-insight warn">⚠ '+diasDeuda+' días en deuda esta semana</span>';
+    if(diasSaldo >= 3) ihtml += '<span class="en-insight ok">✓ buena semana energética</span>';
+    var hypTardio = data.slice(0,7).filter(function(r){ return (r.drain||[]).indexOf('hyperfocus tardío')>-1; }).length;
+    if(hypTardio >= 2) ihtml += '<span class="en-insight warn">⚠ hyperfocus tardío '+hypTardio+'× esta semana</span>';
+    if(pInicio < 5) ihtml += '<span class="en-insight info">↻ promedio de inicio bajo · revisa el sueño</span>';
+    ins.innerHTML = ihtml;
+  }
+
+  function renderPatrones(){
+    var data = load();
+    var pel = document.getElementById('enPatrones');
+    var hel = document.getElementById('enHeatmap');
+    if(!pel) return;
+    if(data.length < 5){
+      pel.innerHTML = '<div class="en-empty">Registra al menos 5 días para detectar patrones 🌸</div>';
+    } else {
+      var patrones = [];
+      var viernes = data.filter(function(r){ return new Date(r.fecha+'T12:00:00').getDay()===5; });
+      var vDeuda = viernes.filter(function(r){ return r.fin-r.inicio<=-2; });
+      if(viernes.length>=2 && vDeuda.length/viernes.length>=0.6)
+        patrones.push({ tipo:'warn', titulo:'deuda los viernes', desc: vDeuda.length+' de '+viernes.length+' viernes terminaste en deuda · la semana te agota progresivamente' });
+      var sabados = data.filter(function(r){ return new Date(r.fecha+'T12:00:00').getDay()===6; });
+      if(sabados.length>=2){
+        var pSab = sabados.reduce(function(a,r){ return a+r.fin; },0)/sabados.length;
+        var pRest = data.filter(function(r){ return new Date(r.fecha+'T12:00:00').getDay()!==6; });
+        var pOtros = pRest.length ? pRest.reduce(function(a,r){ return a+r.fin; },0)/pRest.length : 0;
+        if(pSab > pOtros+1) patrones.push({ tipo:'ok', titulo:'sábados = recuperación real', desc:'tus sábados tienen promedio final de '+pSab.toFixed(1)+' vs '+pOtros.toFixed(1)+' el resto de la semana' });
+      }
+      var htData = data.filter(function(r){ return (r.drain||[]).indexOf('hyperfocus tardío')>-1; });
+      if(htData.length>=2){
+        var siguientes = [];
+        htData.forEach(function(r){
+          var idx = data.findIndex(function(x){ return x.fecha===r.fecha; });
+          if(idx>0) siguientes.push(data[idx-1].inicio);
+        });
+        if(siguientes.length){
+          var pSig = siguientes.reduce(function(a,b){ return a+b; },0)/siguientes.length;
+          var pGeneral = data.reduce(function(a,r){ return a+r.inicio; },0)/data.length;
+          if(pSig < pGeneral-1) patrones.push({ tipo:'warn', titulo:'hyperfocus tardío = peor mañana', desc:'el día siguiente a hyperfocus nocturno tu energía inicial baja ~'+(pGeneral-pSig).toFixed(1)+' puntos' });
+        }
+      }
+      if(!patrones.length) patrones.push({ tipo:'ok', titulo:'sin patrones problemáticos detectados', desc:'sigue registrando para afinar el análisis' });
+      var phtml = '';
+      patrones.forEach(function(p){
+        phtml += '<div class="en-pattern'+(p.tipo==='ok'?' ok':'')+'"><div class="en-pattern-title">'+p.titulo+'</div><div class="en-pattern-desc">'+p.desc+'</div></div>';
+      });
+      pel.innerHTML = phtml;
+    }
+    if(hel){
+      var hoy28 = [];
+      for(var i=27;i>=0;i--){
+        var d = new Date(); d.setDate(d.getDate()-i);
+        var iso = d.toISOString().slice(0,10);
+        var reg = data.find(function(r){ return r.fecha===iso; });
+        hoy28.push({ iso:iso, val: reg ? reg.fin : null });
+      }
+      var hhtml = '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:.4rem;">';
+      ['dom','lun','mar','mié','jue','vie','sáb'].forEach(function(d){ hhtml += '<div style="font-family:var(--font-body);font-size:.6rem;font-weight:800;color:var(--muted);text-align:center;">'+d+'</div>'; });
+      hhtml += '</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">';
+      hoy28.forEach(function(cell){
+        var bg, txt='';
+        if(cell.val===null){ bg='var(--border)'; }
+        else if(cell.val<=3){ bg='#fce4ec'; txt=cell.val; }
+        else if(cell.val<=5){ bg='#f8bbd0'; txt=cell.val; }
+        else if(cell.val<=7){ bg='#f48fb1'; txt=cell.val; }
+        else { bg='#d4537e'; txt=cell.val; }
+        hhtml += '<div style="aspect-ratio:1;border-radius:5px;background:'+bg+';display:flex;align-items:center;justify-content:center;font-family:var(--font-body);font-size:.65rem;font-weight:800;color:#fff;">'+txt+'</div>';
+      });
+      hhtml += '</div><div class="en-legend" style="margin-top:.6rem;">'
+        + '<div class="en-legend-item"><span class="en-legend-dot" style="background:var(--border)"></span>sin dato</div>'
+        + '<div class="en-legend-item"><span class="en-legend-dot" style="background:#fce4ec"></span>≤3</div>'
+        + '<div class="en-legend-item"><span class="en-legend-dot" style="background:#f48fb1"></span>4–7</div>'
+        + '<div class="en-legend-item"><span class="en-legend-dot" style="background:#d4537e"></span>8–10</div>'
+        + '</div>';
+      hel.innerHTML = hhtml;
+    }
+  }
+
+  function renderActividades(){
+    var data = load();
+    var drain = {}; var charge = {};
+    data.forEach(function(r){
+      (r.drain||[]).forEach(function(d){ drain[d]=(drain[d]||0)+1; });
+      (r.charge||[]).forEach(function(c){ charge[c]=(charge[c]||0)+1; });
+    });
+    var maxD = Math.max.apply(null, Object.values(drain).concat([1]));
+    var maxC = Math.max.apply(null, Object.values(charge).concat([1]));
+    function renderAct(obj, max, elId, tipo){
+      var el = document.getElementById(elId);
+      if(!el) return;
+      var sorted = Object.keys(obj).sort(function(a,b){ return obj[b]-obj[a]; });
+      if(!sorted.length){ el.innerHTML = '<div class="en-empty">Sin datos aún</div>'; return; }
+      var html = '';
+      sorted.forEach(function(k){
+        var pct = Math.round((obj[k]/max)*100);
+        var barColor = tipo==='drain' ? '#f48fb1' : '#66bb6a';
+        var iconCls = tipo==='drain' ? 'en-act-drain-ic' : 'en-act-charge-ic';
+        var iconTxt = tipo==='drain' ? '↓' : '↑';
+        html += '<div class="en-act-row">'
+          + '<div class="en-act-icon '+iconCls+'">'+iconTxt+'</div>'
+          + '<div class="en-act-name">'+k+'</div>'
+          + '<div class="en-act-bar-bg"><div class="en-act-bar-fill" style="width:'+pct+'%;background:'+barColor+'"></div></div>'
+          + '<div class="en-act-freq">'+obj[k]+'×</div>'
+          + '</div>';
+      });
+      el.innerHTML = html;
+    }
+    renderAct(drain, maxD, 'enActDrain', 'drain');
+    renderAct(charge, maxC, 'enActCharge', 'charge');
+  }
+
+  document.querySelectorAll('#enChipsDrain .en-chip').forEach(function(chip){
+    chip.addEventListener('click', function(){
+      this.classList.toggle('active-drain');
+      this.classList.remove('active-charge');
+    });
+  });
+  document.querySelectorAll('#enChipsCharge .en-chip').forEach(function(chip){
+    chip.addEventListener('click', function(){
+      this.classList.toggle('active-charge');
+      this.classList.remove('active-drain');
+    });
+  });
+
+  var _origShowEn = window.showPage;
+  window.showPage = function(p){
+    if(_origShowEn) _origShowEn(p);
+    if(p==='page-energia'){
+      renderHistorial();
+      renderTimeline();
+      enUpdateSlider();
+    }
+  };
+
+  renderHistorial();
+  renderTimeline();
+  enUpdateSlider();
+})();
+</script>
+</div><!-- end page-energia -->
 
 <!-- ══════════════════════════════════════════
      PÁGINA · BIBLIOTECA 🎵⚡
