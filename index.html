@@ -36767,8 +36767,15 @@ function getActiveSem() {
   return univData.semestres.find(function(s) { return s.activo; }) || null;
 }
 
+var _univSaving = false;
+var _univSaveTimer = null;
+
 function saveUniv() {
   try { localStorage.setItem('univ_data', JSON.stringify(univData)); } catch(e){}
+  // Marcar que estamos guardando para que el snapshot de confirmación no sobreescriba
+  _univSaving = true;
+  if (_univSaveTimer) clearTimeout(_univSaveTimer);
+  _univSaveTimer = setTimeout(function() { _univSaving = false; }, 5000);
   if (window.cloudSave) window.cloudSave('univ_data', univData);
 }
 
@@ -38617,6 +38624,11 @@ function openUnivExamenModal() {
 // Cloud sync
 var _origSyncUniv = window.syncFromCloud;
 window.syncFromCloud = function() {
+  // Si acabamos de guardar, ignorar el snapshot de confirmación para no sobreescribir
+  if (_univSaving) {
+    if (_origSyncUniv) _origSyncUniv();
+    return;
+  }
   if (window._univData) {
     univData.motivacion = window._univData.motivacion || '';
     univData.horas      = window._univData.horas      || {};
