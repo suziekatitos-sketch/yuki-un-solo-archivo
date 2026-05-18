@@ -170,7 +170,7 @@ window.kittyConfirm = function(msg, onYes, onNo) {
           'rutina_ancla_override',
           'yuki_armario_prendas','yuki_armario_outfits','yuki_armario_ootd','yuki_armario_maletas','yuki_armario_inspo',
           'yuki_rachas',
-          'yuki_makeup','yuki_hairstyles',
+          'yuki_makeup','yuki_hairstyles','yuki_glow_acts','yuki_glow_logs',
           'yuki_jardin_anclas','yuki_jardin_promesas','yuki_jardin_sabados','yuki_jardin_oracion','yuki_jardin_caracter','yuki_jardin_trabajando'];
         mirrorKeys.forEach(function(k) {
           if (raw[k] !== undefined) {
@@ -194,6 +194,8 @@ window.kittyConfirm = function(msg, onYes, onNo) {
         if (raw.yuki_rachas)          { window._rachasData     = JSON.parse(raw.yuki_rachas);           }
         if (raw.yuki_makeup)          { window._mkData         = JSON.parse(raw.yuki_makeup);           }
         if (raw.yuki_hairstyles)      { window._hsData         = JSON.parse(raw.yuki_hairstyles);       }
+        if (raw.yuki_glow_acts)       { window._glowActs       = JSON.parse(raw.yuki_glow_acts);        }
+        if (raw.yuki_glow_logs)       { window._glowLogs       = JSON.parse(raw.yuki_glow_logs);        }
         if (raw.yuki_paste_recetas)   { window._pasteRecetas   = JSON.parse(raw.yuki_paste_recetas);    }
         if (raw.yuki_paste_mood)      { window._pasteMood      = JSON.parse(raw.yuki_paste_mood);       }
         if (raw.yuki_paste_costos)    { window._pasteCostos    = JSON.parse(raw.yuki_paste_costos);     }
@@ -10757,8 +10759,56 @@ function todayKey() { return dateKey(new Date()); }
   }
   .rutina-add-paso-btn:hover { border-color: var(--rosa); color: var(--rosa); }
 
-
-  /* ── DESGLOSADOR DE TAREAS COMPLEJAS ── */
+  /* ── Materiales checklist ── */
+  .rut-mat-section {
+    margin-top: .9rem;
+    padding-top: .9rem;
+    border-top: 1.5px solid var(--border);
+  }
+  .rut-mat-label {
+    font-size: .7rem; font-weight: 800; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .06em; margin-bottom: .5rem; display: block;
+  }
+  .rut-mat-list { display: flex; flex-direction: column; gap: .3rem; margin-bottom: .4rem; }
+  .rut-mat-item {
+    display: flex; align-items: center; gap: .55rem;
+    padding: .38rem .6rem; border-radius: 10px;
+    background: var(--bg); border: 1.5px solid var(--border);
+    cursor: pointer; transition: all .18s; user-select: none;
+  }
+  .rut-mat-item:hover { border-color: var(--rosa); }
+  .rut-mat-item.checked { background: var(--rosa-soft); border-color: var(--rosa); }
+  .rut-mat-check {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid var(--border); background: var(--card);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .65rem; flex-shrink: 0; transition: all .18s;
+  }
+  .rut-mat-item.checked .rut-mat-check { background: var(--rosa); border-color: var(--rosa); color: #fff; }
+  .rut-mat-name { font-size: .8rem; font-weight: 600; color: var(--text); flex: 1; }
+  .rut-mat-item.checked .rut-mat-name { text-decoration: line-through; opacity: .55; }
+  .rut-mat-edit-row { display: flex; gap: .4rem; align-items: center; }
+  .rut-mat-del { background: none; border: none; cursor: pointer; color: var(--muted); font-size: .8rem; padding: .15rem; transition: color .15s; flex-shrink: 0; }
+  .rut-mat-del:hover { color: #e53935; }
+  .rut-mat-add-btn {
+    background: transparent; border: 1.5px dashed var(--muted2); color: var(--muted2);
+    border-radius: 8px; padding: .25rem .6rem; font-family: var(--font-body);
+    font-size: .7rem; font-weight: 700; cursor: pointer; transition: all .2s; width: 100%;
+  }
+  .rut-mat-add-btn:hover { border-color: var(--rosa); color: var(--rosa); }
+  .rut-mat-badge {
+    display: inline-flex; align-items: center; gap: .2rem;
+    font-size: .62rem; font-weight: 800; color: var(--muted);
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: .1rem .45rem; margin-left: .4rem;
+  }
+  .rut-mat-open-btn {
+    display: flex; align-items: center; gap: .4rem;
+    padding: .3rem .85rem; border-radius: 20px; border: 1.5px solid var(--border);
+    background: var(--card); font-family: var(--font-body); font-size: .72rem;
+    font-weight: 800; color: var(--muted); cursor: pointer; transition: all .18s;
+  }
+  .rut-mat-open-btn:hover { border-color: var(--rosa); color: var(--rosa); }
   .desglose-list {
     display: flex;
     flex-direction: column;
@@ -11395,7 +11445,7 @@ function renderRutinas() {
         card.innerHTML = `
           <span class="rutina-template-emoji">${tpl.emoji || '🌸'}</span>
           <div class="rutina-template-info">
-            <div class="rutina-template-name">${tpl.name}</div>
+            <div class="rutina-template-name">${tpl.name}${tpl.materiales && tpl.materiales.length > 0 ? `<span class="rut-mat-badge">🎒 ${tpl.materiales.length}</span>` : ''}</div>
           </div>`;
       }
 
@@ -11807,8 +11857,12 @@ function openRutinaViewModal(templateId) {
 
   inner.innerHTML = '<div class="rutina-modal-title" style="padding-right:2.5rem">' + (tpl.emoji || '📸') + ' <em>' + tpl.name + '</em></div>'
     + '<div style="margin-top:.6rem">' + viewBodyHtml + '</div>'
+    + ((tpl.materiales && tpl.materiales.length > 0)
+        ? '<div id="rutViewMatSection" style="margin-top:.9rem;padding-top:.9rem;border-top:1.5px solid var(--border)"></div>'
+        : '')
     + '<div class="modal-btns" style="margin-top:1rem">'
     + '<button class="modal-btn-cancel" id="rutViewTimerBtn" style="display:flex;align-items:center;gap:.4rem">⏱ Timer</button>'
+    + (tpl.materiales && tpl.materiales.length > 0 ? '<button class="rut-mat-open-btn" id="rutViewMatBtn">🎒 Materiales</button>' : '')
     + '<button class="modal-btn-cancel" id="rutViewCloseBtn">Cerrar</button>'
     + '</div>';
 
@@ -11822,6 +11876,132 @@ function openRutinaViewModal(templateId) {
       if (window.openTaskTimer) window.openTaskTimer('rutina_' + templateId, (tpl.emoji || '🌸') + ' ' + tpl.name);
     };
   }
+
+  // ── Materiales checklist en el view modal
+  var matBtn = inner.querySelector('#rutViewMatBtn');
+  var matSection = inner.querySelector('#rutViewMatSection');
+
+  function openMatCheckModal() {
+    var oldM = document.getElementById('rutMatCheckModal'); if (oldM) oldM.remove();
+    var mats = tpl.materiales || [];
+    // Per-session check state (in-memory, resets when modal closes)
+    var checked = {};
+
+    var mbd = document.createElement('div');
+    mbd.className = 'meta-modal-backdrop'; mbd.id = 'rutMatCheckModal';
+    mbd.onclick = function(e){ if (e.target === mbd) mbd.remove(); };
+
+    var mbox = document.createElement('div');
+    mbox.className = 'meta-modal-box'; mbox.style.maxWidth = '360px';
+
+    function buildMatModal(editMode) {
+      mbox.innerHTML = '';
+
+      var titleRow = document.createElement('div');
+      titleRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:.9rem';
+      var title = document.createElement('div');
+      title.style.cssText = 'font-family:var(--font-title);font-size:1rem;font-style:italic;color:var(--text)';
+      title.textContent = '🎒 Materiales';
+      var toggleEditBtn = document.createElement('button');
+      toggleEditBtn.style.cssText = 'background:none;border:1.5px solid var(--border);border-radius:20px;font-family:var(--font-body);font-size:.68rem;font-weight:800;color:var(--muted);cursor:pointer;padding:.2rem .65rem;transition:all .18s';
+      toggleEditBtn.textContent = editMode ? '✓ Listo' : '✏️ Editar lista';
+      toggleEditBtn.onclick = function(){ buildMatModal(!editMode); };
+      titleRow.appendChild(title); titleRow.appendChild(toggleEditBtn);
+      mbox.appendChild(titleRow);
+
+      if (editMode) {
+        // Edit mode: builder
+        var editMats = (tpl.materiales || []).slice();
+
+        var editList = document.createElement('div');
+        editList.className = 'rut-mat-list'; editList.id = 'rutMatEditList';
+        mbox.appendChild(editList);
+
+        function renderEditList() {
+          editList.innerHTML = '';
+          editMats.forEach(function(m, i) {
+            var row = document.createElement('div'); row.className = 'rut-mat-edit-row';
+            var inp = document.createElement('input'); inp.className = 'modal-input';
+            inp.placeholder = 'Material…'; inp.value = m;
+            inp.oninput = function(){ editMats[i] = inp.value; };
+            var del = document.createElement('button'); del.className = 'rut-mat-del'; del.textContent = '✕';
+            del.onclick = function(){ editMats.splice(i,1); renderEditList(); };
+            row.appendChild(inp); row.appendChild(del); editList.appendChild(row);
+          });
+        }
+        renderEditList();
+
+        var addBtn = document.createElement('button'); addBtn.className = 'rut-mat-add-btn';
+        addBtn.textContent = '＋ Agregar material'; addBtn.style.marginTop = '.4rem';
+        addBtn.onclick = function(){
+          editMats.push(''); renderEditList();
+          var inps = editList.querySelectorAll('.modal-input');
+          if (inps.length) inps[inps.length-1].focus();
+        };
+        mbox.appendChild(addBtn);
+
+        var saveRow = document.createElement('div'); saveRow.className = 'modal-btns'; saveRow.style.marginTop = '.9rem';
+        var cancelBtn = document.createElement('button'); cancelBtn.className = 'modal-btn-cancel';
+        cancelBtn.textContent = 'Cancelar'; cancelBtn.onclick = function(){ buildMatModal(false); };
+        var saveBtn = document.createElement('button'); saveBtn.className = 'modal-btn-save';
+        saveBtn.textContent = 'Guardar';
+        saveBtn.onclick = function(){
+          tpl.materiales = editMats.map(function(m){ return m.trim(); }).filter(Boolean);
+          saveRutinas();
+          buildMatModal(false);
+        };
+        saveRow.appendChild(cancelBtn); saveRow.appendChild(saveBtn);
+        mbox.appendChild(saveRow);
+
+      } else {
+        // Checklist mode
+        if (!mats.length) {
+          var emp = document.createElement('div');
+          emp.style.cssText = 'text-align:center;color:var(--muted2);font-size:.82rem;padding:1.5rem 0';
+          emp.textContent = 'No hay materiales aún.';
+          mbox.appendChild(emp);
+        } else {
+          var list = document.createElement('div'); list.className = 'rut-mat-list';
+          mats = tpl.materiales || [];
+          mats.forEach(function(m, i) {
+            var item = document.createElement('div'); item.className = 'rut-mat-item' + (checked[i] ? ' checked' : '');
+            var chk = document.createElement('div'); chk.className = 'rut-mat-check'; chk.textContent = checked[i] ? '✓' : '';
+            var name = document.createElement('div'); name.className = 'rut-mat-name'; name.textContent = m;
+            item.appendChild(chk); item.appendChild(name);
+            item.onclick = function(){
+              checked[i] = !checked[i];
+              item.classList.toggle('checked', checked[i]);
+              chk.textContent = checked[i] ? '✓' : '';
+              name.style.textDecoration = checked[i] ? 'line-through' : '';
+              name.style.opacity = checked[i] ? '.5' : '';
+            };
+            list.appendChild(item);
+          });
+          mbox.appendChild(list);
+
+          var resetBtn = document.createElement('button');
+          resetBtn.className = 'rut-mat-add-btn'; resetBtn.style.marginTop = '.6rem';
+          resetBtn.textContent = '↺ Desmarcar todo';
+          resetBtn.onclick = function(){
+            Object.keys(checked).forEach(function(k){ checked[k] = false; });
+            buildMatModal(false);
+          };
+          mbox.appendChild(resetBtn);
+        }
+
+        var closeRow = document.createElement('div'); closeRow.className = 'modal-btns'; closeRow.style.marginTop = '.9rem';
+        var closeBtn2 = document.createElement('button'); closeBtn2.className = 'modal-btn-cancel';
+        closeBtn2.textContent = 'Cerrar'; closeBtn2.onclick = function(){ mbd.remove(); };
+        closeRow.appendChild(closeBtn2); mbox.appendChild(closeRow);
+      }
+    }
+
+    buildMatModal(false);
+    mbd.appendChild(mbox);
+    document.body.appendChild(mbd);
+  }
+
+  if (matBtn) matBtn.onclick = openMatCheckModal;
 
   // Si es rutina de foto, conectar el click de la casilla
   if (tpl.tipo === 'foto' && tpl.foto) {
@@ -11962,6 +12142,12 @@ function openRutinaModal(templateId, tipo) {
           <button class="rutina-add-paso-btn" data-franja="${f.id}">＋ Agregar paso</button>
         </div>`).join('')}
     </div>
+
+    <div class="rut-mat-section">
+      <span class="rut-mat-label">🎒 Materiales / checklist</span>
+      <div class="rut-mat-list" id="rutMatBuildList"></div>
+      <button class="rut-mat-add-btn" id="rutMatAddBtn">＋ Agregar material</button>
+    </div>
   `;
 
   box.innerHTML = `
@@ -12033,6 +12219,41 @@ function openRutinaModal(templateId, tipo) {
       if (inputs.length) inputs[inputs.length - 1].focus();
     };
   });
+
+  // ── Materiales builder
+  let materiales = existing && existing.materiales ? existing.materiales.slice() : [];
+
+  function renderMatBuilder() {
+    const list = backdrop.querySelector('#rutMatBuildList');
+    if (!list) return;
+    list.innerHTML = '';
+    materiales.forEach((m, i) => {
+      const row = document.createElement('div');
+      row.className = 'rut-mat-edit-row';
+      const inp = document.createElement('input');
+      inp.className = 'modal-input';
+      inp.placeholder = 'Ej: Lapicero, agua, timer…';
+      inp.value = m;
+      inp.oninput = () => { materiales[i] = inp.value; };
+      const del = document.createElement('button');
+      del.className = 'rut-mat-del';
+      del.textContent = '✕';
+      del.onclick = () => { materiales.splice(i, 1); renderMatBuilder(); };
+      row.appendChild(inp); row.appendChild(del);
+      list.appendChild(row);
+    });
+  }
+  renderMatBuilder();
+
+  const matAddBtn = backdrop.querySelector('#rutMatAddBtn');
+  if (matAddBtn) {
+    matAddBtn.onclick = () => {
+      materiales.push('');
+      renderMatBuilder();
+      const inps = backdrop.querySelectorAll('#rutMatBuildList .modal-input');
+      if (inps.length) inps[inps.length - 1].focus();
+    };
+  }
 
   } // end if rutinaTipo === 'texto'
 
@@ -12147,19 +12368,22 @@ function openRutinaModal(templateId, tipo) {
     RUTINA_FRANJAS.forEach(f => {
       pasos[f.id] = (pasos[f.id] || []).filter(p => p.trim() !== '');
     });
+    const cleanMats = (typeof materiales !== 'undefined' ? materiales : []).map(m => m.trim()).filter(Boolean);
 
     if (existing) {
       existing.name = nombre;
       existing.emoji = selectedEmoji;
       existing.pasos = pasos;
       existing.tipo = 'texto';
+      existing.materiales = cleanMats;
     } else {
       rutinaTemplates.push({
         id: 'rut_' + Date.now(),
         name: nombre,
         emoji: selectedEmoji,
         pasos,
-        tipo: 'texto'
+        tipo: 'texto',
+        materiales: cleanMats
       });
     }
 
@@ -12980,7 +13204,7 @@ if (document.readyState !== 'loading') {
         '<span class="or-tpl-emoji">'+(tpl.emoji||'📋')+'</span>'+
         '<div class="or-tpl-info">'+
           '<div class="or-tpl-nombre">'+tpl.nombre+'</div>'+
-          '<div class="or-tpl-meta">'+total+' paso'+(total!==1?'s':'')+((tpl.pasos||[]).filter(function(p){return p.tipo==='nota';}).length > 0 ? ' · '+(tpl.pasos||[]).filter(function(p){return p.tipo==='nota';}).length+' nota'+(((tpl.pasos||[]).filter(function(p){return p.tipo==='nota';}).length)!==1?'s':'') : '')+'</div>'+
+          '<div class="or-tpl-meta">'+total+' paso'+(total!==1?'s':'')+((tpl.pasos||[]).filter(function(p){return p.tipo==='nota';}).length > 0 ? ' · '+(tpl.pasos||[]).filter(function(p){return p.tipo==='nota';}).length+' nota'+(((tpl.pasos||[]).filter(function(p){return p.tipo==='nota';}).length)!==1?'s':'') : '')+(tpl.materiales&&tpl.materiales.length>0?' · 🎒 '+tpl.materiales.length:'')+'</div>'+
         '</div>'+
         (total>0?'<span class="or-tpl-prog'+(completa?' completa':'')+'">'+hechos+'/'+total+'</span>':'')+
         '<div class="or-tpl-actions">'+
@@ -13032,6 +13256,44 @@ if (document.readyState !== 'loading') {
       };
       container.appendChild(row);
     });
+
+    // ── Materiales checklist (en memoria, por sesión)
+    var mats = tpl.materiales || [];
+    if (mats.length > 0) {
+      var matSep = document.createElement('div');
+      matSep.style.cssText = 'margin:.65rem 0 .4rem;font-size:.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:center;justify-content:space-between';
+      matSep.innerHTML = '<span>🎒 Materiales</span><button style="background:none;border:none;font-size:.65rem;font-weight:700;color:var(--muted);cursor:pointer;padding:0" class="or-mat-reset">↺ Desmarcar</button>';
+      container.appendChild(matSep);
+
+      var matList = document.createElement('div');
+      matList.className = 'rut-mat-list';
+      var matChecked = {};
+
+      function buildMatItems() {
+        matList.innerHTML = '';
+        mats.forEach(function(m, i) {
+          var item = document.createElement('div');
+          item.className = 'rut-mat-item' + (matChecked[i] ? ' checked' : '');
+          item.innerHTML =
+            '<div class="rut-mat-check">'+(matChecked[i]?'✓':'')+'</div>'+
+            '<div class="rut-mat-name">'+m+'</div>';
+          item.onclick = function() {
+            matChecked[i] = !matChecked[i];
+            buildMatItems();
+          };
+          matList.appendChild(item);
+        });
+      }
+      buildMatItems();
+
+      matSep.querySelector('.or-mat-reset').onclick = function(e) {
+        e.stopPropagation();
+        matChecked = {};
+        buildMatItems();
+      };
+
+      container.appendChild(matList);
+    }
   }
 
   /* ── Registrar sesión del día ── */
@@ -13139,6 +13401,10 @@ if (document.readyState !== 'loading') {
           '<button class="or-add-note-btn" id="orAddNota">✎ Nota / separador</button>'+
         '</div>'+
       '</div>'+
+      '<div class="or-field"><label class="or-label">🎒 Materiales / checklist</label>'+
+        '<div id="orMatList" class="rut-mat-list"></div>'+
+        '<button class="rut-mat-add-btn" id="orMatAddBtn" style="margin-top:.3rem">＋ Agregar material</button>'+
+      '</div>'+
       '<div class="or-modal-btns">'+
         (editId?'<button class="or-modal-del" id="orDelBtn">🗑️</button>':'')+
         '<button class="or-modal-cancel" id="orCancelBtn">Cancelar</button>'+
@@ -13186,6 +13452,28 @@ if (document.readyState !== 'loading') {
     document.getElementById('orCancelBtn').onclick = function(){ bd.remove(); };
     bd.onclick = function(e){ if(e.target===bd) bd.remove(); };
 
+    // ── Materiales builder
+    var orMats = tpl && tpl.materiales ? tpl.materiales.slice() : [];
+    function renderOrMats() {
+      var list = document.getElementById('orMatList'); if (!list) return;
+      list.innerHTML = '';
+      orMats.forEach(function(m, i) {
+        var row = document.createElement('div'); row.className = 'rut-mat-edit-row';
+        var inp = document.createElement('input'); inp.className = 'modal-input';
+        inp.placeholder = 'Ej: Lapicero, agua, timer…'; inp.value = m;
+        inp.oninput = function(){ orMats[i] = inp.value; };
+        var del = document.createElement('button'); del.className = 'rut-mat-del'; del.textContent = '✕';
+        del.onclick = function(){ orMats.splice(i,1); renderOrMats(); };
+        row.appendChild(inp); row.appendChild(del); list.appendChild(row);
+      });
+    }
+    renderOrMats();
+    document.getElementById('orMatAddBtn').onclick = function(){
+      orMats.push(''); renderOrMats();
+      var inps = document.querySelectorAll('#orMatList .modal-input');
+      if (inps.length) inps[inps.length-1].focus();
+    };
+
     if (editId) {
       document.getElementById('orDelBtn').onclick = function(){
         if(!confirm('¿Eliminar esta rutina?')) return;
@@ -13198,7 +13486,8 @@ if (document.readyState !== 'loading') {
       var nombre = document.getElementById('orInNombre').value.trim();
       if (!nombre) { document.getElementById('orInNombre').focus(); return; }
       var arr = orLoadTpl();
-      var obj = { id: editId||('or_'+Date.now()), emoji: selEmoji, nombre: nombre, pasos: pasos };
+      var cleanMats = orMats.map(function(m){ return m.trim(); }).filter(Boolean);
+      var obj = { id: editId||('or_'+Date.now()), emoji: selEmoji, nombre: nombre, pasos: pasos, materiales: cleanMats };
       if (editId) { var i=arr.findIndex(function(t){return t.id===editId;}); if(i!==-1) arr[i]=obj; else arr.push(obj); }
       else arr.push(obj);
       orSaveTpl(arr); orRender(); bd.remove();
@@ -18957,13 +19246,14 @@ window.journalShowTab = function(tab) {
 
 <!-- Pestañas Selfcare -->
 <div class="salud-tabs" style="margin-bottom:0">
-  <button class="salud-tab active" id="scTab0" onclick="scShowTab(0)">✨ Belleza</button>
-  <button class="salud-tab" id="scTab1" onclick="scShowTab(1)">💄 Makeup</button>
-  <button class="salud-tab" id="scTab2" onclick="scShowTab(2)">💇 Hairstyles</button>
+  <button class="salud-tab active" id="scTab0" onclick="scShowTab(0)">🌸 Glow</button>
+  <button class="salud-tab" id="scTab1" onclick="scShowTab(1)">✨ Belleza</button>
+  <button class="salud-tab" id="scTab2" onclick="scShowTab(2)">💄 Makeup</button>
+  <button class="salud-tab" id="scTab3" onclick="scShowTab(3)">💇 Hairstyles</button>
 </div>
 <script>
 window.scShowTab = function(idx) {
-  for (var i=0; i<3; i++) {
+  for (var i=0; i<4; i++) {
     var btn = document.getElementById('scTab'+i);
     var el  = document.getElementById('scTabContent'+i);
     if (btn) btn.classList.toggle('active', i===idx);
@@ -18972,8 +19262,849 @@ window.scShowTab = function(idx) {
 };
 </script>
 
-<!-- TAB 0: Belleza (contenido original) -->
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- TAB 0: GLOW 🌸 – Beauty Maintenance Tracker           -->
+<!-- ══════════════════════════════════════════════════════ -->
 <div id="scTabContent0">
+
+<style>
+  /* ── Glow Tracker: Layout ── */
+  .glow-section { max-width:860px; margin:1.5rem auto 0; padding:0 1rem 3rem; }
+
+  /* ── Resumen de hoy ── */
+  .glow-today-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:.9rem; }
+  .glow-today-title { font-family:var(--font-title); font-size:1.05rem; font-style:italic; color:var(--text); }
+  .glow-today-date { font-size:.7rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+  .glow-today-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(165px,1fr)); gap:.6rem; margin-bottom:1.5rem; }
+
+  /* ── Card de actividad (hoy) ── */
+  .glow-act-card {
+    background:var(--card); border:1.5px solid var(--border); border-radius:16px;
+    padding:.8rem .9rem; display:flex; align-items:center; gap:.7rem;
+    cursor:pointer; transition:all .2s; position:relative; overflow:hidden;
+  }
+  .glow-act-card:hover { box-shadow:0 4px 18px rgba(244,167,192,.18); transform:translateY(-1px); }
+  .glow-act-card.done { background:var(--rosa-soft); border-color:var(--rosa); }
+  .glow-act-card.not-today { opacity:.45; cursor:default; }
+  .glow-act-card.not-today:hover { transform:none; box-shadow:none; }
+  .glow-act-emoji { font-size:1.5rem; flex-shrink:0; }
+  .glow-act-info { flex:1; min-width:0; }
+  .glow-act-name { font-size:.8rem; font-weight:800; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .glow-act-freq { font-size:.66rem; font-weight:700; color:var(--muted); margin-top:.1rem; }
+  .glow-act-check {
+    width:22px; height:22px; border-radius:50%; border:2px solid var(--border);
+    background:var(--bg); display:flex; align-items:center; justify-content:center;
+    font-size:.75rem; flex-shrink:0; transition:all .18s;
+  }
+  .glow-act-card.done .glow-act-check { background:var(--rosa); border-color:var(--rosa); color:#fff; }
+
+  /* ── Streak badge ── */
+  .glow-streak-badge {
+    position:absolute; top:.45rem; right:.45rem;
+    background:linear-gradient(135deg,#ffb347,#ff6b6b);
+    color:#fff; font-size:.58rem; font-weight:900; padding:.1rem .38rem;
+    border-radius:20px; letter-spacing:.04em; display:flex; align-items:center; gap:.15rem;
+    box-shadow:0 2px 8px rgba(255,107,107,.3);
+  }
+  .glow-streak-badge.hidden { display:none; }
+
+  /* ── Sección: todas las actividades ── */
+  .glow-all-header { display:flex; align-items:center; justify-content:space-between; margin:1.5rem 0 .7rem; }
+  .glow-all-title { font-size:.78rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.07em; }
+  .glow-new-btn {
+    display:flex; align-items:center; gap:.3rem;
+    padding:.3rem .85rem; border-radius:20px; border:1.5px solid var(--rosa);
+    background:transparent; font-family:var(--font-body); font-size:.72rem;
+    font-weight:800; color:var(--rosa); cursor:pointer; transition:all .18s;
+  }
+  .glow-new-btn:hover { background:var(--rosa); color:#fff; }
+
+  /* ── Lista de actividades (gestión) ── */
+  .glow-list { display:flex; flex-direction:column; gap:.5rem; }
+  .glow-list-item {
+    background:var(--card); border:1.5px solid var(--border); border-radius:14px;
+    padding:.7rem 1rem; display:flex; align-items:center; gap:.75rem;
+  }
+  .glow-list-emoji { font-size:1.25rem; flex-shrink:0; }
+  .glow-list-info { flex:1; min-width:0; }
+  .glow-list-name { font-size:.82rem; font-weight:800; color:var(--text); }
+  .glow-list-meta { font-size:.67rem; font-weight:700; color:var(--muted); margin-top:.1rem; }
+  .glow-list-streak { font-size:.67rem; font-weight:900; color:#ff6b6b; }
+  .glow-list-edit {
+    background:none; border:none; cursor:pointer; color:var(--muted);
+    font-size:.82rem; padding:.2rem; transition:color .15s; flex-shrink:0;
+  }
+  .glow-list-edit:hover { color:var(--rosa); }
+
+  /* ── Modal Glow ── */
+  .glow-modal-title { font-family:var(--font-title); font-size:1.1rem; font-style:italic; color:var(--text); margin-bottom:1rem; }
+  .glow-day-toggles { display:flex; gap:.35rem; flex-wrap:wrap; margin-top:.4rem; }
+  .glow-day-btn {
+    width:36px; height:36px; border-radius:50%; border:1.5px solid var(--border);
+    background:var(--card); font-family:var(--font-body); font-size:.7rem;
+    font-weight:800; color:var(--muted); cursor:pointer; transition:all .18s;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .glow-day-btn.on { background:var(--rosa); border-color:var(--rosa); color:#fff; }
+
+  /* ── Frecuencia switcher ── */
+  .glow-freq-tabs { display:flex; gap:.4rem; margin-top:.4rem; }
+  .glow-freq-tab {
+    padding:.28rem .85rem; border-radius:20px; border:1.5px solid var(--border);
+    background:var(--card); font-family:var(--font-body); font-size:.72rem;
+    font-weight:700; color:var(--muted); cursor:pointer; transition:all .18s;
+  }
+  .glow-freq-tab.active { background:var(--rosa); border-color:var(--rosa); color:#fff; }
+
+  /* ── Categoría pills ── */
+  .glow-cat-filter { display:flex; gap:.35rem; flex-wrap:wrap; margin-bottom:.9rem; }
+  .glow-cat-btn {
+    padding:.22rem .7rem; border-radius:20px; border:1.5px solid var(--border);
+    background:var(--card); font-family:var(--font-body); font-size:.68rem;
+    font-weight:700; color:var(--muted); cursor:pointer; transition:all .18s;
+  }
+  .glow-cat-btn.active { background:var(--rosa); border-color:var(--rosa); color:#fff; }
+
+  /* ── Horario / bloque badge en tarjeta ── */
+  .glow-time-badge {
+    display:inline-flex; align-items:center; gap:.2rem;
+    font-size:.6rem; font-weight:800; color:var(--muted);
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:20px; padding:.1rem .45rem; margin-top:.25rem;
+    letter-spacing:.02em;
+  }
+  .glow-act-card.done .glow-time-badge { background:rgba(244,167,192,.2); border-color:var(--rosa); color:var(--rosa); }
+
+  /* ── Panel de pasos (expandible) ── */
+  .glow-steps-panel {
+    display:none; flex-direction:column; gap:.3rem;
+    margin-top:.5rem; padding-top:.5rem;
+    border-top:1px solid var(--border);
+  }
+  .glow-steps-panel.open { display:flex; }
+  .glow-step-row {
+    display:flex; align-items:flex-start; gap:.45rem;
+  }
+  .glow-step-num {
+    min-width:18px; height:18px; border-radius:50%;
+    background:var(--rosa); color:#fff; font-size:.58rem; font-weight:900;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:.05rem;
+  }
+  .glow-step-txt { font-size:.72rem; font-weight:600; color:var(--text); line-height:1.45; }
+  .glow-expand-btn {
+    background:none; border:none; cursor:pointer; font-size:.65rem; font-weight:800;
+    color:var(--muted); padding:0; margin-top:.2rem; text-align:left; transition:color .15s;
+  }
+  .glow-expand-btn:hover { color:var(--rosa); }
+
+  /* ── Modal: pasos ── */
+  .glow-steps-builder { display:flex; flex-direction:column; gap:.4rem; margin-top:.4rem; }
+  .glow-step-inp-row { display:flex; gap:.4rem; align-items:center; }
+  .glow-step-inp { flex:1; }
+  .glow-step-del { background:none; border:none; cursor:pointer; color:var(--muted); font-size:.85rem; padding:.2rem; flex-shrink:0; transition:color .15s; }
+  .glow-step-del:hover { color:#e53935; }
+  .glow-add-step-btn {
+    background:none; border:1.5px dashed var(--border); border-radius:10px;
+    font-family:var(--font-body); font-size:.72rem; font-weight:700; color:var(--muted);
+    padding:.35rem .7rem; cursor:pointer; transition:all .18s; width:100%; margin-top:.2rem;
+  }
+  .glow-add-step-btn:hover { border-color:var(--rosa); color:var(--rosa); }
+
+  /* ── Modal: bloque/hora tabs ── */
+  .glow-time-mode-tabs { display:flex; gap:.4rem; margin-top:.4rem; flex-wrap:wrap; }
+  .glow-bloque-btns { display:flex; gap:.35rem; flex-wrap:wrap; margin-top:.4rem; }
+  .glow-bloque-btn {
+    padding:.28rem .75rem; border-radius:20px; border:1.5px solid var(--border);
+    background:var(--card); font-family:var(--font-body); font-size:.72rem;
+    font-weight:700; color:var(--muted); cursor:pointer; transition:all .18s;
+  }
+  .glow-bloque-btn.on { background:var(--rosa); border-color:var(--rosa); color:#fff; }
+
+  /* ── Empty state ── */
+  .glow-empty { text-align:center; color:var(--muted2); font-size:.82rem; font-weight:600; padding:2.5rem 0; }
+  .glow-empty-icon { font-size:2.2rem; margin-bottom:.5rem; }
+
+  /* ── Streak motivator banner ── */
+  .glow-streak-banner {
+    background:linear-gradient(135deg,#fff0f5,#fde8f0);
+    border:1.5px solid var(--rosa); border-radius:16px;
+    padding:.85rem 1.1rem; margin-bottom:1.2rem;
+    display:flex; align-items:center; gap:.8rem;
+  }
+  .glow-streak-banner-icon { font-size:1.6rem; }
+  .glow-streak-banner-text { flex:1; }
+  .glow-streak-banner-main { font-size:.82rem; font-weight:800; color:var(--text); }
+  .glow-streak-banner-sub { font-size:.7rem; font-weight:600; color:var(--muted); margin-top:.1rem; }
+  .glow-progress-bar-wrap { height:6px; background:var(--border); border-radius:3px; margin-top:.5rem; overflow:hidden; }
+  .glow-progress-bar { height:100%; background:linear-gradient(90deg,var(--rosa),#ffb3cc); border-radius:3px; transition:width .5s ease; }
+
+  @media(max-width:600px){
+    .glow-today-grid { grid-template-columns:1fr 1fr; }
+  }
+</style>
+
+<section class="glow-section" id="sec-glow">
+  <span class="section-sub">selfcare</span>
+  <h2 class="section-title"><em>Glow</em> Tracker <span style="font-style:normal;font-weight:400">✿ ꕤ ˚</span></h2>
+  <p style="font-size:.75rem;color:var(--muted);margin-bottom:1rem;font-weight:600">Tu tracker de mantenimiento de belleza 🌸 Nunca más olvides qué toca hoy.</p>
+
+  <!-- Banner de racha ── aparece cuando hay streaks activos -->
+  <div class="glow-streak-banner" id="glowStreakBanner" style="display:none">
+    <div class="glow-streak-banner-icon">🔥</div>
+    <div class="glow-streak-banner-text">
+      <div class="glow-streak-banner-main" id="glowStreakBannerMain"></div>
+      <div class="glow-streak-banner-sub" id="glowStreakBannerSub"></div>
+      <div class="glow-progress-bar-wrap"><div class="glow-progress-bar" id="glowProgressBar" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <!-- Actividades de HOY -->
+  <div class="glow-today-header">
+    <span class="glow-today-title">✦ Hoy toca</span>
+    <span class="glow-today-date" id="glowTodayDate"></span>
+  </div>
+  <div class="glow-today-grid" id="glowTodayGrid"></div>
+
+  <!-- Todas mis actividades -->
+  <div class="glow-all-header">
+    <span class="glow-all-title">✦ Mis actividades</span>
+    <button class="glow-new-btn" id="glowNewBtn">＋ Nueva</button>
+  </div>
+
+  <!-- Filtro por categoría -->
+  <div class="glow-cat-filter" id="glowCatFilter"></div>
+
+  <!-- Lista -->
+  <div class="glow-list" id="glowList"></div>
+</section>
+
+<script>
+(function(){
+  // ══════════════════════════════
+  // Estado
+  // ══════════════════════════════
+  var glowActivities = [];  // array de actividades
+  var glowLogs = {};        // { 'YYYY-MM-DD': { actId: true } }
+  var glowCatFilter = 'all';
+
+  var GLOW_CATS = [
+    { id:'piel',    label:'🧴 Piel',    emoji:'🧴' },
+    { id:'cuerpo',  label:'🛁 Cuerpo',  emoji:'🛁' },
+    { id:'cabello', label:'💆 Cabello', emoji:'💆' },
+    { id:'uñas',    label:'💅 Uñas',    emoji:'💅' },
+    { id:'bienestar',label:'🌿 Bienestar',emoji:'🌿'},
+    { id:'otro',    label:'✨ Otro',    emoji:'✨' },
+  ];
+
+  var DIAS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+  var DEFAULT_ACTIVITIES = [
+    { id:'glow_default_1', name:'Limpieza facial', emoji:'🧖', cat:'piel',    freq:'days', days:[1,2,3,4,5,6,0], streak:0, bestStreak:0 },
+    { id:'glow_default_2', name:'Hidratante',      emoji:'💧', cat:'piel',    freq:'days', days:[1,2,3,4,5,6,0], streak:0, bestStreak:0 },
+    { id:'glow_default_3', name:'Exfoliación',     emoji:'🌸', cat:'piel',    freq:'every', every:7,             streak:0, bestStreak:0 },
+    { id:'glow_default_4', name:'Mascarilla',      emoji:'🫧', cat:'piel',    freq:'every', every:7,             streak:0, bestStreak:0 },
+    { id:'glow_default_5', name:'Depilación',      emoji:'🪒', cat:'cuerpo',  freq:'every', every:7,             streak:0, bestStreak:0 },
+    { id:'glow_default_6', name:'Hidratante cuerpo',emoji:'🧴',cat:'cuerpo',  freq:'every', every:3,             streak:0, bestStreak:0 },
+    { id:'glow_default_7', name:'Mascarilla capilar',emoji:'💆',cat:'cabello',freq:'every', every:14,            streak:0, bestStreak:0 },
+    { id:'glow_default_8', name:'Manicure',        emoji:'💅', cat:'uñas',    freq:'every', every:14,            streak:0, bestStreak:0 },
+  ];
+
+  // ══════════════════════════════
+  // Persistencia
+  // ══════════════════════════════
+  function glowSave() {
+    try { localStorage.setItem('yuki_glow_acts', JSON.stringify(glowActivities)); } catch(e){}
+    try { localStorage.setItem('yuki_glow_logs', JSON.stringify(glowLogs)); } catch(e){}
+    if (window.cloudSave) {
+      window.cloudSave('yuki_glow_acts', glowActivities);
+      window.cloudSave('yuki_glow_logs', glowLogs);
+    }
+  }
+
+  function glowLoad() {
+    if (window._glowActs) { glowActivities = window._glowActs; }
+    else {
+      try { glowActivities = JSON.parse(localStorage.getItem('yuki_glow_acts') || 'null') || []; } catch(e){ glowActivities = []; }
+    }
+    if (window._glowLogs) { glowLogs = window._glowLogs; }
+    else {
+      try { glowLogs = JSON.parse(localStorage.getItem('yuki_glow_logs') || 'null') || {}; } catch(e){ glowLogs = {}; }
+    }
+    // Primera vez: cargar defaults
+    if (glowActivities.length === 0) { glowActivities = DEFAULT_ACTIVITIES.map(function(a){ return Object.assign({},a); }); }
+  }
+
+  // ══════════════════════════════
+  // Helpers de fecha
+  // ══════════════════════════════
+  function dateKey(d) {
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function todayKey() { return dateKey(new Date()); }
+  function todayDow() { return new Date().getDay(); } // 0=Dom
+
+  function isDoneToday(actId) {
+    var dk = todayKey();
+    return !!(glowLogs[dk] && glowLogs[dk][actId]);
+  }
+
+  function isTodayActivity(act) {
+    if (act.freq === 'days') {
+      return act.days && act.days.indexOf(todayDow()) !== -1;
+    }
+    if (act.freq === 'every') {
+      // Busca última vez que se hizo, calcula si hoy toca
+      var lastDate = getLastDoneDate(act.id);
+      if (!lastDate) return true; // nunca hecho → siempre toca
+      var diff = Math.floor((new Date() - lastDate) / 86400000);
+      return diff >= (act.every || 1);
+    }
+    return false;
+  }
+
+  function getLastDoneDate(actId) {
+    var keys = Object.keys(glowLogs).sort().reverse();
+    for (var i = 0; i < keys.length; i++) {
+      if (glowLogs[keys[i]] && glowLogs[keys[i]][actId]) {
+        var parts = keys[i].split('-');
+        return new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+      }
+    }
+    return null;
+  }
+
+  function getDaysUntilNext(act) {
+    if (act.freq === 'days') return 0;
+    var last = getLastDoneDate(act.id);
+    if (!last) return 0;
+    var diff = Math.floor((new Date() - last) / 86400000);
+    var remaining = (act.every || 1) - diff;
+    return remaining > 0 ? remaining : 0;
+  }
+
+  // ══════════════════════════════
+  // Cálculo de Streak
+  // ══════════════════════════════
+  function computeStreak(actId, act) {
+    if (act.freq === 'every') {
+      // Para "cada X días", streak = veces consecutivas sin saltarse
+      var streak = 0;
+      var keys = Object.keys(glowLogs).sort().reverse();
+      var lastDate = null;
+      for (var i = 0; i < keys.length; i++) {
+        if (glowLogs[keys[i]] && glowLogs[keys[i]][actId]) {
+          var parts = keys[i].split('-');
+          var d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+          if (!lastDate) { streak = 1; lastDate = d; }
+          else {
+            var diff = Math.floor((lastDate - d) / 86400000);
+            if (diff <= (act.every || 1) + 1) { streak++; lastDate = d; }
+            else break;
+          }
+        }
+      }
+      return streak;
+    } else {
+      // Para días fijos: streak = días consecutivos donde tocaba y se hizo
+      var streak = 0;
+      var d = new Date();
+      for (var i = 0; i < 90; i++) {
+        var dow = d.getDay();
+        var dk = dateKey(d);
+        if (act.days && act.days.indexOf(dow) !== -1) {
+          if (glowLogs[dk] && glowLogs[dk][actId]) { streak++; }
+          else if (i > 0) { break; } // hoy lo contamos aunque no lo haya hecho
+        }
+        d.setDate(d.getDate() - 1);
+      }
+      return streak;
+    }
+  }
+
+  // ══════════════════════════════
+  // Render: Banner de racha
+  // ══════════════════════════════
+  function renderGlowBanner() {
+    var maxStreak = 0;
+    var maxAct = null;
+    glowActivities.forEach(function(act) {
+      var s = computeStreak(act.id, act);
+      if (s > maxStreak) { maxStreak = s; maxAct = act; }
+    });
+    var banner = document.getElementById('glowStreakBanner');
+    if (!banner) return;
+    if (maxStreak >= 2 && maxAct) {
+      banner.style.display = 'flex';
+      var msgs = ['¡Vas muy bien, sigue así! 💪','¡Constancia es belleza! ✨','¡Tu piel te lo agradece! 🌸','¡Racha increíble! 🔥'];
+      document.getElementById('glowStreakBannerMain').textContent = maxAct.emoji + ' ' + maxAct.name + ' — ' + maxStreak + ' veces seguidas 🔥';
+      document.getElementById('glowStreakBannerSub').textContent = msgs[maxStreak % msgs.length];
+      var pct = Math.min(100, (maxStreak / 10) * 100);
+      document.getElementById('glowProgressBar').style.width = pct + '%';
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+
+  // ══════════════════════════════
+  // Render: Hoy toca
+  // ══════════════════════════════
+  function renderGlowToday() {
+    var grid = document.getElementById('glowTodayGrid'); if (!grid) return;
+    grid.innerHTML = '';
+    var dateEl = document.getElementById('glowTodayDate');
+    if (dateEl) {
+      var now = new Date();
+      var dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+      var meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+      dateEl.textContent = dias[now.getDay()] + ' ' + now.getDate() + ' ' + meses[now.getMonth()];
+    }
+
+    var todayActs = glowActivities.filter(function(a){ return isTodayActivity(a); });
+    var otherActs = glowActivities.filter(function(a){ return !isTodayActivity(a); });
+
+    if (todayActs.length === 0 && glowActivities.length > 0) {
+      var emp = document.createElement('div');
+      emp.style.cssText = 'grid-column:1/-1;text-align:center;color:var(--muted2);font-size:.82rem;font-weight:600;padding:1.5rem 0';
+      emp.textContent = '¡Nada pendiente por hoy! Descansa bonita 🌸';
+      grid.appendChild(emp);
+    }
+
+    todayActs.forEach(function(act) {
+      grid.appendChild(makeGlowCard(act, true));
+    });
+    // Mostrar las que no tocan hoy con opacidad
+    otherActs.slice(0,4).forEach(function(act) {
+      grid.appendChild(makeGlowCard(act, false));
+    });
+  }
+
+  function makeGlowCard(act, tocaHoy) {
+    var done = isDoneToday(act.id);
+    var streak = computeStreak(act.id, act);
+
+    var card = document.createElement('div');
+    card.className = 'glow-act-card' + (done ? ' done' : '') + (!tocaHoy ? ' not-today' : '');
+    card.style.flexDirection = 'column';
+    card.style.alignItems = 'flex-start';
+
+    // Fila superior
+    var topRow = document.createElement('div');
+    topRow.style.cssText = 'display:flex;align-items:center;gap:.7rem;width:100%';
+
+    // Streak badge
+    var badge = document.createElement('div');
+    badge.className = 'glow-streak-badge' + (streak < 2 ? ' hidden' : '');
+    badge.innerHTML = '🔥 ' + streak;
+    card.appendChild(badge);
+
+    var emojiEl = document.createElement('div'); emojiEl.className = 'glow-act-emoji'; emojiEl.textContent = act.emoji || '✨';
+    var info = document.createElement('div'); info.className = 'glow-act-info';
+    var name = document.createElement('div'); name.className = 'glow-act-name'; name.textContent = act.name;
+
+    // Horario / bloque
+    var timeLabel = '';
+    if (act.timeMode === 'block' && act.block) {
+      var blockIcons = { mañana:'☀️', tarde:'🌤', noche:'🌙' };
+      timeLabel = (blockIcons[act.block] || '') + ' ' + act.block.charAt(0).toUpperCase() + act.block.slice(1);
+    } else if (act.timeMode === 'hour' && act.hour) {
+      timeLabel = '🕐 ' + act.hour;
+    } else if (act.timeMode === 'note' && act.timeNote) {
+      timeLabel = '📝 ' + act.timeNote;
+    }
+
+    var freq = document.createElement('div'); freq.className = 'glow-act-freq';
+    if (!tocaHoy) {
+      var daysLeft = getDaysUntilNext(act);
+      freq.textContent = daysLeft > 0 ? 'En ' + daysLeft + ' día' + (daysLeft>1?'s':'') : freqLabel(act);
+    } else {
+      freq.textContent = freqLabel(act);
+    }
+
+    info.appendChild(name);
+    if (timeLabel) {
+      var tb = document.createElement('div'); tb.className = 'glow-time-badge'; tb.textContent = timeLabel;
+      info.appendChild(tb);
+    }
+    info.appendChild(freq);
+
+    var check = document.createElement('div'); check.className = 'glow-act-check';
+    check.textContent = done ? '✓' : '';
+
+    topRow.appendChild(emojiEl); topRow.appendChild(info); topRow.appendChild(check);
+    card.appendChild(topRow);
+
+    // Pasos expandibles
+    var steps = act.steps || [];
+    if (steps.length > 0) {
+      var expandBtn = document.createElement('button');
+      expandBtn.className = 'glow-expand-btn';
+      expandBtn.textContent = '▸ Ver pasos (' + steps.length + ')';
+
+      var panel = document.createElement('div');
+      panel.className = 'glow-steps-panel';
+      steps.forEach(function(s, i) {
+        var row = document.createElement('div'); row.className = 'glow-step-row';
+        var num = document.createElement('div'); num.className = 'glow-step-num'; num.textContent = i+1;
+        var txt = document.createElement('div'); txt.className = 'glow-step-txt'; txt.textContent = s;
+        row.appendChild(num); row.appendChild(txt); panel.appendChild(row);
+      });
+
+      expandBtn.onclick = function(e) {
+        e.stopPropagation();
+        var open = panel.classList.toggle('open');
+        expandBtn.textContent = open ? '▾ Ocultar pasos' : '▸ Ver pasos (' + steps.length + ')';
+      };
+
+      card.appendChild(expandBtn);
+      card.appendChild(panel);
+    }
+
+    if (tocaHoy) {
+      topRow.onclick = function() { toggleGlowDone(act.id); };
+      topRow.style.cursor = 'pointer';
+    }
+    return card;
+  }
+
+  function freqLabel(act) {
+    if (act.freq === 'every') return 'Cada ' + act.every + ' día' + (act.every>1?'s':'');
+    if (act.freq === 'days' && act.days) {
+      if (act.days.length === 7) return 'Todos los días';
+      return act.days.map(function(d){ return DIAS[d]; }).join(', ');
+    }
+    return '';
+  }
+
+  function toggleGlowDone(actId) {
+    var dk = todayKey();
+    if (!glowLogs[dk]) glowLogs[dk] = {};
+    glowLogs[dk][actId] = !glowLogs[dk][actId];
+    if (!glowLogs[dk][actId]) delete glowLogs[dk][actId];
+    glowSave(); renderGlow();
+  }
+
+  // ══════════════════════════════
+  // Render: Lista de todas
+  // ══════════════════════════════
+  function renderGlowCatFilter() {
+    var row = document.getElementById('glowCatFilter'); if (!row) return;
+    row.innerHTML = '';
+    var all = document.createElement('button');
+    all.className = 'glow-cat-btn' + (glowCatFilter==='all' ? ' active' : '');
+    all.textContent = '✨ Todas';
+    all.onclick = function(){ glowCatFilter='all'; renderGlowCatFilter(); renderGlowList(); };
+    row.appendChild(all);
+    GLOW_CATS.forEach(function(c){
+      var btn = document.createElement('button');
+      btn.className = 'glow-cat-btn' + (glowCatFilter===c.id ? ' active' : '');
+      btn.textContent = c.label;
+      btn.onclick = function(){ glowCatFilter=c.id; renderGlowCatFilter(); renderGlowList(); };
+      row.appendChild(btn);
+    });
+  }
+
+  function renderGlowList() {
+    var list = document.getElementById('glowList'); if (!list) return;
+    list.innerHTML = '';
+    var filtered = glowCatFilter === 'all' ? glowActivities : glowActivities.filter(function(a){ return a.cat === glowCatFilter; });
+    if (filtered.length === 0) {
+      var emp = document.createElement('div'); emp.className = 'glow-empty';
+      emp.innerHTML = '<div class="glow-empty-icon">🌸</div>Sin actividades aquí aún.<br><small>¡Agrega la primera!</small>';
+      list.appendChild(emp); return;
+    }
+    filtered.forEach(function(act) {
+      var streak = computeStreak(act.id, act);
+      var item = document.createElement('div'); item.className = 'glow-list-item';
+      var emoji = document.createElement('div'); emoji.className = 'glow-list-emoji'; emoji.textContent = act.emoji || '✨';
+      var info = document.createElement('div'); info.className = 'glow-list-info';
+      var nameEl = document.createElement('div'); nameEl.className = 'glow-list-name'; nameEl.textContent = act.name;
+      var metaEl = document.createElement('div'); metaEl.className = 'glow-list-meta';
+      var catObj = GLOW_CATS.find(function(c){ return c.id === act.cat; });
+      var metaParts = [(catObj ? catObj.label : ''), freqLabel(act)];
+      if (act.timeMode === 'block' && act.block) {
+        var blockIcons = { mañana:'☀️', tarde:'🌤', noche:'🌙' };
+        metaParts.push((blockIcons[act.block]||'') + ' ' + act.block.charAt(0).toUpperCase() + act.block.slice(1));
+      } else if (act.timeMode === 'hour' && act.hour) {
+        metaParts.push('🕐 ' + act.hour);
+      } else if (act.timeMode === 'note' && act.timeNote) {
+        metaParts.push('📝 ' + act.timeNote);
+      }
+      if (act.steps && act.steps.length > 0) metaParts.push('📋 ' + act.steps.length + ' paso' + (act.steps.length>1?'s':''));
+      metaEl.textContent = metaParts.filter(Boolean).join('  •  ');
+      if (streak >= 1) {
+        var stEl = document.createElement('span'); stEl.className = 'glow-list-streak';
+        stEl.textContent = '  🔥 ' + streak + (streak===1?' vez':' veces');
+        metaEl.appendChild(stEl);
+      }
+      info.appendChild(nameEl); info.appendChild(metaEl);
+      var editBtn = document.createElement('button'); editBtn.className = 'glow-list-edit'; editBtn.textContent = '✏️';
+      editBtn.onclick = function(){ openGlowModal(act.id); };
+      item.appendChild(emoji); item.appendChild(info); item.appendChild(editBtn);
+      list.appendChild(item);
+    });
+  }
+
+  // ══════════════════════════════
+  // Render completo
+  // ══════════════════════════════
+  function renderGlow() {
+    renderGlowBanner();
+    renderGlowToday();
+    renderGlowCatFilter();
+    renderGlowList();
+  }
+
+  // ══════════════════════════════
+  // Modal crear/editar
+  // ══════════════════════════════
+  window.openGlowModal = function(id) {
+    var existing = id ? glowActivities.find(function(a){ return a.id === id; }) : null;
+    var old = document.getElementById('glowEditModal'); if (old) old.remove();
+    var bd = document.createElement('div'); bd.className = 'meta-modal-backdrop'; bd.id = 'glowEditModal';
+    bd.onclick = function(e){ if(e.target===bd) bd.remove(); };
+    var box = document.createElement('div'); box.className = 'meta-modal-box'; box.style.maxWidth = '420px';
+
+    var catOpts = GLOW_CATS.map(function(c){
+      return '<option value="'+c.id+'"'+(existing&&existing.cat===c.id?' selected':'')+'>'+c.label+'</option>';
+    }).join('');
+
+    var isEvery = existing ? existing.freq === 'every' : false;
+    var selectedDays = existing && existing.days ? existing.days : [1,2,3,4,5,6,0];
+    var everyVal = existing && existing.every ? existing.every : 7;
+
+    var dayBtns = DIAS.map(function(d, i){
+      var on = selectedDays.indexOf(i) !== -1;
+      return '<button type="button" class="glow-day-btn'+(on?' on':'')+'" data-dow="'+i+'" id="glowDayBtn'+i+'">'+d+'</button>';
+    }).join('');
+
+    var EMOJI_OPTIONS = ['🧴','💧','🌸','🫧','🪒','💆','💅','🌿','✨','🛁','🌙','☀️','🌺','💎','🫶','🪷','🍃','🫶'];
+    var emojiOpts = EMOJI_OPTIONS.map(function(e){
+      return '<button type="button" class="glow-day-btn'+(existing&&existing.emoji===e?' on':'')+'" data-emoji="'+e+'" style="font-size:1.1rem;width:38px;height:38px">'+e+'</button>';
+    }).join('');
+
+    // Tiempo
+    var tMode = existing ? (existing.timeMode || 'none') : 'none';
+    var tBlock = existing ? (existing.block || 'mañana') : 'mañana';
+    var tHour  = existing ? (existing.hour  || '') : '';
+
+    var BLOQUES = ['mañana','tarde','noche'];
+
+    var bloqueBtns = BLOQUES.map(function(b){
+      var icons = { mañana:'☀️', tarde:'🌤', noche:'🌙' };
+      return '<button type="button" class="glow-bloque-btn'+(tBlock===b?' on':'')+'" data-bloque="'+b+'">'+icons[b]+' '+b.charAt(0).toUpperCase()+b.slice(1)+'</button>';
+    }).join('');
+
+    // Pasos existentes
+    var initSteps = existing && existing.steps ? existing.steps.slice() : [];
+
+    box.innerHTML = '<div class="glow-modal-title">'+(existing?'Editar actividad':'Nueva actividad')+'</div>'
+      +'<div class="modal-field"><label class="modal-label">Nombre</label>'
+      +'<input class="modal-input" id="glowNameInp" placeholder="Ej: Mascarilla facial…" value="'+(existing?existing.name.replace(/"/g,'&quot;'):'')+'"></div>'
+      +'<div class="modal-field"><label class="modal-label">Categoría</label>'
+      +'<select class="modal-input" id="glowCatInp" style="cursor:pointer">'+catOpts+'</select></div>'
+      +'<div class="modal-field"><label class="modal-label">Emoji</label>'
+      +'<div class="glow-day-toggles" id="glowEmojiRow">'+emojiOpts+'</div></div>'
+      // ── Frecuencia
+      +'<div class="modal-field"><label class="modal-label">Frecuencia</label>'
+      +'<div class="glow-freq-tabs">'
+      +'<button type="button" class="glow-freq-tab'+(isEvery?'':' active')+'" id="glowFreqDays" onclick="glowSwitchFreq(\'days\')">📅 Días fijos</button>'
+      +'<button type="button" class="glow-freq-tab'+(isEvery?' active':'')+'" id="glowFreqEvery" onclick="glowSwitchFreq(\'every\')">🔄 Cada X días</button>'
+      +'</div></div>'
+      +'<div id="glowFreqDaysWrap" style="'+(isEvery?'display:none':'')+'">'
+      +'<div class="modal-field"><label class="modal-label">Días de la semana</label>'
+      +'<div class="glow-day-toggles" id="glowDayRow">'+dayBtns+'</div></div>'
+      +'</div>'
+      +'<div id="glowFreqEveryWrap" style="'+(isEvery?'':'display:none')+'">'
+      +'<div class="modal-field"><label class="modal-label">Repetir cada cuántos días</label>'
+      +'<input class="modal-input" id="glowEveryInp" type="number" min="1" max="90" value="'+everyVal+'" style="max-width:100px"></div>'
+      +'</div>'
+      // ── Horario
+      +'<div class="modal-field"><label class="modal-label">¿Cuándo hacerla?</label>'
+      +'<div class="glow-time-mode-tabs">'
+      +'<button type="button" class="glow-freq-tab'+(tMode==='none'?' active':'')+'" id="glowTmNone" onclick="glowSwitchTime(\'none\')">Sin horario</button>'
+      +'<button type="button" class="glow-freq-tab'+(tMode==='block'?' active':'')+'" id="glowTmBlock" onclick="glowSwitchTime(\'block\')">☀️ Bloque del día</button>'
+      +'<button type="button" class="glow-freq-tab'+(tMode==='hour'?' active':'')+'" id="glowTmHour" onclick="glowSwitchTime(\'hour\')">🕐 Hora exacta</button>'
+      +'<button type="button" class="glow-freq-tab'+(tMode==='note'?' active':'')+'" id="glowTmNote" onclick="glowSwitchTime(\'note\')">📝 Nota</button>'
+      +'</div></div>'
+      +'<div id="glowTimeBlockWrap" style="'+(tMode==='block'?'':'display:none')+'">'
+      +'<div class="glow-bloque-btns" id="glowBloqueBtns">'+bloqueBtns+'</div>'
+      +'</div>'
+      +'<div id="glowTimeHourWrap" style="'+(tMode==='hour'?'':'display:none')+'">'
+      +'<input class="modal-input" id="glowHourInp" type="time" value="'+tHour+'" style="max-width:130px;margin-top:.4rem">'
+      +'</div>'
+      +'<div id="glowTimeNoteWrap" style="'+(tMode==='note'?'':'display:none')+'">'
+      +'<input class="modal-input" id="glowNoteInp" placeholder="Ej: durante la ducha, antes de dormir…" value="'+(existing&&existing.timeNote?existing.timeNote.replace(/"/g,'&quot;'):'')+'" style="margin-top:.4rem">'
+      +'</div>'
+      // ── Pasos
+      +'<div class="modal-field" style="margin-top:.8rem"><label class="modal-label">Pasos / instrucciones (opcional)</label>'
+      +'<div class="glow-steps-builder" id="glowStepsBuilder"></div>'
+      +'<button type="button" class="glow-add-step-btn" id="glowAddStepBtn">＋ Agregar paso</button>'
+      +'</div>'
+      // ── Botones
+      +'<div class="modal-btns" style="margin-top:1rem">'
+      +(existing?'<button type="button" class="modal-btn-cancel" style="color:#e53935;border-color:#e53935" id="glowDelBtn">🗑 Eliminar</button>':'')
+      +'<button type="button" class="modal-btn-cancel" onclick="document.getElementById(\'glowEditModal\').remove()">Cancelar</button>'
+      +'<button type="button" class="modal-btn-save" id="glowSaveBtn">Guardar</button>'
+      +'</div>';
+
+    bd.appendChild(box); document.body.appendChild(bd);
+
+    // ── Emoji toggle
+    var glowSelectedEmoji = existing ? (existing.emoji || '✨') : '✨';
+    box.querySelectorAll('[data-emoji]').forEach(function(btn){
+      btn.onclick = function(){
+        glowSelectedEmoji = btn.dataset.emoji;
+        box.querySelectorAll('[data-emoji]').forEach(function(b){ b.classList.toggle('on', b===btn); });
+      };
+    });
+
+    // ── Day toggle
+    var glowSelectedDays = selectedDays.slice();
+    box.querySelectorAll('[data-dow]').forEach(function(btn){
+      btn.onclick = function(){
+        var dow = parseInt(btn.dataset.dow);
+        var idx = glowSelectedDays.indexOf(dow);
+        if (idx === -1) { glowSelectedDays.push(dow); btn.classList.add('on'); }
+        else { glowSelectedDays.splice(idx,1); btn.classList.remove('on'); }
+      };
+    });
+
+    // ── Freq switch
+    window.glowSwitchFreq = function(mode) {
+      document.getElementById('glowFreqDays').classList.toggle('active', mode==='days');
+      document.getElementById('glowFreqEvery').classList.toggle('active', mode==='every');
+      document.getElementById('glowFreqDaysWrap').style.display = mode==='days' ? '' : 'none';
+      document.getElementById('glowFreqEveryWrap').style.display = mode==='every' ? '' : 'none';
+    };
+
+    // ── Time mode switch
+    var glowTimeMode = tMode;
+    var glowSelectedBlock = tBlock;
+    window.glowSwitchTime = function(mode) {
+      glowTimeMode = mode;
+      ['none','block','hour','note'].forEach(function(m){
+        var el = document.getElementById('glowTm'+m.charAt(0).toUpperCase()+m.slice(1));
+        if (el) el.classList.toggle('active', m===mode);
+      });
+      document.getElementById('glowTimeBlockWrap').style.display = mode==='block' ? '' : 'none';
+      document.getElementById('glowTimeHourWrap').style.display  = mode==='hour'  ? '' : 'none';
+      document.getElementById('glowTimeNoteWrap').style.display  = mode==='note'  ? '' : 'none';
+    };
+
+    // Bloque toggle
+    box.querySelectorAll('[data-bloque]').forEach(function(btn){
+      btn.onclick = function(){
+        glowSelectedBlock = btn.dataset.bloque;
+        box.querySelectorAll('[data-bloque]').forEach(function(b){ b.classList.toggle('on', b===btn); });
+      };
+    });
+
+    // ── Pasos builder
+    var glowSteps = initSteps.slice();
+
+    function renderStepsBuilder() {
+      var builder = document.getElementById('glowStepsBuilder'); if (!builder) return;
+      builder.innerHTML = '';
+      glowSteps.forEach(function(s, i) {
+        var row = document.createElement('div'); row.className = 'glow-step-inp-row';
+        var num = document.createElement('div'); num.className = 'glow-step-num'; num.style.cssText = 'min-width:22px;height:22px;font-size:.65rem'; num.textContent = i+1;
+        var inp = document.createElement('input'); inp.className = 'modal-input glow-step-inp';
+        inp.placeholder = 'Paso ' + (i+1) + '…'; inp.value = s;
+        inp.oninput = function(){ glowSteps[i] = inp.value; };
+        var del = document.createElement('button'); del.className = 'glow-step-del'; del.textContent = '✕';
+        del.onclick = function(){ glowSteps.splice(i,1); renderStepsBuilder(); };
+        row.appendChild(num); row.appendChild(inp); row.appendChild(del);
+        builder.appendChild(row);
+      });
+    }
+
+    renderStepsBuilder();
+
+    document.getElementById('glowAddStepBtn').onclick = function(){
+      glowSteps.push(''); renderStepsBuilder();
+      // Focus último input
+      var inps = document.querySelectorAll('.glow-step-inp');
+      if (inps.length) inps[inps.length-1].focus();
+    };
+
+    // ── Guardar
+    document.getElementById('glowSaveBtn').onclick = function(){
+      var name = (document.getElementById('glowNameInp').value || '').trim();
+      if (!name) { document.getElementById('glowNameInp').focus(); return; }
+      var cat = document.getElementById('glowCatInp').value;
+      var freqMode = document.getElementById('glowFreqEvery').classList.contains('active') ? 'every' : 'days';
+      var everyN = parseInt(document.getElementById('glowEveryInp').value) || 7;
+      var hourVal = (document.getElementById('glowHourInp').value || '').trim();
+      var noteVal = (document.getElementById('glowNoteInp').value || '').trim();
+      var cleanSteps = glowSteps.map(function(s){ return s.trim(); }).filter(Boolean);
+
+      if (existing) {
+        existing.name = name; existing.cat = cat; existing.emoji = glowSelectedEmoji;
+        existing.freq = freqMode;
+        if (freqMode === 'days') { existing.days = glowSelectedDays; delete existing.every; }
+        else { existing.every = everyN; delete existing.days; }
+        existing.timeMode = glowTimeMode;
+        existing.block    = glowTimeMode === 'block' ? glowSelectedBlock : undefined;
+        existing.hour     = glowTimeMode === 'hour'  ? hourVal : undefined;
+        existing.timeNote = glowTimeMode === 'note'  ? noteVal : undefined;
+        existing.steps = cleanSteps;
+      } else {
+        glowActivities.push({
+          id: 'glow_' + Date.now(), name: name, emoji: glowSelectedEmoji, cat: cat,
+          freq: freqMode,
+          days: freqMode === 'days' ? glowSelectedDays : undefined,
+          every: freqMode === 'every' ? everyN : undefined,
+          timeMode: glowTimeMode,
+          block:    glowTimeMode === 'block' ? glowSelectedBlock : undefined,
+          hour:     glowTimeMode === 'hour'  ? hourVal : undefined,
+          timeNote: glowTimeMode === 'note'  ? noteVal : undefined,
+          steps: cleanSteps,
+          streak: 0, bestStreak: 0
+        });
+      }
+      glowSave(); renderGlow(); bd.remove();
+    };
+
+    // ── Eliminar
+    var delBtn = document.getElementById('glowDelBtn');
+    if (delBtn) {
+      delBtn.onclick = function(){
+        kittyConfirm('¿Eliminar esta actividad?', function(){
+          glowActivities = glowActivities.filter(function(a){ return a.id !== id; });
+          glowSave(); renderGlow(); bd.remove();
+        });
+      };
+    }
+
+    document.getElementById('glowNameInp').focus();
+  };
+
+  // ══════════════════════════════
+  // Init
+  // ══════════════════════════════
+  document.getElementById('glowNewBtn').onclick = function(){ openGlowModal(null); };
+
+  glowLoad();
+  setTimeout(function(){ renderGlow(); }, 150);
+
+  window._glowRender = renderGlow;
+  window._glowSave   = glowSave;
+
+  // Cloud sync hook
+  var _origSyncGlow = window.syncFromCloud;
+  window.syncFromCloud = function(){
+    if (window._glowActs)  { glowActivities = window._glowActs; }
+    if (window._glowLogs)  { glowLogs = window._glowLogs; }
+    if (_origSyncGlow) _origSyncGlow();
+    renderGlow();
+  };
+})();
+</script>
+</section>
+</div><!-- end scTabContent0 (Glow) -->
+
+<!-- TAB 1: Belleza (contenido original) -->
+<div id="scTabContent1" style="display:none">
 <div id="sec-belleza" style="scroll-margin-top:60px"></div>
 <section class="belleza-section" id="sec-belleza-main">
   <span class="section-sub">selfcare</span>
@@ -19263,12 +20394,12 @@ window.scShowTab = function(idx) {
 })();
 </script>
 
-</div><!-- end scTabContent0 -->
+</div><!-- end scTabContent1 -->
 
 <!-- ══════════════════════════════════════════════════════ -->
-<!-- TAB 1: MAKEUP 💄                                       -->
+<!-- TAB 2: MAKEUP 💄                                       -->
 <!-- ══════════════════════════════════════════════════════ -->
-<div id="scTabContent1" style="display:none">
+<div id="scTabContent2" style="display:none">
 
 <style>
   /* ── Makeup & Hairstyles shared styles ── */
@@ -19649,12 +20780,12 @@ window.scShowTab = function(idx) {
 })();
 </script>
 </section>
-</div><!-- end scTabContent1 -->
+</div><!-- end scTabContent2 -->
 
 <!-- ══════════════════════════════════════════════════════ -->
-<!-- TAB 2: HAIRSTYLES 💇                                   -->
+<!-- TAB 3: HAIRSTYLES 💇                                   -->
 <!-- ══════════════════════════════════════════════════════ -->
-<div id="scTabContent2" style="display:none">
+<div id="scTabContent3" style="display:none">
 <section class="groom-section" id="sec-hairstyles">
   <span class="section-sub">arreglo personal</span>
   <h2 class="section-title"><em>Mis</em> Hairstyles <span style="font-style:normal;font-weight:400">˚˖𓍢ִ໋❀</span></h2>
@@ -19786,7 +20917,7 @@ window.scShowTab = function(idx) {
 })();
 </script>
 </section>
-</div><!-- end scTabContent2 -->
+</div><!-- end scTabContent3 -->
 
 </div><!-- end page-selfcare -->
 <div id="page-salud" class="page-section">
