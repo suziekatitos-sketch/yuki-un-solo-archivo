@@ -146,11 +146,11 @@ window.kittyConfirm = function(msg, onYes, onNo) {
         // Mirror Firebase → localStorage para todas las keys conocidas
         const mirrorKeys = ['sem_data','sem_custom','recurring_tasks','completions',
           'rutina_templates','rutina_asignaciones','rutina_completions','desglose_items',
-          'gratitud_data','sueno_data','mens_data','deco_imgs','ej_templates','ej_registros','habitos_data','prompt_data',
-          'dios_data','versiculos','univ_data','belleza_templates','belleza_registros',
+          'gratitud_data','sueno_data','mens_data','deco_imgs','deco_interval','ej_templates','ej_registros','habitos_data','prompt_data',
+          'dios_data','versiculos','univ_data','univ_plan','belleza_templates','belleza_registros',
           'braindump_notes','vb_items','metas_data','mood_data','ql_lists','wl_items','wishlist_items','beauty_tips',
           'ci_state','nd_state','calm_tools','water_goal','water_state','food_state',
-          'logros_data','fortalezas','cambio_state','cambio_custom',
+          'logros_data','fortalezas','cambio_state','cambio_custom','cambio_recursos',
           'univ_futuro_items','univ_links','univ_proyectos','spark_pins','spark_historial','spark_total_minutes',
           'trans_data','custom_notifs','eventos_prep','recuper_registros',
           'notas_intereses_data','notas_intereses_cats',
@@ -161,9 +161,11 @@ window.kittyConfirm = function(msg, onYes, onNo) {
           'yuki_citas','yuki_citas_dias','yuki_citas_last','yuki_citas_idx',
           'yuki_energia_nivel','yuki_act_log','yuki_food_log','agua_data','yuki_sn',
           'rutina_franja_aliases','rutina_colchon','finanzas_data','recetario_data',
-          'limpieza_data','limp_rutinas','desp_items','crm_data',
-          'or_templates','or_completions','or_sesiones',
+          'limpieza_data','limp_rutinas','yuki_despensa_items','crm_data',
+          'yuki_or_templates','yuki_or_completions','yuki_or_sesiones',
+          'yuki_rituales','yuki_rituales_chk',
           'yuki_horario_propias','yuki_rutina_horarios_rh',
+          'yuki_horario_asig','yuki_horario_comp',
           'config_display_name','config_avatar_url',
           'yuki_anclas','yuki_anclas_chk',
           'yuki_bloque_ancla','yuki_bloque_ancla_ov','yuki_bloque_ancla_chk',
@@ -171,7 +173,13 @@ window.kittyConfirm = function(msg, onYes, onNo) {
           'yuki_armario_prendas','yuki_armario_outfits','yuki_armario_ootd','yuki_armario_maletas','yuki_armario_inspo',
           'yuki_rachas',
           'yuki_makeup','yuki_hairstyles','yuki_glow_acts','yuki_glow_logs',
-          'yuki_jardin_anclas','yuki_jardin_promesas','yuki_jardin_sabados','yuki_jardin_oracion','yuki_jardin_caracter','yuki_jardin_trabajando'];
+          'yuki_jardin_anclas','yuki_jardin_promesas','yuki_jardin_sabados','yuki_jardin_oracion','yuki_jardin_caracter','yuki_jardin_trabajando',
+          'yuki_versiones','yuki_version_hoy',
+          'yuki_meal_planner','yuki_cal_log','yuki_cal_custom_foods','yuki_pasos_log',
+          'yuki_topicos','yuki_topicos_cats',
+          'yuki_cal_simple',
+          'yuki_frascos_ahorro','yuki_vibe_gastos',
+          'yuki_temario'];
         mirrorKeys.forEach(function(k) {
           if (raw[k] !== undefined) {
             try { localStorage.setItem(k, raw[k]); } catch(e) {}
@@ -10232,6 +10240,7 @@ function todayKey() { return dateKey(new Date()); }
     <button class="agenda-view-tab" data-vista="3dias">3 días</button>
     <button class="agenda-view-tab" data-vista="semana">Mi Semana</button>
     <button class="agenda-view-tab" data-vista="mes">Mes</button>
+    <button class="agenda-view-tab" data-vista="cal">🗓 Mes en general</button>
   </div>
 
   <div class="nav-week" id="agendaNavWeek" style="display:none">
@@ -10323,6 +10332,8 @@ function todayKey() { return dateKey(new Date()); }
 <div class="grid-outer" id="gridOuter"></div>
 <!-- Vista mes (oculta por defecto) -->
 <div id="agendaMesWrap" style="display:none"></div>
+<!-- Vista calendario simple (oculta por defecto) -->
+<div id="agendaCalWrap" style="display:none"></div>
 
 <div class="week-progress" id="agendaProgress">
   <span class="prog-label">Progreso del día</span>
@@ -10336,7 +10347,7 @@ function todayKey() { return dateKey(new Date()); }
      SECCIÓN 4 · CHECK-IN SENSORIAL DIARIO
 ══════════════════════════════════════════ -->
 
-<!-- Frases neurodivergentes -->
+<!-- Frases de calma -->
 <section class="cuida-section" id="sec-semana-frases" style="margin-top:1.5rem">
   <div class="quote-card" id="quoteCardSemana">
     <div class="quote-text" id="quoteTextSemana"></div>
@@ -12642,6 +12653,9 @@ window.syncFromCloud = function() {
   if (window._rutinaCompletions)  rutinaCompletions  = window._rutinaCompletions;
   if (_origSync) _origSync();
   renderRutinas();
+  // Recargar Orden y Rutinas y Rituales desde localStorage (ya actualizado por mirrorKeys)
+  if (typeof orRender === 'function') setTimeout(orRender, 100);
+  if (typeof ritRender === 'function') setTimeout(ritRender, 100);
 };
 
 // Render inicial (por si DOMContentLoaded ya pasó)
@@ -21131,6 +21145,8 @@ function completionKey(taskId, date) {
 function render() {
   // Vista Mes tiene su propio render
   if (agendaVista === 'mes') { renderMes(); return; }
+  // Vista Calendario simple
+  if (agendaVista === 'cal') { renderAgendaCal(); return; }
 
   const allDates = getWeekDates(weekOffset);
   let dates;
@@ -21173,6 +21189,7 @@ function render() {
   if (!container) return;
   container.innerHTML = '';
   document.getElementById('agendaMesWrap').style.display = 'none';
+  var _calWrap = document.getElementById('agendaCalWrap'); if (_calWrap) _calWrap.style.display = 'none';
   container.style.display = '';
 
   // Progreso label
@@ -21846,14 +21863,289 @@ function renderMes() {
   mesWrap.appendChild(wrap);
 
   // Progreso: ocultar en vista mes
+  // Progreso: ocultar en vista mes
   var progEl = document.getElementById('agendaProgress');
   if (progEl) progEl.style.display = 'none';
 }
+</script>
 
+<style>
+  .cal-simple-wrap { max-width: 820px; margin: 0 auto; padding: .8rem 1rem 3rem; }
+  .cal-simple-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+  .cal-simple-nav button { background: none; border: none; font-size: 1.1rem; cursor: pointer; color: var(--muted); padding: .25rem .55rem; border-radius: 8px; transition: background .15s; }
+  .cal-simple-nav button:hover { background: var(--rosa-soft); }
+  .cal-simple-nav-title { font-family: var(--font-title); font-size: 1rem; font-style: italic; color: var(--text); font-weight: 700; }
+  .cal-simple-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; margin-bottom: 1.5rem; }
+  .cal-simple-head { text-align: center; font-size: .58rem; font-weight: 800; color: var(--muted2); padding: .25rem 0; text-transform: uppercase; letter-spacing: .04em; }
+  .cal-simple-cell { min-height: 52px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--card); padding: .35rem .4rem; cursor: pointer; transition: all .18s; position: relative; overflow: hidden; }
+  .cal-simple-cell:hover { border-color: var(--rosa); box-shadow: 0 2px 10px rgba(244,167,192,.18); }
+  .cal-simple-cell.today { background: var(--rosa-soft); border-color: var(--rosa); }
+  .cal-simple-cell.selected { border-color: var(--rosa); box-shadow: 0 0 0 2px var(--rosa); }
+  .cal-simple-cell.other-month { opacity: .35; }
+  .cal-simple-cell-num { font-size: .72rem; font-weight: 800; color: var(--text); }
+  .cal-simple-cell.today .cal-simple-cell-num { color: var(--rosa); }
+  .cal-simple-cell-dots { display: flex; gap: 2px; flex-wrap: wrap; margin-top: .25rem; }
+  .cal-simple-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--rosa); opacity: .7; flex-shrink: 0; }
+  .cal-simple-day-panel { background: var(--card); border: 1.5px solid var(--border); border-radius: 16px; padding: 1rem 1.1rem 1.2rem; }
+  .cal-simple-day-title { font-family: var(--font-title); font-style: italic; font-size: 1rem; color: var(--text); margin-bottom: .8rem; font-weight: 700; }
+  .cal-simple-items { display: flex; flex-direction: column; gap: .35rem; margin-bottom: .7rem; }
+  .cal-simple-item { display: flex; align-items: center; gap: .55rem; padding: .42rem .65rem; border-radius: 10px; background: var(--bg); border: 1.5px solid var(--border); cursor: pointer; transition: all .18s; user-select: none; }
+  .cal-simple-item:hover { border-color: var(--rosa); }
+  .cal-simple-item.done { background: var(--rosa-soft); border-color: var(--rosa); }
+  .cal-simple-item-check { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); background: var(--card); display: flex; align-items: center; justify-content: center; font-size: .65rem; flex-shrink: 0; transition: all .18s; }
+  .cal-simple-item.done .cal-simple-item-check { background: var(--rosa); border-color: var(--rosa); color: #fff; }
+  .cal-simple-item-text { font-size: .82rem; font-weight: 600; color: var(--text); flex: 1; line-height: 1.35; }
+  .cal-simple-item.done .cal-simple-item-text { text-decoration: line-through; opacity: .5; }
+  .cal-simple-item-del { background: none; border: none; cursor: pointer; color: var(--muted2); font-size: .75rem; padding: .1rem; transition: color .15s; flex-shrink: 0; opacity: 0; }
+  .cal-simple-item:hover .cal-simple-item-del { opacity: 1; }
+  .cal-simple-item-del:hover { color: #e53935; }
+  .cal-simple-add-row { display: flex; gap: .5rem; align-items: center; }
+  .cal-simple-inp { flex: 1; background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px; padding: .42rem .75rem; font-family: var(--font-body); font-size: .82rem; color: var(--text); outline: none; transition: border-color .18s; }
+  .cal-simple-inp:focus { border-color: var(--rosa); }
+  .cal-simple-inp::placeholder { color: var(--muted2); }
+  .cal-simple-add-btn { background: var(--rosa); border: none; border-radius: 10px; color: #fff; font-family: var(--font-body); font-size: .82rem; font-weight: 800; padding: .42rem .9rem; cursor: pointer; transition: opacity .18s; flex-shrink: 0; }
+  .cal-simple-add-btn:hover { opacity: .85; }
+  .cal-simple-empty { text-align: center; color: var(--muted2); font-size: .78rem; font-style: italic; padding: .8rem 0 .4rem; }
+  @media(max-width:480px){ .cal-simple-cell { min-height: 40px; } .cal-simple-cell-num { font-size: .65rem; } }
+</style>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// CALENDARIO SIMPLE – notas libres por día
+// ══════════════════════════════════════════════════════════
+(function(){
+  var CAL_KEY = 'yuki_cal_simple';
+  function calLoad() {
+    try { return JSON.parse(localStorage.getItem(CAL_KEY) || '{}'); } catch(e) { return {}; }
+  }
+  function calSave(data) {
+    try { localStorage.setItem(CAL_KEY, JSON.stringify(data)); } catch(e) {}
+    if (window.cloudSave) window.cloudSave(CAL_KEY, data);
+  }
+  function dateKey(d) {
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+
+  var calMonthOffset = 0;
+  var calSelectedKey = dateKey(new Date()); // default: hoy
+
+  // ── Render principal
+  window.renderAgendaCal = function() {
+    var gridOuter = document.getElementById('gridOuter');
+    var mesWrap   = document.getElementById('agendaMesWrap');
+    var calWrap   = document.getElementById('agendaCalWrap');
+    var navWeek   = document.getElementById('agendaNavWeek');
+    var progEl    = document.getElementById('agendaProgress');
+
+    if (gridOuter) { gridOuter.innerHTML = ''; gridOuter.style.display = 'none'; }
+    if (mesWrap)   mesWrap.style.display   = 'none';
+    if (navWeek)   navWeek.style.display   = 'none';
+    if (progEl)    progEl.style.display    = 'none';
+    if (!calWrap)  return;
+    calWrap.style.display = '';
+    calWrap.innerHTML     = '';
+
+    var data = calLoad();
+    var today = new Date(); today.setHours(0,0,0,0);
+
+    // Mes a mostrar
+    var baseMonth = new Date(today.getFullYear(), today.getMonth() + calMonthOffset, 1);
+    var year  = baseMonth.getFullYear();
+    var month = baseMonth.getMonth();
+
+    var DIAS  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    var MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+    var wrap = document.createElement('div'); wrap.className = 'cal-simple-wrap';
+
+    // Nav
+    var nav = document.createElement('div'); nav.className = 'cal-simple-nav';
+    var prevBtn = document.createElement('button'); prevBtn.textContent = '‹';
+    prevBtn.onclick = function(){ calMonthOffset--; window.renderAgendaCal(); };
+    var title = document.createElement('div'); title.className = 'cal-simple-nav-title';
+    title.textContent = MESES[month] + ' ' + year;
+    var nextBtn = document.createElement('button'); nextBtn.textContent = '›';
+    nextBtn.onclick = function(){ calMonthOffset++; window.renderAgendaCal(); };
+    var todayBtn = document.createElement('button');
+    todayBtn.textContent = 'Hoy'; todayBtn.style.cssText = 'font-size:.72rem;font-weight:800;border:1.5px solid var(--border);border-radius:20px;padding:.2rem .65rem;';
+    todayBtn.onclick = function(){ calMonthOffset=0; calSelectedKey=dateKey(today); window.renderAgendaCal(); };
+    nav.appendChild(prevBtn); nav.appendChild(title); nav.appendChild(todayBtn); nav.appendChild(nextBtn);
+    wrap.appendChild(nav);
+
+    // Grid cabecera
+    var grid = document.createElement('div'); grid.className = 'cal-simple-grid';
+    DIAS.forEach(function(d){ var h = document.createElement('div'); h.className = 'cal-simple-head'; h.textContent = d; grid.appendChild(h); });
+
+    // Primer día del mes y último
+    var firstDay = new Date(year, month, 1);
+    var lastDay  = new Date(year, month+1, 0);
+    var startDow = firstDay.getDay(); // 0=Dom
+
+    // Celdas del mes anterior
+    for (var i = 0; i < startDow; i++) {
+      var d = new Date(year, month, -(startDow-1-i));
+      var cell = makeCalCell(d, data, today, true); grid.appendChild(cell);
+    }
+    // Celdas del mes actual
+    for (var day = 1; day <= lastDay.getDate(); day++) {
+      var d = new Date(year, month, day);
+      var cell = makeCalCell(d, data, today, false); grid.appendChild(cell);
+    }
+    // Celdas del mes siguiente para completar la cuadrícula
+    var totalCells = startDow + lastDay.getDate();
+    var remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+    for (var i = 0; i < remaining; i++) {
+      var d = new Date(year, month+1, i+1);
+      var cell = makeCalCell(d, data, today, true); grid.appendChild(cell);
+    }
+
+    wrap.appendChild(grid);
+
+    // Panel del día seleccionado
+    var panel = document.createElement('div'); panel.id = 'calSimpleDayPanel';
+    wrap.appendChild(panel);
+    calWrap.appendChild(wrap);
+
+    renderCalDayPanel(calSelectedKey, data, panel);
+  };
+
+  function makeCalCell(d, data, today, otherMonth) {
+    var dk = dateKey(d);
+    var items = data[dk] || [];
+    var isToday = d.getTime() === today.getTime();
+    var isSelected = dk === calSelectedKey;
+
+    var cell = document.createElement('div');
+    cell.className = 'cal-simple-cell' +
+      (isToday    ? ' today'       : '') +
+      (otherMonth ? ' other-month' : '') +
+      (isSelected ? ' selected'    : '');
+
+    var num = document.createElement('div'); num.className = 'cal-simple-cell-num'; num.textContent = d.getDate();
+    cell.appendChild(num);
+
+    if (items.length > 0) {
+      var dots = document.createElement('div'); dots.className = 'cal-simple-cell-dots';
+      var maxDots = Math.min(items.length, 5);
+      for (var i = 0; i < maxDots; i++) {
+        var dot = document.createElement('div'); dot.className = 'cal-simple-dot'; dots.appendChild(dot);
+      }
+      cell.appendChild(dots);
+    }
+
+    cell.onclick = function() {
+      calSelectedKey = dk;
+      // Update selected class
+      document.querySelectorAll('.cal-simple-cell').forEach(function(c){ c.classList.remove('selected'); });
+      cell.classList.add('selected');
+      // Re-render panel
+      var panel = document.getElementById('calSimpleDayPanel');
+      if (panel) renderCalDayPanel(dk, calLoad(), panel);
+    };
+
+    return cell;
+  }
+
+  function renderCalDayPanel(dk, data, panel) {
+    panel.innerHTML = '';
+    panel.className = 'cal-simple-day-panel';
+
+    var items = (data[dk] || []).slice();
+
+    var DIAS_FULL  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    var MESES_FULL = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    var parts = dk.split('-');
+    var dObj  = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+    var titleTxt = DIAS_FULL[dObj.getDay()] + ' ' + dObj.getDate() + ' de ' + MESES_FULL[dObj.getMonth()];
+
+    var titleEl = document.createElement('div'); titleEl.className = 'cal-simple-day-title'; titleEl.textContent = '✦ ' + titleTxt;
+    panel.appendChild(titleEl);
+
+    var list = document.createElement('div'); list.className = 'cal-simple-items';
+
+    function saveAndRefresh() {
+      data[dk] = items.filter(function(it){ return it.text.trim() !== ''; });
+      if (data[dk].length === 0) delete data[dk];
+      calSave(data);
+      renderCalDayPanel(dk, data, panel);
+      // Refresh dots on grid cell
+      var cells = document.querySelectorAll('.cal-simple-cell');
+      cells.forEach(function(c) {
+        // re-render dots for selected cell
+        var dots = c.querySelector('.cal-simple-cell-dots');
+        var num  = c.querySelector('.cal-simple-cell-num');
+        if (!num) return;
+        // find dk of this cell — compare selected
+        if (c.classList.contains('selected')) {
+          if (dots) dots.remove();
+          if (items.length > 0) {
+            var d2 = document.createElement('div'); d2.className = 'cal-simple-cell-dots';
+            for (var i = 0; i < Math.min(items.length, 5); i++) {
+              var dot = document.createElement('div'); dot.className = 'cal-simple-dot'; d2.appendChild(dot);
+            }
+            c.appendChild(d2);
+          }
+        }
+      });
+    }
+
+    if (items.length === 0) {
+      var emp = document.createElement('div'); emp.className = 'cal-simple-empty';
+      emp.textContent = 'Nada por aquí aún. ¡Añade algo! ✨';
+      list.appendChild(emp);
+    }
+
+    items.forEach(function(it, i) {
+      var row = document.createElement('div'); row.className = 'cal-simple-item' + (it.done ? ' done' : '');
+      var chk = document.createElement('div'); chk.className = 'cal-simple-item-check'; chk.textContent = it.done ? '✓' : '';
+      var txt = document.createElement('div'); txt.className = 'cal-simple-item-text'; txt.textContent = it.text;
+      var del = document.createElement('button'); del.className = 'cal-simple-item-del'; del.textContent = '✕';
+      del.onclick = function(e){ e.stopPropagation(); items.splice(i,1); saveAndRefresh(); };
+      row.onclick = function() {
+        items[i].done = !items[i].done;
+        saveAndRefresh();
+      };
+      row.appendChild(chk); row.appendChild(txt); row.appendChild(del);
+      list.appendChild(row);
+    });
+
+    panel.appendChild(list);
+
+    // Input de nueva actividad
+    var addRow = document.createElement('div'); addRow.className = 'cal-simple-add-row';
+    var inp = document.createElement('input'); inp.className = 'cal-simple-inp'; inp.placeholder = 'Añadir actividad…';
+    var addBtn = document.createElement('button'); addBtn.className = 'cal-simple-add-btn'; addBtn.textContent = '＋';
+
+    function addItem() {
+      var txt2 = inp.value.trim(); if (!txt2) return;
+      items.push({ text: txt2, done: false });
+      inp.value = '';
+      saveAndRefresh();
+      setTimeout(function(){ inp.focus(); }, 50);
+    }
+
+    inp.addEventListener('keydown', function(e){ if (e.key === 'Enter') addItem(); });
+    addBtn.onclick = addItem;
+    addRow.appendChild(inp); addRow.appendChild(addBtn);
+    panel.appendChild(addRow);
+  }
+
+  // Sincronización cloud
+  var _origSyncCal = window.syncFromCloud;
+  window.syncFromCloud = function() {
+    if (_origSyncCal) _origSyncCal();
+    if (window._calSimpleData) {
+      try { localStorage.setItem(CAL_KEY, JSON.stringify(window._calSimpleData)); } catch(e){}
+    }
+    if (typeof agendaVista !== 'undefined' && agendaVista === 'cal') window.renderAgendaCal();
+  };
+})();
+</script>
+
+<script>
 // Modal detalle de un día (desde vista mes)
 function abrirDiaModal(date, dk) {
   var backdrop = document.createElement('div');
-  backdrop.className = 'agenda-day-modal-backdrop';
   backdrop.onclick = function(e){ if(e.target===backdrop) backdrop.remove(); };
 
   var box = document.createElement('div');
@@ -34017,6 +34309,7 @@ window.showPage = function(pageId) {
     <button class="univ-tab-btn active" data-tab="materias">📚 Materias</button>
     <button class="univ-tab-btn" data-tab="tareas">📝 Tareas</button>
     <button class="univ-tab-btn" data-tab="plan">🗓️ Plan</button>
+    <button class="univ-tab-btn" data-tab="temario">🧠 Temario</button>
     <button class="univ-tab-btn" data-tab="historial">📖 Historial</button>
     <button class="univ-tab-btn" data-tab="futuro">🌟 Mi futuro soñado</button>
   </div>
@@ -34960,49 +35253,6 @@ function renderSueno() {
     }
 
     grid.appendChild(card);
-  });
-}
-
-// ── Personalizar experiencia
-function configApplyExperience() {
-  var neuro = localStorage.getItem('config_neuro') || 'si';
-
-  // Calma page — hide in drawer and page if not neurodivergente
-  var pageCalma = document.getElementById('page-calma');
-  if (pageCalma) pageCalma.style.display = (neuro === 'no') ? 'none' : '';
-
-  // Hide/show Calma in drawer
-  document.querySelectorAll('.drawer-item').forEach(function(btn) {
-    if (btn.dataset.page === 'page-calma') {
-      btn.style.display = (neuro === 'no') ? 'none' : '';
-    }
-  });
-
-  // Neurodivergent quotes — filter from QUOTES array if not neuro
-  if (typeof QUOTES !== 'undefined') {
-    window._filteredQuotes = (neuro === 'no')
-      ? QUOTES.filter(function(q) { return !q.author || !q.author.toLowerCase().includes('neurodiv'); })
-      : QUOTES;
-  }
-}
-
-
-window.configSetNeuro = function(val) {
-  localStorage.setItem('config_neuro', val);
-  document.querySelectorAll('#configNeuroRow .config-option-btn').forEach(function(b) {
-    b.classList.toggle('active', b.dataset.val === val);
-  });
-  configApplyExperience();
-  // If currently on calma and hiding it, go to inicio
-  if (val === 'no' && window.activePage === 'page-calma') {
-    window.showPage('page-inicio');
-  }
-};
-
-function configLoadExperience() {
-  var neuro = localStorage.getItem('config_neuro') || 'si';
-  document.querySelectorAll('#configNeuroRow .config-option-btn').forEach(function(b) {
-    b.classList.toggle('active', b.dataset.val === neuro);
   });
 }
 
@@ -37214,11 +37464,11 @@ const REMINDERS = [
   { id:'rm5', icon:'📵', text:'Descanso de pantallas' },
 ];
 const QUOTES = [
-  { text: 'Mi cerebro funciona diferente, no defectuoso. Eso es una fortaleza.', author: '- Comunidad neurodivergente' },
-  { text: 'No tengo que ser como todos los demás para ser valiosa. Soy suficiente tal como soy.', author: '- Autocompasión neurodivergente' },
+  { text: 'Mi cerebro funciona diferente, no defectuoso. Eso es una fortaleza.', author: '- Autocompasión' },
+  { text: 'No tengo que ser como todos los demás para ser valiosa. Soy suficiente tal como soy.', author: '- Autocompasión' },
   { text: 'Cada pequeño logro del día cuenta. No hay victorias demasiado pequeñas.', author: '- Para ti, hoy' },
-  { text: 'Pedir ayuda es inteligente, no debilidad. Conocerme a mí misma es mi superpoder.', author: '- Sabiduría neurodivergente' },
-  { text: 'Mis necesidades sensoriales son válidas. Cuidarme es mi prioridad.', author: '- Autocuidado neurodivergente' },
+  { text: 'Pedir ayuda es inteligente, no debilidad. Conocerme a mí misma es mi superpoder.', author: '- Sabiduría propia' },
+  { text: 'Mis necesidades sensoriales son válidas. Cuidarme es mi prioridad.', author: '- Autocuidado' },
   { text: 'El caos de hoy no define el mañana. Puedo empezar de nuevo en cualquier momento.', author: '- Para días difíciles' },
 ];
 
@@ -37280,8 +37530,8 @@ function renderCuida() {
     rmWrap.appendChild(el);
   });
 
-  // Quote — filter neurodivergent quotes if user is not neuro
-  const _activeQuotes = (window._filteredQuotes && window._filteredQuotes.length) ? window._filteredQuotes : QUOTES;
+  // Quote
+  const _activeQuotes = QUOTES;
   const _safeIdx = quoteIdx % _activeQuotes.length;
   const q = _activeQuotes[_safeIdx];
   ['quoteText','quoteTextSemana'].forEach(id => { const el = document.getElementById(id); if(el) el.textContent = q.text; });
@@ -37643,180 +37893,6 @@ function openDrawer() {
   document.getElementById('hamburgerBtn').classList.add('open');
 }
 
-// ══════════════════════════════════════════════
-// SISTEMA DE PERFILES NEURODIVERGENTES - YUKI
-// ══════════════════════════════════════════════
-
-var YUKI_TONOS = {
-  autista: {
-    bienvenida: 'Hola. Hoy puedes hacer esto. Sin prisa, sin juicio.',
-    vacio: 'Nada aquí todavía. Añade algo cuando quieras.',
-    motivacion: 'Un paso a la vez. Sin prisa.'
-  },
-  tdah: {
-    bienvenida: '¡Vamos! 🚀 Una cosita a la vez. Tú puedes.',
-    vacio: '¡Vacío! Añade algo y empieza ✨',
-    motivacion: '¡Pequeños pasos, grandes logros! 💪'
-  },
-  aacc: {
-    bienvenida: 'Tu mente va rápido. Aquí tienes espacio para organizarla.',
-    vacio: 'Sin contenido aún. Cuando tengas algo, aquí estará.',
-    motivacion: 'La complejidad se conquista un paso a la vez.'
-  },
-  neurotipica: {
-    bienvenida: 'Bienvenida de vuelta. ¿En qué te ayudo hoy?',
-    vacio: 'Aún no hay nada aquí.',
-    motivacion: 'Vas muy bien.'
-  }
-};
-
-function yukiGetPerfiles() {
-  try {
-    var raw = localStorage.getItem('yuki_perfiles');
-    if (raw) return JSON.parse(raw);
-  } catch(e){}
-  // Migrar perfil antiguo si existe
-  var old = localStorage.getItem('yuki_perfil');
-  if (old) return [old];
-  return null;
-}
-
-function yukiGetPerfil() {
-  // Devuelve el perfil dominante para el tono
-  var perfiles = yukiGetPerfiles();
-  if (!perfiles || perfiles.length === 0) return null;
-  var orden = ['autista','tdah','aacc','neurotipica'];
-  for (var i = 0; i < orden.length; i++) {
-    if (perfiles.indexOf(orden[i]) !== -1) return orden[i];
-  }
-  return perfiles[0];
-}
-
-function yukiSetPerfiles(perfiles) {
-  localStorage.setItem('yuki_perfiles', JSON.stringify(perfiles));
-  document.querySelectorAll('.config-perfil-btn').forEach(function(btn) {
-    btn.classList.toggle('active', perfiles.indexOf(btn.dataset.perfil) !== -1);
-  });
-  yukiAplicarTono(yukiGetPerfil());
-}
-
-function yukiTogglePerfil(perfil) {
-  var perfiles = yukiGetPerfiles() || [];
-  if (perfil === 'neurotipica') {
-    perfiles = ['neurotipica'];
-  } else {
-    var niIdx = perfiles.indexOf('neurotipica');
-    if (niIdx !== -1) perfiles.splice(niIdx, 1);
-    var idx = perfiles.indexOf(perfil);
-    if (idx !== -1) {
-      perfiles.splice(idx, 1);
-      if (perfiles.length === 0) perfiles = [perfil];
-    } else {
-      perfiles.push(perfil);
-    }
-  }
-  yukiSetPerfiles(perfiles);
-}
-
-function yukiSetPerfil(perfil) {
-  yukiSetPerfiles([perfil]);
-}
-
-function yukiAplicarTono(perfil) {
-  var tono = YUKI_TONOS[perfil] || YUKI_TONOS['neurotipica'];
-  var welcomeEl = document.getElementById('yukiWelcomeMsg');
-  if (welcomeEl) welcomeEl.textContent = tono.bienvenida;
-}
-
-function yukiCheckOnboarding() {
-  if (!yukiGetPerfiles()) {
-    yukiShowOnboarding();
-  } else {
-    yukiAplicarTono(yukiGetPerfil());
-    yukiSyncConfigPerfilBtns();
-  }
-}
-
-function yukiSyncConfigPerfilBtns() {
-  var perfiles = yukiGetPerfiles() || [];
-  document.querySelectorAll('.config-perfil-btn').forEach(function(btn) {
-    btn.classList.toggle('active', perfiles.indexOf(btn.dataset.perfil) !== -1);
-  });
-}
-
-function yukiShowOnboarding() {
-  var old = document.getElementById('yukiOnboardingModal');
-  if (old) old.remove();
-
-  var backdrop = document.createElement('div');
-  backdrop.id = 'yukiOnboardingModal';
-  backdrop.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;display:flex;align-items:center;justify-content:center;padding:1.2rem;animation:fadeIn .2s ease';
-
-  var box = document.createElement('div');
-  box.style.cssText = 'background:var(--card);border-radius:24px;padding:1.6rem 1.4rem 1.3rem;max-width:340px;width:100%;box-shadow:0 16px 56px rgba(0,0,0,.28);text-align:center';
-
-  var emojis = [['🌸','Autista','autista'],['⚡','TDAH','tdah'],['✨','AACC','aacc'],['🤍','No soy neurodivergente','neurotipica']];
-  var descs = {
-    autista:'Claro, directo, sin prisa.',
-    tdah:'Energético, corto, con emojis.',
-    aacc:'Profundo, reflexivo.',
-    neurotipica:'Cálido y amigable.'
-  };
-
-  var html = '<div style="font-size:1.6rem;margin-bottom:.5rem">🌸</div>'
-    + '<div style="font-family:var(--font-title);font-style:italic;font-size:1.15rem;font-weight:700;color:var(--text);margin-bottom:.3rem">Hola, bienvenida</div>'
-    + '<div style="font-size:.75rem;color:var(--muted);font-weight:600;margin-bottom:.4rem;line-height:1.5">¿Cómo eres tú? Puedes elegir varios perfiles a la vez.</div>'
-    + '<div style="font-size:.68rem;color:var(--rosa);font-weight:700;margin-bottom:1rem">Puedes seleccionar varios a la vez 💖</div>'
-    + '<div id="onboardingPerfilesWrap" style="display:flex;flex-direction:column;gap:.5rem;text-align:left">';
-
-  emojis.forEach(function(e) {
-    html += '<button id="obBtn_'+e[2]+'" data-perfil="'+e[2]+'" onclick="yukiOnboardingToggle(\''+e[2]+'\')"'
-      + ' style="display:flex;align-items:center;gap:.8rem;padding:.7rem 1rem;border-radius:14px;border:2px solid var(--border);background:var(--bg);cursor:pointer;font-family:var(--font-body);width:100%;text-align:left;transition:all .15s">'
-      + '<span style="font-size:1.3rem;flex-shrink:0">'+e[0]+'</span>'
-      + '<div><strong style="display:block;font-size:.82rem;color:var(--text);font-weight:800">'+e[1]+'</strong>'
-      + '<span style="font-size:.67rem;color:var(--muted2);font-weight:600">'+descs[e[2]]+'</span></div>'
-      + '</button>';
-  });
-
-  html += '</div>'
-    + '<button onclick="yukiOnboardingConfirm()" '
-    + 'style="margin-top:1rem;width:100%;padding:.7rem;border-radius:14px;background:var(--rosa);color:#fff;border:none;cursor:pointer;font-family:var(--font-body);font-weight:800;font-size:.88rem">¡Listo! 💖</button>'
-    + '<button onclick="yukiSetPerfil(\'neurotipica\');document.getElementById(\'yukiOnboardingModal\').remove()" '
-    + 'style="margin-top:.6rem;font-size:.7rem;color:var(--muted2);background:none;border:none;cursor:pointer;font-family:var(--font-body);font-weight:600">Saltar por ahora</button>';
-
-  box.innerHTML = html;
-  backdrop.appendChild(box);
-  document.body.appendChild(backdrop);
-  window._obPerfiles = [];
-}
-
-window.yukiOnboardingToggle = function(perfil) {
-  var perfiles = window._obPerfiles || [];
-  if (perfil === 'neurotipica') {
-    perfiles = perfiles.indexOf('neurotipica') !== -1 ? [] : ['neurotipica'];
-  } else {
-    var niIdx = perfiles.indexOf('neurotipica');
-    if (niIdx !== -1) perfiles.splice(niIdx, 1);
-    var idx = perfiles.indexOf(perfil);
-    if (idx !== -1) { perfiles.splice(idx, 1); } else { perfiles.push(perfil); }
-  }
-  window._obPerfiles = perfiles;
-  document.querySelectorAll('#onboardingPerfilesWrap button').forEach(function(btn) {
-    var p = btn.dataset.perfil;
-    var sel = perfiles.indexOf(p) !== -1;
-    btn.style.borderColor = sel ? 'var(--rosa)' : 'var(--border)';
-    btn.style.background = sel ? 'var(--rosa-soft)' : 'var(--bg)';
-  });
-};
-
-window.yukiOnboardingConfirm = function() {
-  var perfiles = window._obPerfiles || [];
-  if (perfiles.length === 0) perfiles = ['neurotipica'];
-  yukiSetPerfiles(perfiles);
-  var modal = document.getElementById('yukiOnboardingModal');
-  if (modal) modal.remove();
-};
-
 // ── Gesto: doble toque en "🌸 Yuki" del drawer ──
 (function() {
   var lastTap = 0;
@@ -37841,22 +37917,6 @@ window.yukiOnboardingConfirm = function() {
 
 // ── Iniciar al cargar ──
 document.addEventListener('DOMContentLoaded', function() {
-  // Esperar un momento hasta que la app esté lista
-  setTimeout(function() {
-    var appScreen = document.getElementById('app-screen');
-    if (appScreen && (appScreen.style.display !== 'none')) {
-      yukiCheckOnboarding();
-    }
-  }, 1500);
-
-  // También sincronizar al entrar en config
-  var _origShowForPerfil = window.showPage;
-  window.showPage = function(p) {
-    if (typeof _origShowForPerfil === 'function') _origShowForPerfil(p);
-    if (p === 'page-config') {
-      setTimeout(yukiSyncConfigPerfilBtns, 100);
-    }
-  };
 });
 
 function closeDrawer() {
@@ -37875,7 +37935,6 @@ document.addEventListener('DOMContentLoaded', function() {
   renderDrawerNav();
   showPage('page-inicio');
   syncImgColHeight();
-  configApplyExperience();
   // Show welcome modal on first visit — se llama al final del archivo cuando ya está definida
 });
 </script>
@@ -38204,10 +38263,10 @@ function initUnivTabs() {
   if (!nav) return;
   // Activar el tab guardado
   switchUnivTab(_univTabActivo, false);
-  // Listeners
+  // Listeners — usan window.switchUnivTab para que los hooks funcionen
   nav.querySelectorAll('.univ-tab-btn').forEach(function(btn) {
     btn.onclick = function() {
-      switchUnivTab(btn.dataset.tab, true);
+      (window.switchUnivTab || switchUnivTab)(btn.dataset.tab, true);
     };
   });
 }
@@ -38230,7 +38289,11 @@ function switchUnivTab(tabId, save) {
   // Persistir
   _univTabActivo = tabId;
   if (save) { try { localStorage.setItem('univ_tab_activo', tabId); } catch(e){} }
+  // Dispatch para hooks externos
+  window._univTabActivo = tabId;
+  if (window._onUnivTabSwitch) window._onUnivTabSwitch(tabId);
 }
+window.switchUnivTab = switchUnivTab;
 
 // ── Motivación
 function renderUnivMotiv() {
@@ -40388,6 +40451,728 @@ document.addEventListener('DOMContentLoaded', function() {
 })();
 </script>
 
+
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- TAB: TEMARIO / REPETICIÓN ESPACIADA                   -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <div class="univ-tab-panel" id="univTab-temario" style="display:none">
+  </div><!-- end univTab-temario -->
+
+<style>
+/* ── Temario: layout ── */
+.tem-wrap { padding: .5rem 0 3rem; }
+.tem-toolbar { display: flex; align-items: center; justify-content: space-between; gap: .6rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.tem-vista-tabs { display: flex; gap: .3rem; }
+.tem-vista-btn { padding: .28rem .75rem; border-radius: 20px; border: 1.5px solid var(--border); background: var(--card); font-family: var(--font-body); font-size: .7rem; font-weight: 700; color: var(--muted); cursor: pointer; transition: all .18s; }
+.tem-vista-btn.active { background: var(--rosa); border-color: var(--rosa); color: #fff; }
+.tem-new-btn { display: flex; align-items: center; gap: .35rem; padding: .32rem .9rem; border-radius: 20px; border: 1.5px solid var(--rosa); background: transparent; font-family: var(--font-body); font-size: .75rem; font-weight: 800; color: var(--rosa); cursor: pointer; transition: all .18s; }
+.tem-new-btn:hover { background: var(--rosa); color: #fff; }
+.tem-day-section { margin-bottom: 1.4rem; }
+.tem-day-label { font-size: .68rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .5rem; }
+.tem-day-label.hoy-label { color: var(--rosa); }
+.tem-cards-col { display: flex; flex-direction: column; gap: .55rem; }
+.tem-card { background: var(--card); border: 1.5px solid var(--border); border-radius: 16px; padding: .85rem 1rem; position: relative; overflow: hidden; transition: box-shadow .2s; }
+.tem-card:hover { box-shadow: 0 4px 18px rgba(0,0,0,.08); }
+.tem-card-stripe { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 16px 0 0 16px; }
+.tem-card-top { display: flex; align-items: flex-start; gap: .6rem; }
+.tem-card-check { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); background: var(--bg); display: flex; align-items: center; justify-content: center; font-size: .72rem; cursor: pointer; flex-shrink: 0; margin-top: .1rem; transition: all .18s; }
+.tem-card-check.done { background: var(--rosa); border-color: var(--rosa); color: #fff; }
+.tem-card-body { flex: 1; min-width: 0; }
+.tem-card-name { font-size: .88rem; font-weight: 800; color: var(--text); margin-bottom: .2rem; }
+.tem-card-meta { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; margin-bottom: .3rem; }
+.tem-card-materia { font-size: .65rem; font-weight: 800; padding: .1rem .45rem; border-radius: 20px; color: #fff; }
+.tem-card-rep { font-size: .62rem; font-weight: 700; color: var(--muted2); }
+.tem-card-notes { font-size: .72rem; color: var(--muted); line-height: 1.5; margin-top: .3rem; white-space: pre-wrap; }
+.tem-card-actions { display: flex; gap: .35rem; margin-top: .5rem; flex-wrap: wrap; }
+.tem-card-btn { background: none; border: 1.5px solid var(--border); border-radius: 20px; font-family: var(--font-body); font-size: .65rem; font-weight: 700; color: var(--muted); cursor: pointer; padding: .2rem .6rem; transition: all .15s; }
+.tem-card-btn:hover { border-color: var(--rosa); color: var(--rosa); }
+.tem-card-subtemas { margin-top: .55rem; padding-top: .55rem; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: .35rem; }
+.tem-sub-row { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.tem-sub-name { font-size: .75rem; font-weight: 600; color: var(--text); flex: 1; min-width: 120px; }
+.tem-sub-next { font-size: .6rem; color: var(--muted2); font-weight: 700; }
+.tem-sub-rating-badge { display: inline-flex; align-items: center; gap: .2rem; font-size: .6rem; font-weight: 800; padding: .1rem .4rem; border-radius: 20px; color: #fff; }
+.tem-empty { text-align: center; color: var(--muted2); font-size: .82rem; font-style: italic; padding: 2.5rem 0; }
+.tem-empty-icon { font-size: 2rem; margin-bottom: .4rem; }
+.tem-mes-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: .8rem; }
+.tem-mes-nav button { background: none; border: none; font-size: 1rem; cursor: pointer; color: var(--muted); padding: .2rem .5rem; border-radius: 8px; transition: background .15s; }
+.tem-mes-nav button:hover { background: var(--rosa-soft); }
+.tem-mes-title { font-family: var(--font-title); font-size: .95rem; font-style: italic; color: var(--text); font-weight: 700; }
+.tem-mes-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; margin-bottom: 1rem; }
+.tem-mes-head { text-align: center; font-size: .55rem; font-weight: 800; color: var(--muted2); padding: .2rem 0; text-transform: uppercase; }
+.tem-mes-cell { min-height: 54px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--card); padding: .3rem .35rem; cursor: pointer; transition: all .18s; }
+.tem-mes-cell:hover { border-color: var(--rosa); }
+.tem-mes-cell.today { background: var(--rosa-soft); border-color: var(--rosa); }
+.tem-mes-cell.selected { box-shadow: 0 0 0 2px var(--rosa); }
+.tem-mes-cell.other-month { opacity: .3; pointer-events: none; }
+.tem-mes-cell-num { font-size: .68rem; font-weight: 800; color: var(--text); }
+.tem-mes-cell.today .tem-mes-cell-num { color: var(--rosa); }
+.tem-mes-dots { display: flex; gap: 2px; flex-wrap: wrap; margin-top: .2rem; }
+.tem-mes-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.tem-mes-day-detail { background: var(--card); border: 1.5px solid var(--border); border-radius: 14px; padding: .8rem 1rem 1rem; margin-top: .8rem; }
+.tem-mes-day-title { font-family: var(--font-title); font-style: italic; font-size: .9rem; color: var(--text); margin-bottom: .6rem; font-weight: 700; }
+.tem-rating-sub { background: var(--bg); border: 1.5px solid var(--border); border-radius: 12px; padding: .6rem .8rem; margin-bottom: .5rem; }
+.tem-rating-sub-name { font-size: .8rem; font-weight: 800; color: var(--text); margin-bottom: .5rem; }
+.tem-rating-btns { display: flex; gap: .3rem; flex-wrap: wrap; }
+.tem-rating-btn { padding: .28rem .55rem; border-radius: 10px; border: 1.5px solid var(--border); background: var(--card); font-family: var(--font-body); font-size: .68rem; font-weight: 800; cursor: pointer; transition: all .18s; color: var(--text); }
+.tem-rating-btn:hover { opacity: .85; }
+.tem-rating-btn.sel { color: #fff; border-color: transparent; }
+.tem-recurso-chip { display: inline-flex; align-items: center; gap: .3rem; padding: .2rem .55rem; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); font-size: .65rem; font-weight: 700; color: var(--rosa); text-decoration: none; margin: .15rem .15rem 0 0; transition: background .15s; }
+.tem-recurso-chip:hover { background: var(--rosa-soft); }
+@media(max-width:480px){ .tem-mes-cell { min-height: 40px; } }
+</style>
+
+<script>
+(function(){
+// ════════════════════════════════════════════════════════
+// TEMARIO — Sistema de Repeticion Espaciada (SM-2 simplificado)
+// ════════════════════════════════════════════════════════
+
+var TEM_KEY = 'yuki_temario';
+
+// ── Persistencia
+function temLoad() {
+  try { return JSON.parse(localStorage.getItem(TEM_KEY) || '[]'); } catch(e) { return []; }
+}
+function temSave(data) {
+  try { localStorage.setItem(TEM_KEY, JSON.stringify(data)); } catch(e) {}
+  if (window.cloudSave) window.cloudSave(TEM_KEY, data);
+}
+
+// ── Helpers de fecha
+function dk(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function today() { var d = new Date(); d.setHours(0,0,0,0); return d; }
+function todayKey() { return dk(today()); }
+function dateFromKey(k) { var p = k.split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
+function addDays(d, n) { var r = new Date(d); r.setDate(r.getDate()+n); return r; }
+
+// ── SM-2 simplificado para cada subtema
+// rating: 0=Again 1=Hard 2=Fair 3=Good 4=Great 5=Easy
+function sm2Next(sub, rating) {
+  // sub = { name, ef, interval, repetitions, nextKey, lastRating }
+  var ef   = sub.ef        || 2.5;
+  var intv = sub.interval  || 1;
+  var reps = sub.repetitions || 0;
+
+  if (rating < 2) {
+    // Again / Hard: reinicia
+    reps = 0; intv = 1;
+  } else {
+    if (reps === 0)      intv = 1;
+    else if (reps === 1) intv = 3;
+    else                 intv = Math.round(intv * ef);
+    reps++;
+  }
+
+  // Ajustar EF
+  ef = ef + (0.1 - (5 - rating) * (0.08 + (5 - rating) * 0.02));
+  if (ef < 1.3) ef = 1.3;
+
+  var nextDate = addDays(today(), intv);
+  return {
+    ef: parseFloat(ef.toFixed(2)),
+    interval: intv,
+    repetitions: reps,
+    nextKey: dk(nextDate),
+    lastRating: rating
+  };
+}
+
+// ── Colores rating
+var RATING_COLORS = ['#ef4444','#f97316','#eab308','#84cc16','#22c55e','#10b981'];
+var RATING_LABELS = ['Again','Hard','Fair','Good','Great','Easy'];
+
+// ── Obtener materias del semestre activo
+function getMaterias() {
+  if (typeof getActiveSem !== 'function') return [];
+  var sem = getActiveSem();
+  return (sem && sem.materias) ? sem.materias : [];
+}
+function getMateriaById(id) {
+  return getMaterias().find(function(m){ return m.id === id; }) || null;
+}
+
+// ── Estado de vista
+var temVista = 'hoy';
+var temMesOffset = 0;
+var temMesSelectedKey = todayKey();
+
+// ── Render principal
+function temRender() {
+  var panel = document.getElementById('univTab-temario');
+  if (!panel || panel.style.display === 'none') return;
+  panel.innerHTML = '';
+
+  var wrap = document.createElement('div'); wrap.className = 'tem-wrap';
+
+  // Toolbar
+  var toolbar = document.createElement('div'); toolbar.className = 'tem-toolbar';
+  var vistas = document.createElement('div'); vistas.className = 'tem-vista-tabs';
+  [['hoy','Hoy'],['3dias','3 días'],['mes','Mes']].forEach(function(v) {
+    var btn = document.createElement('button'); btn.className = 'tem-vista-btn' + (temVista===v[0]?' active':'');
+    btn.textContent = v[1];
+    btn.onclick = function(){ temVista = v[0]; temRender(); };
+    vistas.appendChild(btn);
+  });
+  var newBtn = document.createElement('button'); newBtn.className = 'tem-new-btn';
+  newBtn.innerHTML = '＋ Nuevo tema';
+  newBtn.onclick = function(){ temOpenModal(null); };
+  toolbar.appendChild(vistas); toolbar.appendChild(newBtn);
+  wrap.appendChild(toolbar);
+
+  var data = temLoad();
+
+  if (temVista === 'hoy') temRenderHoy(wrap, data, 1);
+  else if (temVista === '3dias') temRenderHoy(wrap, data, 3);
+  else temRenderMes(wrap, data);
+
+  panel.appendChild(wrap);
+}
+
+// ── Vista hoy / 3 días
+function temRenderHoy(wrap, data, dias) {
+  var t = today();
+  var anyContent = false;
+
+  for (var d = 0; d < dias; d++) {
+    var date = addDays(t, d);
+    var dkey = dk(date);
+    var isHoy = d === 0;
+
+    // Temas con ALGÚN subtema cuya nextKey <= dkey
+    var tarjetas = data.filter(function(tema) {
+      return (tema.subtemas || []).some(function(s) {
+        return (s.nextKey || todayKey()) <= dkey;
+      });
+    });
+
+    if (tarjetas.length === 0 && dias === 1) {
+      // Solo en vista hoy mostramos el empty state completo
+    }
+    if (tarjetas.length === 0 && !isHoy) continue;
+
+    var section = document.createElement('div'); section.className = 'tem-day-section';
+    var lbl = document.createElement('div');
+    lbl.className = 'tem-day-label' + (isHoy ? ' hoy-label' : '');
+    var DIAS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    var MESES_SHORT = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    lbl.textContent = isHoy ? ('✦ Hoy · ' + date.getDate() + ' ' + MESES_SHORT[date.getMonth()]) : (DIAS[date.getDay()] + ' · ' + date.getDate() + ' ' + MESES_SHORT[date.getMonth()]);
+    section.appendChild(lbl);
+
+    if (tarjetas.length === 0) {
+      var emp = document.createElement('div'); emp.className = 'tem-empty';
+      emp.innerHTML = '<div class="tem-empty-icon">🌸</div>¡Sin temas para hoy! Descansa o agrega uno.';
+      section.appendChild(emp);
+    } else {
+      anyContent = true;
+      var col = document.createElement('div'); col.className = 'tem-cards-col';
+      tarjetas.forEach(function(tema) {
+        col.appendChild(makeTemCard(tema, dkey, data));
+      });
+      section.appendChild(col);
+    }
+    wrap.appendChild(section);
+  }
+
+  if (!anyContent && dias > 1) {
+    var emp2 = document.createElement('div'); emp2.className = 'tem-empty';
+    emp2.innerHTML = '<div class="tem-empty-icon">🎉</div>¡Sin pendientes en los próximos ' + dias + ' días!';
+    wrap.appendChild(emp2);
+  }
+}
+
+// ── Tarjeta de tema
+function makeTemCard(tema, dkey, data) {
+  var mat = getMateriaById(tema.materiaId);
+  var matColor = (mat && mat.color) ? mat.color : '#888';
+  var matName  = (mat && mat.name)  ? mat.name  : 'Sin materia';
+
+  var card = document.createElement('div'); card.className = 'tem-card';
+
+  // Stripe color materia
+  var stripe = document.createElement('div'); stripe.className = 'tem-card-stripe';
+  stripe.style.background = matColor;
+  card.appendChild(stripe);
+  card.style.paddingLeft = '1.2rem';
+
+  var topRow = document.createElement('div'); topRow.className = 'tem-card-top';
+
+  // Check
+  var check = document.createElement('div'); check.className = 'tem-card-check';
+  check.textContent = '';
+  check.onclick = function(e) { e.stopPropagation(); temOpenRating(tema.id, data); };
+  topRow.appendChild(check);
+
+  var body = document.createElement('div'); body.className = 'tem-card-body';
+
+  var name = document.createElement('div'); name.className = 'tem-card-name'; name.textContent = tema.nombre;
+  body.appendChild(name);
+
+  var meta = document.createElement('div'); meta.className = 'tem-card-meta';
+  var matBadge = document.createElement('span'); matBadge.className = 'tem-card-materia';
+  matBadge.style.background = matColor; matBadge.textContent = matName;
+  meta.appendChild(matBadge);
+
+  // Próxima repetición info
+  var subsDue = (tema.subtemas||[]).filter(function(s){ return (s.nextKey||todayKey()) <= dkey; });
+  if (subsDue.length > 0) {
+    var rep = document.createElement('span'); rep.className = 'tem-card-rep';
+    rep.textContent = subsDue.length + ' subtema' + (subsDue.length>1?'s':'') + ' para repasar';
+    meta.appendChild(rep);
+  }
+  body.appendChild(meta);
+
+  if (tema.notas) {
+    var notes = document.createElement('div'); notes.className = 'tem-card-notes';
+    notes.textContent = tema.notas.length > 100 ? tema.notas.slice(0,100)+'…' : tema.notas;
+    body.appendChild(notes);
+  }
+
+  // Recursos
+  if (tema.recursos && tema.recursos.length > 0) {
+    var resRow = document.createElement('div'); resRow.style.marginTop = '.3rem';
+    tema.recursos.forEach(function(r) {
+      var chip = document.createElement('a'); chip.className = 'tem-recurso-chip';
+      chip.href = r.url; chip.target = '_blank'; chip.rel = 'noopener';
+      chip.textContent = '🔗 ' + (r.label || r.url.slice(0,30));
+      resRow.appendChild(chip);
+    });
+    body.appendChild(resRow);
+  }
+
+  // Acciones
+  var actions = document.createElement('div'); actions.className = 'tem-card-actions';
+  var editBtn = document.createElement('button'); editBtn.className = 'tem-card-btn'; editBtn.textContent = '✏️ Editar';
+  editBtn.onclick = function(e){ e.stopPropagation(); temOpenModal(tema.id); };
+  var moveBtn = document.createElement('button'); moveBtn.className = 'tem-card-btn'; moveBtn.textContent = '📅 Mover fecha';
+  moveBtn.onclick = function(e){
+    e.stopPropagation();
+    temOpenMoverFecha(tema.id);
+  };
+  actions.appendChild(editBtn); actions.appendChild(moveBtn);
+  body.appendChild(actions);
+
+  // Subtemas
+  if (tema.subtemas && tema.subtemas.length > 0) {
+    var subsWrap = document.createElement('div'); subsWrap.className = 'tem-card-subtemas';
+    tema.subtemas.forEach(function(s) {
+      var row = document.createElement('div'); row.className = 'tem-sub-row';
+      var sname = document.createElement('div'); sname.className = 'tem-sub-name'; sname.textContent = '• ' + s.name;
+      row.appendChild(sname);
+      if (s.lastRating !== undefined) {
+        var badge = document.createElement('span'); badge.className = 'tem-sub-rating-badge';
+        badge.style.background = RATING_COLORS[s.lastRating];
+        badge.textContent = RATING_LABELS[s.lastRating];
+        row.appendChild(badge);
+      }
+      var snext = document.createElement('div'); snext.className = 'tem-sub-next';
+      var nk = s.nextKey || todayKey();
+      snext.textContent = nk <= todayKey() ? '📅 Hoy' : ('📅 ' + nk.slice(5).replace('-','/'));
+      row.appendChild(snext);
+      subsWrap.appendChild(row);
+    });
+    body.appendChild(subsWrap);
+  }
+
+  topRow.appendChild(body);
+  card.appendChild(topRow);
+  return card;
+}
+
+// ── Vista mes
+function temRenderMes(wrap, data) {
+  var t = today();
+  var baseMonth = new Date(t.getFullYear(), t.getMonth() + temMesOffset, 1);
+  var year = baseMonth.getFullYear();
+  var month = baseMonth.getMonth();
+  var MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var DIAS_HEAD = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+  // Build map: dk -> list of (tema, subtema)
+  var dayMap = {};
+  data.forEach(function(tema) {
+    (tema.subtemas||[]).forEach(function(s) {
+      var k = s.nextKey || todayKey();
+      if (!dayMap[k]) dayMap[k] = [];
+      dayMap[k].push({ tema: tema, sub: s });
+    });
+  });
+
+  var nav = document.createElement('div'); nav.className = 'tem-mes-nav';
+  var prevBtn = document.createElement('button'); prevBtn.textContent = '‹';
+  prevBtn.onclick = function(){ temMesOffset--; temRender(); };
+  var title = document.createElement('div'); title.className = 'tem-mes-title';
+  title.textContent = MESES[month] + ' ' + year;
+  var todayBtn = document.createElement('button'); todayBtn.textContent = 'Hoy';
+  todayBtn.style.cssText = 'font-size:.7rem;font-weight:800;border:1.5px solid var(--border);border-radius:20px;padding:.18rem .6rem';
+  todayBtn.onclick = function(){ temMesOffset=0; temMesSelectedKey=todayKey(); temRender(); };
+  var nextBtn = document.createElement('button'); nextBtn.textContent = '›';
+  nextBtn.onclick = function(){ temMesOffset++; temRender(); };
+  nav.appendChild(prevBtn); nav.appendChild(title); nav.appendChild(todayBtn); nav.appendChild(nextBtn);
+  wrap.appendChild(nav);
+
+  var grid = document.createElement('div'); grid.className = 'tem-mes-grid';
+  DIAS_HEAD.forEach(function(d){ var h=document.createElement('div'); h.className='tem-mes-head'; h.textContent=d; grid.appendChild(h); });
+
+  var firstDay = new Date(year, month, 1);
+  var lastDay  = new Date(year, month+1, 0);
+  var startDow = firstDay.getDay();
+
+  function makeCell(date, isOther) {
+    var dkey = dk(date);
+    var isToday = dkey === todayKey();
+    var isSel   = dkey === temMesSelectedKey;
+    var cell = document.createElement('div');
+    cell.className = 'tem-mes-cell' + (isToday?' today':'') + (isSel?' selected':'') + (isOther?' other-month':'');
+    var num = document.createElement('div'); num.className = 'tem-mes-cell-num'; num.textContent = date.getDate();
+    cell.appendChild(num);
+    var items = dayMap[dkey] || [];
+    if (items.length > 0) {
+      var dots = document.createElement('div'); dots.className = 'tem-mes-dots';
+      // Unique colors from temas on this day
+      var seenColors = {};
+      items.slice(0,6).forEach(function(item) {
+        var mat = getMateriaById(item.tema.materiaId);
+        var c = (mat&&mat.color) ? mat.color : '#888';
+        if (!seenColors[c]) {
+          seenColors[c] = true;
+          var dot = document.createElement('div'); dot.className = 'tem-mes-dot'; dot.style.background = c;
+          dots.appendChild(dot);
+        }
+      });
+      cell.appendChild(dots);
+    }
+    if (!isOther) {
+      cell.onclick = function(){
+        temMesSelectedKey = dkey;
+        grid.querySelectorAll('.tem-mes-cell').forEach(function(c){ c.classList.remove('selected'); });
+        cell.classList.add('selected');
+        renderMesDetail(dkey, dayMap);
+      };
+    }
+    return cell;
+  }
+
+  for (var i=0; i<startDow; i++) {
+    var d = new Date(year, month, -(startDow-1-i));
+    grid.appendChild(makeCell(d, true));
+  }
+  for (var day=1; day<=lastDay.getDate(); day++) {
+    var d = new Date(year, month, day);
+    grid.appendChild(makeCell(d, false));
+  }
+  var total = startDow + lastDay.getDate();
+  var rem = total%7===0 ? 0 : 7-(total%7);
+  for (var i=0; i<rem; i++) {
+    var d = new Date(year, month+1, i+1);
+    grid.appendChild(makeCell(d, true));
+  }
+  wrap.appendChild(grid);
+
+  // Detail panel
+  var detail = document.createElement('div'); detail.id = 'temMesDayDetail';
+  wrap.appendChild(detail);
+  renderMesDetail(temMesSelectedKey, dayMap);
+
+  function renderMesDetail(dkey, dayMap) {
+    var det = document.getElementById('temMesDayDetail'); if (!det) return;
+    var items = dayMap[dkey] || [];
+    if (items.length === 0) { det.innerHTML = ''; return; }
+    det.className = 'tem-mes-day-detail';
+    var MESES_FULL = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    var DIAS_FULL = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    var dObj = dateFromKey(dkey);
+    var titleEl = document.createElement('div'); titleEl.className = 'tem-mes-day-title';
+    titleEl.textContent = '✦ ' + DIAS_FULL[dObj.getDay()] + ' ' + dObj.getDate() + ' de ' + MESES_FULL[dObj.getMonth()];
+    det.innerHTML = ''; det.appendChild(titleEl);
+    var col = document.createElement('div'); col.className = 'tem-cards-col';
+    // Group by tema
+    var temasSeen = {};
+    items.forEach(function(item) {
+      if (!temasSeen[item.tema.id]) {
+        temasSeen[item.tema.id] = true;
+        col.appendChild(makeTemCard(item.tema, dkey, temLoad()));
+      }
+    });
+    det.appendChild(col);
+  }
+}
+
+// ══════════════════════════════════════════
+// MODAL crear/editar tema
+// ══════════════════════════════════════════
+function temOpenModal(id) {
+  var data = temLoad();
+  var existing = id ? data.find(function(t){ return t.id===id; }) : null;
+  var old = document.getElementById('temModal'); if (old) old.remove();
+
+  var materias = getMaterias();
+  var bd = document.createElement('div'); bd.className = 'meta-modal-backdrop'; bd.id = 'temModal';
+  bd.onclick = function(e){ if(e.target===bd) bd.remove(); };
+  var box = document.createElement('div'); box.className = 'meta-modal-box'; box.style.maxWidth = '460px';
+
+  var matOpts = materias.map(function(m){
+    return '<option value="'+m.id+'"'+(existing&&existing.materiaId===m.id?' selected':'')+'>'+m.name+'</option>';
+  }).join('');
+
+  box.innerHTML = '<div class="glow-modal-title" style="margin-bottom:.9rem">'+(existing?'✏️ Editar tema':'✨ Nuevo tema')+'</div>'
+    +'<div class="modal-field"><label class="modal-label">Nombre del tema</label>'
+    +'<input class="modal-input" id="temNombre" placeholder="Ej: Ciclo de Krebs, Anatomía del corazón…" value="'+(existing?existing.nombre.replace(/"/g,'&quot;'):'')+'"></div>'
+    +'<div class="modal-field"><label class="modal-label">Materia</label>'
+    +'<select class="modal-input" id="temMateriaId" style="cursor:pointer">'+(matOpts||'<option value="">Sin materias — ve a Materias y agrega una</option>')+'</select></div>'
+    +'<div class="modal-field"><label class="modal-label">Fecha de inicio del repaso</label>'
+    +'<input class="modal-input" id="temFechaInicio" type="date" value="'+(existing?existing.fechaInicio||todayKey():todayKey())+'"></div>'
+    +'<div class="modal-field"><label class="modal-label">Subtemas <span style="color:var(--muted2);font-weight:600">(uno por línea)</span></label>'
+    +'<div class="glow-steps-builder" id="temSubtemasBuilder"></div>'
+    +'<button class="glow-add-step-btn" id="temAddSubBtn" style="margin-top:.3rem">＋ Agregar subtema</button></div>'
+    +'<div class="modal-field"><label class="modal-label">Notas / referencia</label>'
+    +'<textarea class="modal-input" id="temNotas" rows="3" placeholder="Ej: Págs. 25-30 de Guyton, Capítulo 5…" style="resize:vertical">'+(existing?existing.notas||'':'')+'</textarea></div>'
+    +'<div class="modal-field"><label class="modal-label">Recursos / links</label>'
+    +'<div id="temRecursosBuilder"></div>'
+    +'<button class="glow-add-step-btn" id="temAddRecBtn" style="margin-top:.3rem">＋ Agregar recurso</button></div>'
+    +'<div class="modal-btns" style="margin-top:1rem">'
+    +(existing?'<button class="modal-btn-cancel" style="color:#e53935;border-color:#e53935" id="temDelBtn">🗑 Eliminar</button>':'')
+    +'<button class="modal-btn-cancel" onclick="document.getElementById(\'temModal\').remove()">Cancelar</button>'
+    +'<button class="modal-btn-save" id="temSaveBtn">Guardar</button></div>';
+
+  bd.appendChild(box); document.body.appendChild(bd);
+
+  // Subtemas builder
+  var subtemas = existing ? (existing.subtemas||[]).map(function(s){ return s.name; }) : [];
+  function renderSubBuilder() {
+    var b = document.getElementById('temSubtemasBuilder'); if(!b) return;
+    b.innerHTML = '';
+    subtemas.forEach(function(s, i) {
+      var row = document.createElement('div'); row.className = 'glow-step-inp-row';
+      var num = document.createElement('div'); num.className = 'glow-step-num'; num.style.cssText='min-width:20px;height:20px;font-size:.65rem'; num.textContent = i+1;
+      var inp = document.createElement('input'); inp.className = 'modal-input glow-step-inp';
+      inp.placeholder = 'Subtema '+(i+1)+'…'; inp.value = s;
+      inp.oninput = function(){ subtemas[i] = inp.value; };
+      var del = document.createElement('button'); del.className = 'glow-step-del'; del.textContent = '✕';
+      del.onclick = function(){ subtemas.splice(i,1); renderSubBuilder(); };
+      row.appendChild(num); row.appendChild(inp); row.appendChild(del);
+      b.appendChild(row);
+    });
+  }
+  renderSubBuilder();
+  document.getElementById('temAddSubBtn').onclick = function(){
+    subtemas.push(''); renderSubBuilder();
+    var inps = document.querySelectorAll('#temSubtemasBuilder .modal-input');
+    if(inps.length) inps[inps.length-1].focus();
+  };
+
+  // Recursos builder
+  var recursos = existing ? (existing.recursos||[]).slice() : [];
+  function renderRecBuilder() {
+    var b = document.getElementById('temRecursosBuilder'); if(!b) return;
+    b.innerHTML = '';
+    recursos.forEach(function(r, i) {
+      var row = document.createElement('div'); row.className = 'glow-step-inp-row'; row.style.gap='.3rem';
+      var inpLabel = document.createElement('input'); inpLabel.className = 'modal-input';
+      inpLabel.placeholder = 'Etiqueta (opcional)'; inpLabel.value = r.label||''; inpLabel.style.maxWidth='130px';
+      inpLabel.oninput = function(){ recursos[i].label = inpLabel.value; };
+      var inpUrl = document.createElement('input'); inpUrl.className = 'modal-input glow-step-inp';
+      inpUrl.placeholder = 'https://…'; inpUrl.value = r.url||''; inpUrl.type = 'url';
+      inpUrl.oninput = function(){ recursos[i].url = inpUrl.value; };
+      var del = document.createElement('button'); del.className = 'glow-step-del'; del.textContent = '✕';
+      del.onclick = function(){ recursos.splice(i,1); renderRecBuilder(); };
+      row.appendChild(inpLabel); row.appendChild(inpUrl); row.appendChild(del);
+      b.appendChild(row);
+    });
+  }
+  renderRecBuilder();
+  document.getElementById('temAddRecBtn').onclick = function(){
+    recursos.push({label:'',url:''}); renderRecBuilder();
+    var inps = document.querySelectorAll('#temRecursosBuilder input[type=url]');
+    if(inps.length) inps[inps.length-1].focus();
+  };
+
+  // Guardar
+  document.getElementById('temSaveBtn').onclick = function(){
+    var nombre = (document.getElementById('temNombre').value||'').trim();
+    if(!nombre){ document.getElementById('temNombre').focus(); return; }
+    var materiaId = document.getElementById('temMateriaId').value;
+    var fechaInicio = document.getElementById('temFechaInicio').value || todayKey();
+    var notas = document.getElementById('temNotas').value.trim();
+    var cleanSubs = subtemas.map(function(s){ return s.trim(); }).filter(Boolean);
+    var cleanRecs = recursos.filter(function(r){ return r.url && r.url.trim(); }).map(function(r){ return { label: r.label.trim(), url: r.url.trim() }; });
+
+    if(existing) {
+      // Preserve existing subtema SM2 state, add new ones
+      var existingSubMap = {};
+      (existing.subtemas||[]).forEach(function(s){ existingSubMap[s.name] = s; });
+      existing.nombre = nombre; existing.materiaId = materiaId; existing.notas = notas;
+      existing.fechaInicio = fechaInicio; existing.recursos = cleanRecs;
+      existing.subtemas = cleanSubs.map(function(name){
+        return existingSubMap[name] || { name: name, ef: 2.5, interval: 1, repetitions: 0, nextKey: fechaInicio, lastRating: undefined };
+      });
+    } else {
+      data.push({
+        id: 'tem_'+Date.now(), nombre: nombre, materiaId: materiaId,
+        notas: notas, fechaInicio: fechaInicio, recursos: cleanRecs,
+        subtemas: cleanSubs.map(function(name){
+          return { name: name, ef: 2.5, interval: 1, repetitions: 0, nextKey: fechaInicio };
+        })
+      });
+    }
+    temSave(data); bd.remove(); temRender();
+  };
+
+  // Eliminar
+  var delBtn = document.getElementById('temDelBtn');
+  if(delBtn){ delBtn.onclick = function(){
+    if(typeof kittyConfirm === 'function'){
+      kittyConfirm('¿Eliminar este tema?', function(){ data = data.filter(function(t){ return t.id!==id; }); temSave(data); bd.remove(); temRender(); });
+    } else {
+      if(confirm('¿Eliminar?')){ data = data.filter(function(t){ return t.id!==id; }); temSave(data); bd.remove(); temRender(); }
+    }
+  }; }
+
+  document.getElementById('temNombre').focus();
+}
+
+// ══════════════════════════════════════════
+// MODAL de rating (puntuación por subtema)
+// ══════════════════════════════════════════
+function temOpenRating(temaId, data) {
+  var tema = data.find(function(t){ return t.id===temaId; });
+  if(!tema) return;
+  var subtemas = tema.subtemas || [];
+  if(subtemas.length === 0) {
+    // Si no tiene subtemas, marcar el tema completo con rating del tema
+    subtemas = [{ name: tema.nombre, _synthetic: true }];
+  }
+
+  var old = document.getElementById('temRatingModal'); if(old) old.remove();
+  var bd = document.createElement('div'); bd.className = 'meta-modal-backdrop'; bd.id = 'temRatingModal';
+  bd.onclick = function(e){ if(e.target===bd) bd.remove(); };
+  var box = document.createElement('div'); box.className = 'meta-modal-box'; box.style.maxWidth = '420px';
+
+  var ratings = {}; // subtema name -> rating (0-5)
+
+  var html = '<div class="glow-modal-title" style="margin-bottom:.3rem">¿Cómo te fue?</div>'
+    +'<p style="font-size:.72rem;color:var(--muted);font-weight:600;margin-bottom:.9rem;line-height:1.4">Puntúa cada subtema. Esto define cuándo vuelve a aparecer.</p>';
+
+  subtemas.forEach(function(s) {
+    html += '<div class="tem-rating-sub" id="temRateSub_'+encodeURIComponent(s.name)+'">'
+      +'<div class="tem-rating-sub-name">'+(s._synthetic ? '📌 General' : ('📍 '+s.name))+'</div>'
+      +'<div class="tem-rating-btns">';
+    RATING_LABELS.forEach(function(lbl, r) {
+      html += '<button class="tem-rating-btn" data-r="'+r+'" data-sub="'+encodeURIComponent(s.name)+'" style="border-color:'+RATING_COLORS[r]+'">'
+        +'<span style="color:'+RATING_COLORS[r]+'">'+r+'</span> '+lbl+'</button>';
+    });
+    html += '</div></div>';
+  });
+
+  html += '<div class="modal-btns" style="margin-top:1rem">'
+    +'<button class="modal-btn-cancel" onclick="document.getElementById(\'temRatingModal\').remove()">Cancelar</button>'
+    +'<button class="modal-btn-save" id="temRatingSaveBtn">Guardar y programar</button></div>';
+
+  box.innerHTML = html;
+  bd.appendChild(box); document.body.appendChild(bd);
+
+  // Rating button toggle
+  box.querySelectorAll('.tem-rating-btn').forEach(function(btn) {
+    btn.onclick = function() {
+      var r = parseInt(btn.dataset.r);
+      var sub = btn.dataset.sub;
+      ratings[sub] = r;
+      box.querySelectorAll('.tem-rating-btn[data-sub="'+sub+'"]').forEach(function(b){
+        var br = parseInt(b.dataset.r);
+        b.classList.toggle('sel', br===r);
+        b.style.background = (br===r) ? RATING_COLORS[br] : '';
+        b.querySelector('span').style.color = (br===r) ? '#fff' : RATING_COLORS[br];
+      });
+    };
+  });
+
+  document.getElementById('temRatingSaveBtn').onclick = function(){
+    // Check all rated
+    var allRated = subtemas.every(function(s){ return ratings[encodeURIComponent(s.name)] !== undefined; });
+    if(!allRated){
+      var hint = box.querySelector('#temRateHint');
+      if(!hint){ hint = document.createElement('p'); hint.id='temRateHint'; hint.style.cssText='color:#e53935;font-size:.7rem;font-weight:700;margin-top:.5rem;text-align:center'; box.querySelector('.modal-btns').before(hint); }
+      hint.textContent = '⚠️ Puntúa todos los subtemas antes de guardar';
+      return;
+    }
+    var fresh = temLoad();
+    var temaFresh = fresh.find(function(t){ return t.id===temaId; });
+    if(temaFresh) {
+      (temaFresh.subtemas||[]).forEach(function(s) {
+        var r = ratings[encodeURIComponent(s.name)];
+        if(r !== undefined) {
+          var upd = sm2Next(s, r);
+          s.ef = upd.ef; s.interval = upd.interval; s.repetitions = upd.repetitions;
+          s.nextKey = upd.nextKey; s.lastRating = upd.lastRating;
+        }
+      });
+    }
+    temSave(fresh); bd.remove(); temRender();
+  };
+}
+
+// ══════════════════════════════════════════
+// MODAL mover fecha de un tema (todos sus subtemas)
+// ══════════════════════════════════════════
+function temOpenMoverFecha(temaId) {
+  var data = temLoad();
+  var tema = data.find(function(t){ return t.id===temaId; });
+  if(!tema) return;
+  var old = document.getElementById('temMoverModal'); if(old) old.remove();
+  var bd = document.createElement('div'); bd.className = 'meta-modal-backdrop'; bd.id = 'temMoverModal';
+  bd.onclick = function(e){ if(e.target===bd) bd.remove(); };
+  var box = document.createElement('div'); box.className = 'meta-modal-box'; box.style.maxWidth = '340px';
+  box.innerHTML = '<div class="glow-modal-title" style="margin-bottom:.7rem">📅 Mover fecha de repaso</div>'
+    +'<p style="font-size:.72rem;color:var(--muted);font-weight:600;margin-bottom:.9rem;line-height:1.4">Elige una nueva fecha para todos los subtemas de <strong>'+tema.nombre+'</strong>.</p>'
+    +'<div class="modal-field"><label class="modal-label">Nueva fecha</label>'
+    +'<input class="modal-input" id="temMoverFechaInp" type="date" value="'+todayKey()+'"></div>'
+    +'<div class="modal-btns" style="margin-top:1rem">'
+    +'<button class="modal-btn-cancel" onclick="document.getElementById(\'temMoverModal\').remove()">Cancelar</button>'
+    +'<button class="modal-btn-save" id="temMoverSaveBtn">Mover</button></div>';
+  bd.appendChild(box); document.body.appendChild(bd);
+  document.getElementById('temMoverSaveBtn').onclick = function(){
+    var newDate = document.getElementById('temMoverFechaInp').value;
+    if(!newDate) return;
+    var fresh = temLoad();
+    var temaFresh = fresh.find(function(t){ return t.id===temaId; });
+    if(temaFresh) {
+      (temaFresh.subtemas||[]).forEach(function(s){ s.nextKey = newDate; });
+    }
+    temSave(fresh); bd.remove(); temRender();
+  };
+}
+
+// ── Hook: escuchar cambios de tab de universidad
+window._onUnivTabSwitch = function(tab) {
+  if (tab === 'temario') setTimeout(temRender, 50);
+};
+
+// Si al cargar la página el tab activo es temario, renderizar
+document.addEventListener('DOMContentLoaded', function(){
+  setTimeout(function(){
+    if(localStorage.getItem('univ_tab_activo') === 'temario') temRender();
+  }, 500);
+});
+
+// ── Cloud sync
+if(window.cloudSave) {
+  var _orig = window.syncFromCloud;
+  window.syncFromCloud = function(){
+    if(_orig) _orig();
+    if(typeof agendaVista !== 'undefined' && document.getElementById('univTab-temario') && document.getElementById('univTab-temario').style.display !== 'none') temRender();
+  };
+}
+
+// ── Add to mirrorKeys list via localStorage
+try {
+  var _mk = JSON.parse(localStorage.getItem('_yukiMirrorKeysExtra')||'[]');
+  if(_mk.indexOf(TEM_KEY)===-1){ _mk.push(TEM_KEY); localStorage.setItem('_yukiMirrorKeysExtra', JSON.stringify(_mk)); }
+} catch(e){}
+
+window.temRender = temRender;
+})();
+</script>
 
   </div><!-- end page-univ -->
 <div id="page-intereses" class="page-section">
@@ -45045,73 +45830,6 @@ window.buscarPageShowTab = function(tab) {
 
 
 
-  <!-- Personalizar experiencia -->
-  <div class="config-block config-block-collapsible collapsed" id="personalizarExpBlock">
-    <div class="config-block-title" onclick="(function(){ var b=document.getElementById('personalizarExpBlock'); b.classList.toggle('collapsed'); })()">✨ Personalizar experiencia</div>
-    <div class="theme-collapse-body">
-    <p style="font-size:.72rem;color:var(--muted);font-weight:600;margin-bottom:1rem;line-height:1.5">Personaliza la app para que se adapte a ti 💙</p>
-
-    <div class="config-field">
-      <label class="config-label">¿Eres neurodivergente?</label>
-      <p style="font-size:.65rem;color:var(--muted2);font-weight:600;margin-bottom:.5rem;line-height:1.4">La sección Calma y algunas frases están diseñadas especialmente para mentes neurodivergentes</p>
-      <div class="config-option-row" id="configNeuroRow">
-        <button class="config-option-btn active" data-val="si" onclick="configSetNeuro('si')">Sí ✦</button>
-        <button class="config-option-btn" data-val="no" onclick="configSetNeuro('no')">No, no tengo una condición neurodivergente</button>
-      </div>
-
-      <!-- Selector de perfil específico -->
-      <div id="configPerfilWrap" style="margin-top:1rem">
-        <label class="config-label" style="margin-bottom:.4rem">Tu perfil 💖</label>
-        <p style="font-size:.65rem;color:var(--muted2);font-weight:600;margin-bottom:.3rem;line-height:1.4">Personaliza el tono y las secciones según quién eres</p>
-        <p style="font-size:.63rem;color:var(--rosa);font-weight:700;margin-bottom:.6rem">Puedes seleccionar varios a la vez 💖</p>
-        <div style="display:flex;flex-direction:column;gap:.5rem" id="configPerfilBtns">
-          <button class="config-perfil-btn" data-perfil="autista" onclick="yukiTogglePerfil('autista')">
-            <span class="config-perfil-emoji">🌸</span>
-            <div><strong>Autista</strong><span class="config-perfil-desc">Claro, directo, sin ambigüedades. Sin prisa, sin juicio.</span></div>
-          </button>
-          <button class="config-perfil-btn" data-perfil="tdah" onclick="yukiTogglePerfil('tdah')">
-            <span class="config-perfil-emoji">⚡</span>
-            <div><strong>TDAH</strong><span class="config-perfil-desc">Energético, corto, con emojis. ¡Una cosita a la vez!</span></div>
-          </button>
-          <button class="config-perfil-btn" data-perfil="aacc" onclick="yukiTogglePerfil('aacc')">
-            <span class="config-perfil-emoji">✨</span>
-            <div><strong>AACC</strong><span class="config-perfil-desc">Profundo, reflexivo. Tu mente va rápido — aquí tienes espacio.</span></div>
-          </button>
-          <button class="config-perfil-btn" data-perfil="neurotipica" onclick="yukiTogglePerfil('neurotipica')">
-            <span class="config-perfil-emoji">🤍</span>
-            <div><strong>No soy neurodivergente</strong><span class="config-perfil-desc">Cálido y amigable. Bienvenida de vuelta.</span></div>
-          </button>
-        </div>
-      </div>
-
-      <!-- Cajita desplegable info neuro -->
-      <div style="margin-top:.8rem">
-        <button onclick="document.getElementById('neuroInfoBox').style.display = document.getElementById('neuroInfoBox').style.display === 'none' ? 'block' : 'none'; this.querySelector('.neuro-arrow').style.transform = document.getElementById('neuroInfoBox').style.display==='block' ? 'rotate(90deg)' : 'rotate(0deg)'" style="background:var(--rosa-soft);border:1.5px solid var(--rosa);border-radius:10px;padding:.45rem .8rem;font-size:.72rem;font-weight:700;color:var(--rosa);cursor:pointer;width:100%;text-align:left;display:flex;align-items:center;gap:.5rem;font-family:var(--font-body)">
-          <span class="neuro-arrow" style="transition:transform .2s;display:inline-block">▶</span>
-          🧠 ¿Cómo está pensada la app para mentes neurodivergentes?
-        </button>
-        <div id="neuroInfoBox" style="display:none;margin-top:.5rem;background:var(--card);border-radius:12px;padding:1rem 1.1rem;border:1px solid var(--border)">
-          <p style="font-size:.78rem;font-weight:600;color:var(--text);line-height:1.7;margin-bottom:.8rem">
-            Para las mentes neurodivergentes cada cosa es una odisea propia 💙
-          </p>
-          <p style="font-size:.76rem;font-weight:600;color:var(--muted);line-height:1.7;margin-bottom:.7rem">
-            <span style="color:var(--rosa);font-weight:800">Para mentes autistas</span> — los estímulos sensoriales y la impredictibilidad pueden ser un caos. Es por eso que está la sección <strong style="color:var(--text)">Mi Semana</strong>, para que puedas establecer una rutina específica para la mañana, tarde y noche, creando tareas recurrentes y personalizables.
-          </p>
-          <p style="font-size:.76rem;font-weight:600;color:var(--muted);line-height:1.7;margin-bottom:.7rem">
-            <span style="color:var(--rosa);font-weight:800">Para mentes TDAH</span> — está la sección de <strong style="color:var(--text)">Tareas Complejas</strong>, donde puedes anotar alguna tarea que requiere varios pasos y necesitas recordarlos. También la sección <strong style="color:var(--text)">Braindump</strong>, porque mientras una estudia o intenta concentrarse vienen mil pensamientos <span style="color:var(--rosa)">(⁠ ⁠ꈍ⁠ᴗ⁠ꈍ⁠)</span> así que suéltalo todo ahí.
-          </p>
-          <p style="font-size:.76rem;font-weight:600;color:var(--muted);line-height:1.7;margin-bottom:.7rem">
-            <span style="color:var(--rosa);font-weight:800">Para mentes AuADHD (autismo + TDAH)</span> — como yo, seguro que tu mente son dos capitanes peleándose entre ellos JSJS. No te preocupes, la sección <strong style="color:var(--text)">Rutinas</strong> te puede ayudar. ¿Por qué? Porque el autismo necesita rutina y saber lo que va a pasar para estar tranquilo, pero el TDAH busca novedad constante. Así que puedes crear diferentes rutinas que puedes usar en los días que quieras — tu autismo tiene la seguridad de que hay una rutina, y tu TDAH tiene la novedad de que no es siempre la misma :3
-          </p>
-          <p style="font-size:.75rem;font-weight:600;color:var(--muted2);line-height:1.6;border-top:1px solid var(--border);padding-top:.7rem;margin-top:.2rem">
-            Si no tienes una condición neurodivergente y estás leyendo esto, puedes utilizar aún así todas las funciones de la app a tu gusto <span style="color:var(--rosa)">(⁠´⁠∩⁠｡⁠•⁠ ⁠ᵕ⁠ ⁠•⁠｡⁠∩⁠`⁠)</span>
-          </p>
-        </div>
-      </div>
-    </div>
-    </div><!-- /theme-collapse-body -->
-  </div>
-
   <!-- Ciudad para clima del armario -->
   <div class="config-block">
     <div class="config-block-title">🌤️ Ciudad para el clima</div>
@@ -45755,7 +46473,6 @@ window.buscarPageShowTab = function(tab) {
       setTimeout(function(){
         configLoadProfile();
         renderThemeGrid();
-        configLoadExperience();
         var imgBlock = document.getElementById('configImgBlock');
         if (imgBlock) imgBlock.style.display = window.innerWidth >= 900 ? '' : 'none';
         // Sync toggle state
@@ -47603,148 +48320,6 @@ function esc(str) {
 
 
 <script>
-// ============================================================
-//  BIENVENIDA — primera vez
-// ============================================================
-function checkWelcomeModal() {
-  if (localStorage.getItem('yuki_welcomed')) return;
-  openWelcomeModal();
-}
-
-function openWelcomeModal() {
-  var ov = document.createElement('div');
-  ov.id = 'welcomeOverlay';
-  ov.style.cssText = [
-    'position:fixed','inset:0','z-index:6000',
-    'background:rgba(0,0,0,.45)',
-    'display:flex','align-items:center','justify-content:center',
-    'padding:1rem','animation:fadeIn .3s ease both',
-  ].join(';');
-
-  ov.innerHTML = `
-    <div id="welcomeBox" style="
-      background:var(--card);
-      border-radius:24px;
-      padding:2rem 1.8rem 1.6rem;
-      max-width:480px; width:100%;
-      max-height:90vh; overflow-y:auto;
-      box-shadow:0 20px 60px rgba(0,0,0,.25);
-      animation:slideUp .3s cubic-bezier(.4,0,.2,1) both;
-      position:relative;
-    ">
-      <!-- Encabezado -->
-      <div style="text-align:center;margin-bottom:1.4rem">
-        <div style="font-size:2.8rem;line-height:1;margin-bottom:.6rem">🌸</div>
-        <h2 style="font-family:var(--font-script);font-size:2rem;color:var(--rosa);margin-bottom:.3rem;font-weight:400">
-          Yuki
-        </h2>
-        <div style="font-size:.7rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.12em">
-          Tu espacio personal ✦
-        </div>
-      </div>
-
-      <!-- Mensaje de bienvenida -->
-      <div style="
-        background:var(--surface);border-radius:16px;
-        padding:1.1rem 1.2rem;margin-bottom:1.2rem;
-        border-left:3px solid var(--rosa);
-      ">
-        <p style="font-family:var(--font-title);font-style:italic;font-size:1rem;color:var(--rosa);margin-bottom:.6rem;line-height:1.4">
-          Holiii 🌸
-        </p>
-        <p style="font-size:.82rem;font-weight:600;color:var(--text);line-height:1.65;margin-bottom:.7rem">
-          Esta app fue creada por mí (una chica AuADHD) con mucho amor jiji 💙
-        </p>
-        <p style="font-size:.82rem;font-weight:600;color:var(--text);line-height:1.65;margin-bottom:.7rem">
-          Yuki es para todas las mentes. Si la tuya es neurodivergente, tenemos un espacio especial llamado <strong>Calma</strong> hecho con mucho amor para ti! :3
-        </p>
-        <p style="font-size:.78rem;font-weight:600;color:var(--muted);line-height:1.6;margin-bottom:.8rem">
-          Si quieres leer más sobre la funcionalidad de las diferentes partes de la app para las mentes neurodivergentes,
-          <span onclick="closeWelcomeGoNeuro()" style="color:var(--rosa);cursor:pointer;text-decoration:underline;text-underline-offset:3px">haz click aquí</span> ✨
-        </p>
-        <div style="display:flex;flex-direction:column;gap:.45rem">
-          <div style="background:var(--card);border-radius:10px;padding:.55rem .8rem;border-left:3px solid var(--rosa)">
-            <p style="font-size:.75rem;font-weight:800;color:var(--rosa);margin-bottom:.2rem">🧩 Autismo (TEA)</p>
-            <p style="font-size:.72rem;font-weight:600;color:var(--muted);line-height:1.5">Rutinas estructuradas, previsibilidad y sección Mi Semana para organizar tu día sin sorpresas.</p>
-          </div>
-          <div style="background:var(--card);border-radius:10px;padding:.55rem .8rem;border-left:3px solid var(--rosa)">
-            <p style="font-size:.75rem;font-weight:800;color:var(--rosa);margin-bottom:.2rem">⚡ TDAH</p>
-            <p style="font-size:.72rem;font-weight:600;color:var(--muted);line-height:1.5">Tareas Complejas para no perder los pasos, Braindump para soltar todos esos pensamientos que llegan cuando intentas concentrarte.</p>
-          </div>
-          <div style="background:var(--rosa-soft);border-radius:10px;padding:.55rem .8rem;border-left:3px solid var(--rosa)">
-            <p style="font-size:.75rem;font-weight:800;color:var(--rosa);margin-bottom:.2rem">🌸 AuADHD (Autismo + TDAH)</p>
-            <p style="font-size:.72rem;font-weight:600;color:var(--muted);line-height:1.5">Dos capitanes peleándose JSJS — la sección Rutinas te deja crear variedad de rutinas para que el autismo tenga estructura y el TDAH tenga novedad :3</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Mensaje de fe -->
-      <div style="text-align:center;padding:.8rem .5rem;margin-bottom:1rem">
-        <p style="font-size:.8rem;font-weight:600;color:var(--muted);line-height:1.7;font-style:italic">
-          Seas como seas, Dios te ama y te creó a su imagen, tu existencia tiene un propósito (づ ᴗ _ᴗ)づ♡
-        </p>
-      </div>
-
-      <!-- Botón -->
-      <button id="welcomeConfigBtn" style="
-        width:100%;padding:.75rem;border-radius:14px;border:none;
-        background:var(--rosa);color:#fff;
-        font-family:var(--font-body);font-size:.88rem;font-weight:800;
-        cursor:pointer;margin-bottom:.6rem;
-        box-shadow:0 4px 18px rgba(212,116,138,.35);
-        transition:opacity .15s;
-      ">
-        ✦ Ir a Configuración y personalizar
-      </button>
-      <button id="welcomeSkipBtn" style="
-        width:100%;padding:.5rem;border-radius:14px;border:none;
-        background:none;color:var(--muted);
-        font-family:var(--font-body);font-size:.78rem;font-weight:700;
-        cursor:pointer;transition:color .15s;
-      ">
-        Explorar primero →
-      </button>
-    </div>
-  `;
-
-  document.body.appendChild(ov);
-
-  function closeWelcome() {
-    localStorage.setItem('yuki_welcomed', '1');
-    ov.style.opacity = '0';
-    ov.style.transition = 'opacity .25s';
-    setTimeout(function(){ if(ov.parentNode) ov.parentNode.removeChild(ov); }, 250);
-  }
-
-  window.closeWelcomeGoNeuro = function() {
-    closeWelcome();
-    setTimeout(function(){
-      if (window.showPage) window.showPage('page-config');
-      setTimeout(function(){
-        var neuroBox = document.getElementById('neuroInfoBox');
-        if (neuroBox) {
-          neuroBox.style.display = 'block';
-          neuroBox.scrollIntoView({ behavior:'smooth', block:'center' });
-        }
-      }, 400);
-    }, 300);
-  };
-
-  document.getElementById('welcomeConfigBtn').onclick = function() {
-    closeWelcome();
-    setTimeout(function(){
-      if (window.showPage) window.showPage('page-config');
-      setTimeout(function(){
-        document.querySelectorAll('.config-block-title').forEach(function(t){
-          if (t.textContent.includes('Perfil')) { t.click(); }
-        });
-      }, 400);
-    }, 300);
-  };
-
-} // fin openWelcomeModal
-
-setTimeout(function(){ if(typeof checkWelcomeModal==='function') checkWelcomeModal(); }, 900);
 setTimeout(function(){ if(typeof recuperInit==='function') recuperInit(); }, 200);
 </script>
 
