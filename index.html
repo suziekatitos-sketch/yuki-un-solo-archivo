@@ -20946,7 +20946,7 @@ window.scShowTab = function(idx) {
 </div>
 <div class="salud-tabs">
   <button class="salud-tab active" id="saludTabRegistros"  onclick="saludShowTab('registros')">📋 Registros</button>
-  <button class="salud-tab"        id="saludTabEjercicio"  onclick="saludShowTab('ejercicio')">💪 Ejercicio</button>
+  <button class="salud-tab"        id="saludTabEjercicio"  onclick="if(window.showPage) window.showPage('page-ejercicio')">💪 Ejercicio ↗</button>
   <button class="salud-tab"        id="saludTabRutina"     onclick="saludShowTab('rutina')">⏰ Mis Horas</button>
   <button class="salud-tab"        id="saludTabEstadisticas" onclick="saludShowTab('estadisticas')">📈 Progreso</button>
   <button class="salud-tab"        id="saludTabSuenos"     onclick="saludShowTab('suenos')">🌙 Sueños</button>
@@ -26414,6 +26414,560 @@ document.addEventListener('DOMContentLoaded', renderYukiPet);
 </script>
 
 </div><!-- end page-salud -->
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- PAGE: EJERCICIO                                           -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div id="page-ejercicio" class="page-section" style="display:none">
+<div id="sec-ejercicio-page" style="scroll-margin-top:60px"></div>
+
+<!-- Header -->
+<div class="salud-tabs-header">
+  <div>
+    <span class="section-sub">movimiento & bienestar</span>
+    <h1 class="section-title"><em>Mi</em> Ejercicio <span style="font-style:normal;font-weight:400">⋆｡‧˚ʚ♥︎ɞ˚‧｡⋆</span></h1>
+  </div>
+</div>
+
+<!-- Tabs internos -->
+<div class="salud-tabs" id="ejPageTabsRow">
+  <button class="salud-tab active" id="ejPageTabRutina"    onclick="ejPageShowTab('rutina')">🗓️ Mi Rutina</button>
+  <button class="salud-tab"        id="ejPageTabHabitos"   onclick="ejPageShowTab('habitos')">🌿 Hábitos</button>
+  <button class="salud-tab"        id="ejPageTabActividad" onclick="ejPageShowTab('actividad')">🔥 Actividades</button>
+  <button class="salud-tab"        id="ejPageTabRutinas"   onclick="ejPageShowTab('rutinas')">💪 Mis Rutinas</button>
+  <button class="salud-tab"        id="ejPageTabPasos"     onclick="ejPageShowTab('pasos')">👟 Pasos</button>
+  <button class="salud-tab"        id="ejPageTabDrenaje"   onclick="ejPageShowTab('drenaje')">🫧 Drenaje</button>
+</div>
+
+<script>
+(function(){
+var EJ_TABS = ['rutina','habitos','actividad','rutinas','pasos','drenaje'];
+window.ejPageShowTab = function(tab) {
+  EJ_TABS.forEach(function(t) {
+    var key = t.charAt(0).toUpperCase() + t.slice(1);
+    var el  = document.getElementById('ejPageTab' + key + '-content');
+    var btn = document.getElementById('ejPageTab' + key);
+    if (el)  el.style.display = (t === tab) ? '' : 'none';
+    if (btn) btn.classList.toggle('active', t === tab);
+  });
+  if (tab === 'actividad' && window.renderActTrackerEj) window.renderActTrackerEj();
+  if (tab === 'rutinas'   && window.renderEjercicio)    window.renderEjercicio();
+  if (tab === 'pasos'     && window.renderPasos)        window.renderPasos();
+};
+// Hook showPage para inicializar al entrar
+var _origShowEjPage = window.showPage;
+window.showPage = function(p) {
+  if (_origShowEjPage) _origShowEjPage(p);
+  if (p === 'page-ejercicio') {
+    setTimeout(function(){
+      window.ejPageShowTab('rutina');
+      if (window.renderYukiPetEj) window.renderYukiPetEj();
+    }, 60);
+  }
+};
+})();
+</script>
+
+<!-- ── TAB: MI RUTINA ─────────────────────────────────────── -->
+<div id="ejPageTabRutina-content">
+<section style="max-width:780px;margin:0 auto;padding:1.2rem 1rem 2rem">
+
+<!-- Yuki Pet mini -->
+<div id="yukiPetWidgetEj" style="margin-bottom:1rem"></div>
+
+<span class="section-sub">tu plan personalizado</span>
+<h2 class="section-title"><em>Rutina</em> Semanal</h2>
+<p style="font-size:.75rem;color:var(--muted);margin-bottom:1.2rem;font-weight:600;line-height:1.6">
+  Cada día elige los bloques que más te apetezcan. Los bloques verdes son fijos, los azules y morados son opciones 💙
+</p>
+
+<style>
+.ejp-day { background:var(--card); border:1.5px solid var(--border); border-radius:18px; padding:1rem 1.1rem; margin-bottom:.9rem; }
+.ejp-day-hdr { display:flex; align-items:center; gap:.6rem; margin-bottom:.8rem; cursor:pointer; }
+.ejp-day-badge { font-size:.7rem; font-weight:800; padding:.25rem .7rem; border-radius:20px; white-space:nowrap; }
+.ejp-day-title { font-size:.92rem; font-weight:800; color:var(--text); }
+.ejp-day-goal  { font-size:.68rem; color:var(--muted); font-weight:600; margin-top:.1rem; }
+.ejp-day-body  { display:flex; flex-direction:column; gap:.55rem; }
+.ejp-block { border-radius:12px; padding:.6rem .8rem; }
+.ejp-block-lbl { font-size:.65rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em; margin-bottom:.45rem; }
+.ejp-options { display:flex; flex-wrap:wrap; gap:.4rem; }
+.ejp-pill { font-size:.75rem; padding:.28rem .65rem; border-radius:20px; border:1.5px solid; cursor:default; }
+.ejp-pill-fixed { font-size:.75rem; padding:.28rem .75rem; border-radius:20px; font-weight:700; }
+.ejp-rest { background:var(--surface); border-radius:18px; padding:.8rem 1.1rem; text-align:center; font-size:.82rem; color:var(--muted); font-weight:700; margin-bottom:.9rem; }
+.ejp-legend { display:flex; flex-wrap:wrap; gap:.6rem; margin-bottom:1rem; }
+.ejp-legend-dot { width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:4px; }
+</style>
+
+<div class="ejp-legend">
+  <span style="font-size:.7rem;color:var(--muted);font-weight:700"><span class="ejp-legend-dot" style="background:#1D9E75"></span>siempre (fijo)</span>
+  <span style="font-size:.7rem;color:var(--muted);font-weight:700"><span class="ejp-legend-dot" style="background:#378ADD"></span>elige uno</span>
+  <span style="font-size:.7rem;color:var(--muted);font-weight:700"><span class="ejp-legend-dot" style="background:#7F77DD"></span>elige dos</span>
+</div>
+
+<!-- LUNES -->
+<div class="ejp-day">
+  <div class="ejp-day-hdr">
+    <span class="ejp-day-badge" style="background:#E1F5EE;color:#0F6E56">Lunes</span>
+    <div><div class="ejp-day-title">Cardio + cintura</div><div class="ejp-day-goal">~35 min · quemar grasa + activar transverso</div></div>
+  </div>
+  <div class="ejp-day-body">
+    <div class="ejp-block" style="background:#E6F1FB">
+      <div class="ejp-block-lbl" style="color:#185FA5">❤️ Cardio 20 min · elige uno</div>
+      <div class="ejp-options">
+        <span class="ejp-pill" style="background:#E6F1FB;border-color:#85B7EB;color:#0C447C">Trampolín</span>
+        <span class="ejp-pill" style="background:#E6F1FB;border-color:#85B7EB;color:#0C447C">Correr afuera</span>
+        <span class="ejp-pill" style="background:#E6F1FB;border-color:#85B7EB;color:#0C447C">Bailar</span>
+        <span class="ejp-pill" style="background:#E6F1FB;border-color:#85B7EB;color:#0C447C">Caminar rápido</span>
+      </div>
+    </div>
+    <div class="ejp-block" style="background:#E1F5EE">
+      <div class="ejp-block-lbl" style="color:#0F6E56">✓ Cintura · siempre</div>
+      <div class="ejp-options">
+        <span class="ejp-pill-fixed" style="background:#9FE1CB;color:#085041">Vacuum 5×30seg</span>
+        <span class="ejp-pill-fixed" style="background:#9FE1CB;color:#085041">Dead bug 3×10</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MARTES -->
+<div class="ejp-day">
+  <div class="ejp-day-hdr">
+    <span class="ejp-day-badge" style="background:#EEEDFE;color:#534AB7">Martes</span>
+    <div><div class="ejp-day-title">Parte de arriba</div><div class="ejp-day-goal">~30 min · brazos, espalda, axilas</div></div>
+  </div>
+  <div class="ejp-day-body">
+    <div class="ejp-block" style="background:#E1F5EE">
+      <div class="ejp-block-lbl" style="color:#0F6E56">✓ Siempre</div>
+      <div class="ejp-options">
+        <span class="ejp-pill-fixed" style="background:#9FE1CB;color:#085041">Círculos de brazo 3×30seg</span>
+        <span class="ejp-pill-fixed" style="background:#9FE1CB;color:#085041">Superman 3×12</span>
+      </div>
+    </div>
+    <div class="ejp-block" style="background:#EEEDFE">
+      <div class="ejp-block-lbl" style="color:#534AB7">✦ Elige dos</div>
+      <div class="ejp-options">
+        <span class="ejp-pill" style="background:#EEEDFE;border-color:#AFA9EC;color:#3C3489">Tríceps pesa ligera 3×20</span>
+        <span class="ejp-pill" style="background:#EEEDFE;border-color:#AFA9EC;color:#3C3489">Press hombros 3×15</span>
+        <span class="ejp-pill" style="background:#EEEDFE;border-color:#AFA9EC;color:#3C3489">Remo con pesa 3×15</span>
+        <span class="ejp-pill" style="background:#EEEDFE;border-color:#AFA9EC;color:#3C3489">Extensión espalda 3×12</span>
+      </div>
+    </div>
+    <div class="ejp-block" style="background:#E1F5EE">
+      <div class="ejp-block-lbl" style="color:#0F6E56">✓ Al final</div>
+      <div class="ejp-options">
+        <span class="ejp-pill-fixed" style="background:#9FE1CB;color:#085041">Vacuum 5×30seg</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MIERCOLES -->
+<div class="ejp-rest">🚶‍♀️ Miércoles — descanso activo · solo caminar 20-30 min tranquila</div>
+
+<!-- JUEVES -->
+<div class="ejp-day">
+  <div class="ejp-day-hdr">
+    <span class="ejp-day-badge" style="background:#FAEEDA;color:#854F0B">Jueves</span>
+    <div><div class="ejp-day-title">Parte de abajo</div><div class="ejp-day-goal">~35 min · piernas y cadera natural</div></div>
+  </div>
+  <div class="ejp-day-body">
+    <div class="ejp-block" style="background:#E6F1FB">
+      <div class="ejp-block-lbl" style="color:#185FA5">❤️ Cardio 15 min · elige uno</div>
+      <div class="ejp-options">
+        <span class="ejp-pill" style="background:#E6F1FB;border-color:#85B7EB;color:#0C447C">Trampolín</span>
+        <span class="ejp-pill" style="background:#E6F1FB;border-color:#85B7EB;color:#0C447C">Caminar afuera</span>
+      </div>
+    </div>
+    <div class="ejp-block" style="background:#FAF3E0">
+      <div class="ejp-block-lbl" style="color:#854F0B">✦ Elige dos</div>
+      <div class="ejp-options">
+        <span class="ejp-pill" style="background:#FAEEDA;border-color:#EF9F27;color:#633806">Puente de glúteos 3×20</span>
+        <span class="ejp-pill" style="background:#FAEEDA;border-color:#EF9F27;color:#633806">Abducción lateral 3×20</span>
+        <span class="ejp-pill" style="background:#FAEEDA;border-color:#EF9F27;color:#633806">Aductores almohada 3×20</span>
+        <span class="ejp-pill" style="background:#FAEEDA;border-color:#EF9F27;color:#633806">Patada de glúteo 3×15</span>
+      </div>
+    </div>
+    <div class="ejp-block" style="background:#E1F5EE">
+      <div class="ejp-block-lbl" style="color:#0F6E56">✓ Al final</div>
+      <div class="ejp-options">
+        <span class="ejp-pill-fixed" style="background:#9FE1CB;color:#085041">Vacuum 5×30seg</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VIERNES -->
+<div class="ejp-day">
+  <div class="ejp-day-hdr">
+    <span class="ejp-day-badge" style="background:#FBEAF0;color:#993556">Viernes</span>
+    <div><div class="ejp-day-title">Full body suave + postura</div><div class="ejp-day-goal">~35 min · quemar grasa general</div></div>
+  </div>
+  <div class="ejp-day-body">
+    <div class="ejp-block" style="background:#E6F1FB">
+      <div class="ejp-block-lbl" style="color:#185FA5">❤️ Cardio 20 min · elige uno</div>
+      <div class="ejp-options">
+        <span class="ejp-pill" style="background:#E6F1FB;border-color:#85B7EB;color:#0C447C">Trampolín</span>
+        <span class="ejp-pill" style="background:#E6F1FB;border-color:#85B7EB;color:#0C447C">Bailar</span>
+        <span class="ejp-pill" style="background:#E6F1FB;border-color:#85B7EB;color:#0C447C">Correr afuera</span>
+      </div>
+    </div>
+    <div class="ejp-block" style="background:#E1F5EE">
+      <div class="ejp-block-lbl" style="color:#0F6E56">✓ Siempre</div>
+      <div class="ejp-options">
+        <span class="ejp-pill-fixed" style="background:#9FE1CB;color:#085041">Cat-cow 2×10</span>
+        <span class="ejp-pill-fixed" style="background:#9FE1CB;color:#085041">Plancha frontal 3×20seg</span>
+        <span class="ejp-pill-fixed" style="background:#9FE1CB;color:#085041">Dead bug 3×10</span>
+        <span class="ejp-pill-fixed" style="background:#9FE1CB;color:#085041">Vacuum 5×30seg</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SABADO -->
+<div class="ejp-day">
+  <div class="ejp-day-hdr">
+    <span class="ejp-day-badge" style="background:#E1F5EE;color:#0F6E56">Sábado</span>
+    <div><div class="ejp-day-title">Drenaje + movilidad</div><div class="ejp-day-goal">~20 min · linfático + descanso activo</div></div>
+  </div>
+  <div class="ejp-day-body">
+    <div class="ejp-block" style="background:#E1F5EE">
+      <div class="ejp-block-lbl" style="color:#0F6E56">✓ Siempre</div>
+      <div class="ejp-options">
+        <span class="ejp-pill-fixed" style="background:#9FE1CB;color:#085041">Masaje drenaje cintura</span>
+        <span class="ejp-pill-fixed" style="background:#9FE1CB;color:#085041">Masaje espalda y axilas</span>
+        <span class="ejp-pill-fixed" style="background:#9FE1CB;color:#085041">Masaje piernas</span>
+        <span class="ejp-pill-fixed" style="background:#9FE1CB;color:#085041">Vacuum 5×30seg</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DOMINGO -->
+<div class="ejp-rest">🌙 Domingo — descanso total · el cuerpo mejora cuando descansa</div>
+
+<div style="background:var(--surface);border-radius:14px;padding:.8rem 1rem;margin-top:.4rem;font-size:.75rem;color:var(--muted);font-weight:600;line-height:1.7">
+  💡 <strong>Recuerda:</strong> vacuum todos los días en ayunas aunque no sea día de ejercicio · pesas siempre ligeras, muchas repeticiones · nunca al fallo muscular
+</div>
+
+</section>
+</div><!-- end ejPageTabRutina-content -->
+
+<!-- ── TAB: HÁBITOS HORMONALES ────────────────────────────── -->
+<div id="ejPageTabHabitos-content" style="display:none">
+<section style="max-width:780px;margin:0 auto;padding:1.2rem 1rem 2rem">
+<span class="section-sub">estilo de vida</span>
+<h2 class="section-title"><em>Hábitos</em> Hormonales</h2>
+<p style="font-size:.75rem;color:var(--muted);margin-bottom:1.2rem;font-weight:600;line-height:1.6">
+  Pequeños hábitos anclados a lo que ya haces. Empieza con los 3 primeros esta semana 🌿
+</p>
+
+<style>
+.hab-card { background:var(--card); border:1.5px solid var(--border); border-radius:16px; padding:.9rem 1rem; margin-bottom:.7rem; display:flex; gap:.8rem; align-items:flex-start; }
+.hab-anchor { font-size:.65rem; font-weight:800; padding:.22rem .6rem; border-radius:20px; white-space:nowrap; flex-shrink:0; margin-top:.15rem; }
+.hab-name { font-size:.88rem; font-weight:800; color:var(--text); margin-bottom:.2rem; }
+.hab-detail { font-size:.75rem; color:var(--muted); line-height:1.55; font-weight:600; }
+.hab-tag { font-size:.65rem; padding:.18rem .55rem; border-radius:20px; display:inline-block; margin-top:.4rem; font-weight:700; }
+.hab-sec { font-size:.65rem; font-weight:800; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); margin:1.1rem 0 .5rem; }
+.hab-days { display:flex; flex-wrap:wrap; gap:.35rem; margin-top:.45rem; }
+.hab-day-chip { font-size:.65rem; padding:.18rem .6rem; border-radius:20px; border:1.5px solid; font-weight:700; }
+</style>
+
+<div class="hab-sec">al despertar — antes de levantarte</div>
+
+<div class="hab-card">
+  <span class="hab-anchor" style="background:#E1F5EE;color:#0F6E56">al despertar</span>
+  <div>
+    <div class="hab-name">Vacuum en ayunas</div>
+    <div class="hab-detail">Acostada todavía en la cama. 5 series de 30 seg. Sin levantarte. Todos los días sin excepción.</div>
+    <span class="hab-tag" style="background:#E1F5EE;color:#0F6E56">cintura · todos los días</span>
+  </div>
+</div>
+
+<div class="hab-card">
+  <span class="hab-anchor" style="background:#E1F5EE;color:#0F6E56">al despertar</span>
+  <div>
+    <div class="hab-name">Aceite de oliva + limón</div>
+    <div class="hab-detail">Una cucharada de aceite de oliva en ayunas. Opcional: unas gotas de limón. Aporta grasa saludable esencial para producir hormonas.</div>
+    <span class="hab-tag" style="background:#EEEDFE;color:#534AB7">hormonal · todos los días</span>
+  </div>
+</div>
+
+<div class="hab-card">
+  <span class="hab-anchor" style="background:#FAF3E0;color:#854F0B">con desayuno</span>
+  <div>
+    <div class="hab-name">Linaza molida</div>
+    <div class="hab-detail">Una cucharada en yogurt, avena, jugo o agua. Insípida. La mejor fuente de fitoestrógenos — estrógenos vegetales que apoyan tu desarrollo.</div>
+    <span class="hab-tag" style="background:#EEEDFE;color:#534AB7">hormonal · todos los días</span>
+  </div>
+</div>
+
+<div class="hab-sec">durante el día</div>
+
+<div class="hab-card">
+  <span class="hab-anchor" style="background:#FAF3E0;color:#854F0B">con comida</span>
+  <div>
+    <div class="hab-name">Proteína + grasa en cada comida</div>
+    <div class="hab-detail">No tiene que ser perfecto. Solo asegúrate de incluir algo de proteína (huevo, pollo, leguminosa) y algo de grasa (aguacate, aceite, nueces) en cada comida. Son la materia prima de tus hormonas.</div>
+    <span class="hab-tag" style="background:#EEEDFE;color:#534AB7">hormonal · todos los días</span>
+  </div>
+</div>
+
+<div class="hab-card">
+  <span class="hab-anchor" style="background:#E6F1FB;color:#185FA5">sol de mañana</span>
+  <div>
+    <div class="hab-name">15-20 min de sol directo</div>
+    <div class="hab-detail">Cuando salgas a caminar o hacer cardio ya cuenta. Si no, solo siéntate afuera 15 min con brazos y cara expuestos. La vitamina D es precursora hormonal directa.</div>
+    <span class="hab-tag" style="background:#EEEDFE;color:#534AB7">hormonal · diario si puedes</span>
+  </div>
+</div>
+
+<div class="hab-sec">días específicos de la semana</div>
+
+<div class="hab-card">
+  <span class="hab-anchor" style="background:#FBEAF0;color:#993556">2-3x semana</span>
+  <div>
+    <div class="hab-name">Semillas de calabaza</div>
+    <div class="hab-detail">Un puño como snack o en ensalada. Mejor fuente de zinc de origen vegetal — clave para regular el ciclo y la salud reproductiva.</div>
+    <div class="hab-days">
+      <span class="hab-day-chip" style="background:#FBEAF0;border-color:#ED93B1;color:#72243E">lunes</span>
+      <span class="hab-day-chip" style="background:#FBEAF0;border-color:#ED93B1;color:#72243E">miércoles</span>
+      <span class="hab-day-chip" style="background:#FBEAF0;border-color:#ED93B1;color:#72243E">viernes</span>
+    </div>
+  </div>
+</div>
+
+<div class="hab-card">
+  <span class="hab-anchor" style="background:#FBEAF0;color:#993556">2-3x semana</span>
+  <div>
+    <div class="hab-name">Plato con soya o leguminosas</div>
+    <div class="hab-detail">Edamame, tofu, lentejas, garbanzos. Con 2-3 veces a la semana ya obtienes los fitoestrógenos que necesitas sin exagerar.</div>
+    <div class="hab-days">
+      <span class="hab-day-chip" style="background:#FBEAF0;border-color:#ED93B1;color:#72243E">martes</span>
+      <span class="hab-day-chip" style="background:#FBEAF0;border-color:#ED93B1;color:#72243E">jueves</span>
+      <span class="hab-day-chip" style="background:#FBEAF0;border-color:#ED93B1;color:#72243E">sábado</span>
+    </div>
+  </div>
+</div>
+
+<div class="hab-card">
+  <span class="hab-anchor" style="background:#FBEAF0;color:#993556">2x semana</span>
+  <div>
+    <div class="hab-name">Masaje de senos con aceite</div>
+    <div class="hab-detail">Rosa mosqueta o almendras. Movimientos circulares suaves 5 min. Mejora la circulación linfática local. Puedes hacerlo en la ducha o antes de dormir.</div>
+    <div class="hab-days">
+      <span class="hab-day-chip" style="background:#FBEAF0;border-color:#ED93B1;color:#72243E">martes</span>
+      <span class="hab-day-chip" style="background:#FBEAF0;border-color:#ED93B1;color:#72243E">sábado</span>
+    </div>
+  </div>
+</div>
+
+<div class="hab-sec">al dormir</div>
+
+<div class="hab-card">
+  <span class="hab-anchor" style="background:#E1F5EE;color:#0F6E56">antes de dormir</span>
+  <div>
+    <div class="hab-name">7-8 horas en oscuridad</div>
+    <div class="hab-detail">La mayor parte del estrógeno se produce en sueño profundo. Bajar el brillo de pantalla 1 hora antes ayuda mucho. No es negociable para las hormonas.</div>
+    <span class="hab-tag" style="background:#E1F5EE;color:#0F6E56">hormonal · todos los días</span>
+  </div>
+</div>
+
+<div style="background:var(--surface);border-radius:14px;padding:.8rem 1rem;margin-top:.6rem;font-size:.75rem;color:var(--muted);font-weight:600;line-height:1.7">
+  🧠 <strong>Tip TDAH:</strong> empieza solo con vacuum + aceite + linaza esta semana. Cuando eso sea automático (2-3 semanas), agrega lo siguiente. Tu cerebro necesita que cada cosa sea obvia y fácil antes de sumar más.
+</div>
+
+</section>
+</div><!-- end ejPageTabHabitos-content -->
+
+<!-- ── TAB: ACTIVIDADES ───────────────────────────────────── -->
+<div id="ejPageTabActividad-content" style="display:none">
+  <section style="max-width:780px;margin:0 auto;padding:1.2rem 1rem 2rem">
+    <span class="section-sub">calorías quemadas</span>
+    <h2 class="section-title"><em>Mis</em> Actividades</h2>
+    <p style="font-size:.75rem;color:var(--muted);margin-bottom:1.2rem;font-weight:600">
+      Registra tus actividades del día y calcula las calorías quemadas 🚴‍♀️
+    </p>
+    <div id="actTrackerWrapEj"></div>
+  </section>
+</div>
+
+<!-- ── TAB: MIS RUTINAS ──────────────────────────────────── -->
+<div id="ejPageTabRutinas-content" style="display:none">
+  <section class="ejercicio-section" id="sec-ejercicio-ej">
+    <span class="section-sub">movimiento</span>
+    <h2 class="section-title"><em>Rutinas</em> de Ejercicio <span style="font-style:normal;font-weight:400">⋆｡‧˚ʚ♥︎ɞ˚‧｡⋆</span></h2>
+    <p style="font-size:.75rem;color:var(--muted);margin-bottom:1.2rem;font-weight:600">
+      Crea tus rutinas y registra cuál hiciste cada día 🏃‍♀️
+    </p>
+    <div class="ejercicio-date-row">
+      <button class="nav-btn" id="ejPrevDay2">‹</button>
+      <span class="ejercicio-date-lbl" id="ejDateLbl2"></span>
+      <button class="nav-btn" id="ejNextDay2">›</button>
+    </div>
+    <div class="ejercicio-day-wrap" id="ejDayWrap2"></div>
+    <div class="ejercicio-plantillas-wrap">
+      <div class="ejercicio-plantillas-hdr">
+        <span class="ejercicio-plantillas-title">🏋️ Mis rutinas</span>
+        <button class="rutina-new-btn" id="ejNewBtn2">＋ Nueva rutina</button>
+      </div>
+      <div id="ejPlantillasList2"></div>
+    </div>
+  </section>
+</div>
+
+<!-- ── TAB: PASOS ─────────────────────────────────────────── -->
+<div id="ejPageTabPasos-content" style="display:none">
+  <section style="max-width:780px;margin:0 auto;padding:1.2rem 1rem 2rem">
+    <span class="section-sub">movimiento diario</span>
+    <h2 class="section-title"><em>Mis</em> Pasos</h2>
+    <div id="pasosRootEj"></div>
+  </section>
+</div>
+
+<!-- ── TAB: DRENAJE ───────────────────────────────────────── -->
+<div id="ejPageTabDrenaje-content" style="display:none">
+<section style="max-width:780px;margin:0 auto;padding:1.2rem 1rem 2rem">
+<span class="section-sub">cuidado linfático</span>
+<h2 class="section-title"><em>Drenaje</em> & Masajes</h2>
+<p style="font-size:.75rem;color:var(--muted);margin-bottom:1.2rem;font-weight:600;line-height:1.6">
+  El trampolín es tu mejor amigo para el drenaje linfático. Estos masajes son el complemento 🫧
+</p>
+
+<style>
+.dren-card { background:var(--card); border:1.5px solid var(--border); border-radius:16px; padding:1rem 1.1rem; margin-bottom:.8rem; }
+.dren-title { font-size:.92rem; font-weight:800; color:var(--text); margin-bottom:.4rem; }
+.dren-freq { font-size:.68rem; font-weight:800; padding:.22rem .65rem; border-radius:20px; margin-bottom:.6rem; display:inline-block; }
+.dren-steps { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:.35rem; }
+.dren-steps li { font-size:.78rem; color:var(--muted); font-weight:600; line-height:1.5; padding-left:1.2rem; position:relative; }
+.dren-steps li::before { content:'·'; position:absolute; left:.2rem; color:var(--rosa); font-size:1.2rem; line-height:1; top:-.05rem; }
+.dren-tip { background:var(--surface); border-radius:12px; padding:.6rem .8rem; font-size:.73rem; color:var(--muted); font-weight:600; margin-top:.6rem; line-height:1.5; }
+</style>
+
+<div class="dren-card">
+  <span class="dren-freq" style="background:#E6F1FB;color:#185FA5">Trampolín — el mejor drenaje</span>
+  <div class="dren-title">🪂 Rebounder linfático</div>
+  <ul class="dren-steps">
+    <li>10 minutos en el trampolín = más drenaje que cualquier masaje</li>
+    <li>El movimiento de rebote activa todo el sistema linfático de arriba a abajo</li>
+    <li>Reduce retención de líquidos en papada, axilas, espalda y cintura</li>
+    <li>Hazlo a ritmo suave — no tienes que saltar alto, solo rebotar</li>
+  </ul>
+</div>
+
+<div class="dren-card">
+  <span class="dren-freq" style="background:#E1F5EE;color:#0F6E56">Diario o en días alternos</span>
+  <div class="dren-title">🌀 Drenaje linfático de cintura</div>
+  <ul class="dren-steps">
+    <li>Acuéstate boca arriba, rodillas dobladas</li>
+    <li>Con palmas planas, movimientos suaves desde los costados hacia el ombligo</li>
+    <li>Luego del ombligo hacia la ingle, en barridas lentas hacia abajo</li>
+    <li>Presión muy ligera — el sistema linfático está casi bajo la piel</li>
+    <li>5-10 minutos, idealmente con estómago vacío</li>
+  </ul>
+  <div class="dren-tip">💡 Con aceite de almendras o argán para no jalar la piel</div>
+</div>
+
+<div class="dren-card">
+  <span class="dren-freq" style="background:#FBEAF0;color:#993556">2-3x semana</span>
+  <div class="dren-title">💪 Masaje brazos y axilas</div>
+  <ul class="dren-steps">
+    <li>Movimientos circulares suaves en la zona de axila y parte posterior del brazo</li>
+    <li>Dirección: siempre hacia el corazón (de muñeca hacia hombro)</li>
+    <li>Pellizco rodante en la "grasita de murciélago" — agarra un pellizco y ruédalo</li>
+    <li>3-5 minutos por brazo</li>
+  </ul>
+</div>
+
+<div class="dren-card">
+  <span class="dren-freq" style="background:#FBEAF0;color:#993556">2-3x semana</span>
+  <div class="dren-title">🔙 Masaje espalda baja</div>
+  <ul class="dren-steps">
+    <li>Con los pulgares, movimientos circulares profundos en las "asas de mochila"</li>
+    <li>Dirección: hacia la columna y luego hacia abajo</li>
+    <li>Puedes hacerlo tú misma parada o acostada de lado</li>
+    <li>3-5 minutos en cada lado</li>
+  </ul>
+  <div class="dren-tip">💡 El masaje de tejido conectivo (pellizco rodante) mejora la tonicidad de la piel con constancia</div>
+</div>
+
+<div class="dren-card">
+  <span class="dren-freq" style="background:#E1F5EE;color:#0F6E56">Diario o en días alternos</span>
+  <div class="dren-title">🦵 Drenaje de piernas</div>
+  <ul class="dren-steps">
+    <li>Siempre de abajo hacia arriba — de tobillo hacia muslo</li>
+    <li>Movimientos largos y suaves con toda la palma</li>
+    <li>Termina con barridas del muslo hacia la ingle</li>
+    <li>Acostada con piernas ligeramente elevadas si puedes</li>
+  </ul>
+</div>
+
+<div style="background:var(--surface);border-radius:14px;padding:.8rem 1rem;margin-top:.4rem;font-size:.75rem;color:var(--muted);font-weight:600;line-height:1.7">
+  🫧 <strong>Recuerda:</strong> el drenaje reduce retención e inflamación, no elimina grasa directamente. Su magia está en la constancia y en combinarlo con el trampolín y buena hidratación.
+</div>
+
+</section>
+</div><!-- end ejPageTabDrenaje-content -->
+
+<script>
+(function(){
+'use strict';
+// Clonar el tracker de actividades para esta página usando los mismos datos
+function renderActTrackerEj() {
+  var wrap = document.getElementById('actTrackerWrapEj');
+  if (!wrap) return;
+  // Reusar la función original si existe
+  if (window.renderActTracker) {
+    var orig = document.getElementById('actTrackerWrap');
+    if (orig) {
+      window.renderActTracker();
+      wrap.innerHTML = orig.innerHTML;
+      // Copiar event listeners no funciona así — usar iframe trick o simplemente redirigir
+    }
+  }
+  wrap.innerHTML = '<div style="text-align:center;padding:2rem;font-size:.82rem;color:var(--muted);font-weight:700">' +
+    '💪 El tracker de actividades vive en la sección de abajo.<br>' +
+    '<button onclick="ejPageShowTab(\'actividad\')" style="margin-top:.8rem;background:var(--rosa);color:white;border:none;border-radius:20px;padding:.45rem 1.1rem;font-family:var(--font-body);font-size:.8rem;font-weight:700;cursor:pointer">Ver actividades</button>' +
+    '</div>';
+}
+
+// Inicializar pasos en esta página cuando se abra el tab
+window.ejPageShowTab = window.ejPageShowTab || function(){};
+var _origEjTab = window.ejPageShowTab;
+window.ejPageShowTab = function(tab) {
+  _origEjTab(tab);
+  if (tab === 'actividad') {
+    var wrap = document.getElementById('actTrackerWrapEj');
+    if (wrap && window.renderActTracker) {
+      // Redireccionar al tab original
+      wrap.innerHTML = '<div style="background:var(--surface);border-radius:14px;padding:1.2rem;text-align:center">' +
+        '<div style="font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:.6rem">El tracker de actividades usa los mismos datos 🔥</div>' +
+        '<div id="actTrackerWrapEjInner"></div></div>';
+      // Renderizar dentro
+      setTimeout(function(){
+        var inner = document.getElementById('actTrackerWrapEjInner');
+        if (inner && window.renderActTracker) {
+          var tmp = document.getElementById('actTrackerWrap');
+          if (tmp) { inner.innerHTML = ''; window.renderActTracker(); inner.innerHTML = tmp.innerHTML; }
+        }
+      }, 100);
+    }
+  }
+  if (tab === 'pasos') {
+    var pr = document.getElementById('pasosRootEj');
+    if (pr && window.renderPasos) {
+      var orig = document.getElementById('pasosRoot');
+      window.renderPasos();
+      if (orig) pr.innerHTML = orig.innerHTML;
+    }
+  }
+};
+
+window.renderActTrackerEj = renderActTrackerEj;
+})();
+</script>
+
+</div><!-- end page-ejercicio -->
 
 <div id="page-habitos" class="page-section">
 <div id="sec-habitos-nav" style="scroll-margin-top:60px"></div>
@@ -37655,6 +38209,7 @@ const NAV_PAGES = [
   { icon:'🧠', label:'Braindump',       page:'page-braindump'    },
   { icon:'✨', label:'Selfcare',        page:'page-selfcare'     },
   { icon:'🍏', label:'Salud',           page:'page-salud'        },
+  { icon:'💪', label:'Ejercicio',       page:'page-ejercicio'    },
   { icon:'🚀', label:'Logros',          page:'page-logros'       },
   { icon:'🙏', label:'Fe',              page:'page-fe'           },
   { icon:'🫧', label:'Vínculos',         page:'page-vinculos'     },
@@ -37700,6 +38255,7 @@ const DRAWER_STRUCTURE = {
       { icon:'♡', label:'Fe',              page:'page-fe'           },
       { icon:'♡', label:'Selfcare',        page:'page-selfcare'     },
       { icon:'♡', label:'Salud',           page:'page-salud'        },
+      { icon:'♡', label:'Ejercicio',       page:'page-ejercicio'    },
       { icon:'♡', label:'Logros',          page:'page-logros'       },
       { icon:'♡', label:'Vínculos',        page:'page-vinculos'     },
       { icon:'♡', label:'Jardín Interior', page:'page-jardin'       },
@@ -48484,7 +49040,7 @@ document.createElement = function(tag) {
 (function() {
   // ── Páginas que tienen stickers habilitados ──────────────
   var STICKER_PAGES = [
-    'page-journal','page-salud','page-diario','page-fe',
+    'page-journal','page-salud','page-ejercicio','page-diario','page-fe',
     'page-calma','page-selfcare','page-intereses',
     'page-inicio','page-semana','page-logros','page-habitos',
     'page-rutinas','page-tareas','page-armario','page-recetario',
