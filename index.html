@@ -103,10 +103,13 @@ window.kittyConfirm = function(msg, onYes, onNo) {
     return doc(db, "kittyplan", uid);
   }
 
+
   function subscribeToUserDoc(uid) {
     if (unsubSnapshot) unsubSnapshot();
-    unsubSnapshot = onSnapshot(getUserDoc(uid), (snap) => {
+    unsubSnapshot = onSnapshot(getUserDoc(uid), { includeMetadataChanges: true }, (snap) => {
       if (!snap.exists()) return;
+      // Ignorar snapshots de escrituras locales pendientes
+      if (snap.metadata.hasPendingWrites) return;
       const raw = snap.data();
       try {
         if (raw.sem_data)     { window._data        = JSON.parse(raw.sem_data);     }
@@ -181,7 +184,8 @@ window.kittyConfirm = function(msg, onYes, onNo) {
           'yuki_frascos_ahorro','yuki_vibe_gastos',
           'yuki_temario',
           'yuki_univ_horario_img',
-          'yuki_career_progress'];
+          'yuki_career_progress',
+          'yuki_univ_recurrentes'];
         mirrorKeys.forEach(function(k) {
           if (raw[k] !== undefined) {
             try { localStorage.setItem(k, raw[k]); } catch(e) {}
@@ -232,18 +236,15 @@ window.kittyConfirm = function(msg, onYes, onNo) {
         if (raw.crm_data)             { window._crmData        = JSON.parse(raw.crm_data);              }
         if (raw.cambio_custom){ window._cambioCustom = JSON.parse(raw.cambio_custom);}
         // Solo llamar syncFromCloud si el snapshot NO lo causamos nosotros.
-        // Comparamos las keys del snapshot con las que estamos esperando.
-        // Si TODAS las keys del snapshot son writes propios en vuelo, lo ignoramos.
+        // Excluir del snapshot las keys que nosotros acabamos de escribir.
         const snapKeys = Object.keys(raw);
-        const allOwn = snapKeys.length > 0 && snapKeys.every(function(k){ return _ownWriteKeys.has(k); });
-        // Limpiar las keys propias que ya llegaron confirmadas
-        snapKeys.forEach(function(k){ _ownWriteKeys.delete(k); });
-        if (allOwn && _initialLoadDone) {
-          console.log('cloudSave: snapshot propio ignorado, datos locales intactos');
-        } else {
-          _initialLoadDone = true;
-          if (typeof window.syncFromCloud === 'function') window.syncFromCloud();
-        }
+        // Filtrar las keys propias del snapshot para que syncFromCloud no las sobreescriba
+        const ownKeys = new Set();
+        snapKeys.forEach(function(k){ if (_ownWriteKeys.has(k)) { ownKeys.add(k); _ownWriteKeys.delete(k); } });
+        // Pasar las own keys al syncFromCloud para que las excluya
+        window._syncSkipKeys = ownKeys;
+        _initialLoadDone = true;
+        if (typeof window.syncFromCloud === 'function') window.syncFromCloud();
       } catch(e) { console.warn("sync parse error", e); }
     });
   }
@@ -264,6 +265,7 @@ window.kittyConfirm = function(msg, onYes, onNo) {
   var _initialLoadDone = false;
 
   window.cloudSave = async function(key, value) {
+    // Registrar timestamp de escritura local para ignorar el snapshot de confirmación
     // Guardar siempre en la cola local por si falla
     _pendingSaves[key] = value;
     if (!currentUID) {
@@ -12426,6 +12428,7 @@ var univProyectos = window.univProyectos;
 
 function saveProyectos() {
   try { localStorage.setItem('univ_proyectos', JSON.stringify(univProyectos)); } catch(e){}
+  window._univProyectos = JSON.parse(JSON.stringify(univProyectos));
   if (window.cloudSave) window.cloudSave('univ_proyectos', univProyectos);
   if (window._onProyectosSaved) window._onProyectosSaved();
 }
@@ -34375,6 +34378,16 @@ window.showPage = function(pageId) {
       </div>
       <div id="univProyectosList"></div>
     </div>
+
+    <!-- ══ TAREAS RECURRENTES ══ -->
+    <div class="univ-block" style="margin-top:.5rem">
+      <div class="univ-block-hdr">
+        <span class="univ-block-title">🔁 Tareas recurrentes</span>
+        <button class="rutina-new-btn" id="univRecNewBtn">＋ Nueva</button>
+      </div>
+      <p style="font-size:.7rem;color:var(--muted);font-weight:600;margin-bottom:.7rem;line-height:1.4">Tareas que se repiten cada cierto tiempo — se muestran cuando toca hacerlas.</p>
+      <div id="univRecList"></div>
+    </div>
   </div>
 
   <!-- ── TAB: PLAN ── -->
@@ -38031,9 +38044,11 @@ var _univSaveTimer = null;
 
 function saveUniv() {
   try { localStorage.setItem('univ_data', JSON.stringify(univData)); } catch(e){}
+  // Actualizar _univData inmediatamente para que el snapshot de confirmación no sobreescriba
+  window._univData = JSON.parse(JSON.stringify(univData));
   _univSaving = true;
   if (_univSaveTimer) clearTimeout(_univSaveTimer);
-  _univSaveTimer = setTimeout(function() { _univSaving = false; }, 5000);
+  _univSaveTimer = setTimeout(function() { _univSaving = false; }, 15000);
   if (window.cloudSave) window.cloudSave('univ_data', univData);
   if (window._onUnivSaved) window._onUnivSaved();
 }
@@ -39890,8 +39905,8 @@ function openUnivExamenModal() {
 // Cloud sync
 var _origSyncUniv = window.syncFromCloud;
 window.syncFromCloud = function() {
-  // Si acabamos de guardar, ignorar el snapshot de confirmación para no sobreescribir
-  if (_univSaving) {
+  // Si acabamos de guardar univ_data, no sobreescribir con el snapshot
+  if (_univSaving || (window._syncSkipKeys && window._syncSkipKeys.has('univ_data'))) {
     if (_origSyncUniv) _origSyncUniv();
     return;
   }
@@ -41575,6 +41590,304 @@ try {
 } catch(e) {}
 
 setTimeout(window.ucpRender, 450);
+})();
+</script>
+
+<style>
+/* ── Tareas recurrentes ── */
+.urec-item { background:var(--bg); border:1.5px solid var(--border); border-radius:14px; padding:.7rem .9rem; margin-bottom:.45rem; }
+.urec-item.due { border-color:var(--rosa); background:var(--rosa-soft); }
+.urec-top { display:flex; align-items:flex-start; gap:.55rem; }
+.urec-check { width:22px; height:22px; border-radius:50%; border:2px solid var(--border); background:var(--card); display:flex; align-items:center; justify-content:center; font-size:.72rem; cursor:pointer; flex-shrink:0; margin-top:.1rem; transition:all .18s; }
+.urec-check.done { background:var(--rosa); border-color:var(--rosa); color:#fff; }
+.urec-info { flex:1; min-width:0; }
+.urec-name { font-size:.84rem; font-weight:800; color:var(--text); }
+.urec-meta { font-size:.65rem; font-weight:700; color:var(--muted); margin-top:.15rem; display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; }
+.urec-badge { font-size:.6rem; font-weight:800; padding:.1rem .4rem; border-radius:20px; background:var(--rosa-soft); color:var(--rosa); border:1px solid var(--rosa); white-space:nowrap; }
+.urec-badge.overdue { background:#fef2f2; color:#ef4444; border-color:#ef4444; }
+.urec-badge.soon { background:#fffbeb; color:#f59e0b; border-color:#f59e0b; }
+.urec-badge.ok { background:#f0fdf4; color:#22c55e; border-color:#22c55e; }
+.urec-actions { display:flex; gap:.3rem; margin-top:.45rem; }
+.urec-btn { background:none; border:1.5px solid var(--border); border-radius:20px; font-family:var(--font-body); font-size:.63rem; font-weight:700; color:var(--muted); cursor:pointer; padding:.18rem .55rem; transition:all .15s; }
+.urec-btn:hover { border-color:var(--rosa); color:var(--rosa); }
+.urec-empty { text-align:center; color:var(--muted2); font-size:.78rem; font-style:italic; padding:1.2rem 0; }
+</style>
+
+<script>
+(function(){
+var UREC_KEY = 'yuki_univ_recurrentes';
+
+function urecLoad() {
+  try { return JSON.parse(localStorage.getItem(UREC_KEY) || '[]'); } catch(e) { return []; }
+}
+function urecSave(data) {
+  try { localStorage.setItem(UREC_KEY, JSON.stringify(data)); } catch(e) {}
+  if (window.cloudSave) window.cloudSave(UREC_KEY, data);
+}
+
+function dkToday() {
+  var d = new Date(); d.setHours(0,0,0,0);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function addDaysStr(dk, n) {
+  var p = dk.split('-'); var d = new Date(+p[0],+p[1]-1,+p[2]); d.setDate(d.getDate()+n);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function diffDays(dk1, dk2) {
+  var p1=dk1.split('-'), p2=dk2.split('-');
+  var d1=new Date(+p1[0],+p1[1]-1,+p1[2]), d2=new Date(+p2[0],+p2[1]-1,+p2[2]);
+  return Math.round((d2-d1)/86400000);
+}
+function fmtDate(dk) {
+  var MESES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  var p=dk.split('-'); return +p[2]+' '+MESES[+p[1]-1];
+}
+
+// Calcular próxima fecha para una tarea
+function urecNextDue(task) {
+  if (!task.lastDone) return task.startDate || dkToday();
+  return addDaysStr(task.lastDone, task.every);
+}
+
+// ── Render
+function urecRender() {
+  var list = document.getElementById('univRecList');
+  if (!list) return;
+  list.innerHTML = '';
+  var data = urecLoad();
+  if (data.length === 0) {
+    var emp = document.createElement('div'); emp.className = 'urec-empty';
+    emp.textContent = 'Sin tareas recurrentes aún. ¡Agrega la primera!';
+    list.appendChild(emp); return;
+  }
+
+  var today = dkToday();
+
+  // Ordenar: vencidas primero, luego por fecha
+  data.sort(function(a, b) {
+    return urecNextDue(a).localeCompare(urecNextDue(b));
+  });
+
+  data.forEach(function(task, idx) {
+    var nextDue = urecNextDue(task);
+    var diff = diffDays(today, nextDue); // negativo = vencida, 0 = hoy, positivo = futura
+    var isDue = diff <= 0;
+    var isSoon = diff > 0 && diff <= 2;
+
+    var item = document.createElement('div');
+    item.className = 'urec-item' + (isDue ? ' due' : '');
+
+    var top = document.createElement('div'); top.className = 'urec-top';
+
+    // Check — marcar como hecha (registra fecha y programa la siguiente)
+    var chk = document.createElement('div'); chk.className = 'urec-check';
+    chk.textContent = '';
+    chk.onclick = function() { urecMarkDone(task.id); };
+    top.appendChild(chk);
+
+    var info = document.createElement('div'); info.className = 'urec-info';
+    var name = document.createElement('div'); name.className = 'urec-name'; name.textContent = task.name;
+
+    var meta = document.createElement('div'); meta.className = 'urec-meta';
+
+    // Frecuencia
+    var freqTxt = 'Cada ' + task.every + ' día' + (task.every > 1 ? 's' : '');
+    if (task.every === 7) freqTxt = 'Cada semana';
+    if (task.every === 14) freqTxt = 'Cada 2 semanas';
+    if (task.every === 30) freqTxt = 'Cada mes';
+    var freqEl = document.createElement('span'); freqEl.textContent = freqTxt;
+    meta.appendChild(freqEl);
+
+    // Badge de estado
+    var badge = document.createElement('span'); badge.className = 'urec-badge';
+    if (diff < 0) {
+      badge.textContent = 'Vencida hace ' + Math.abs(diff) + ' día' + (Math.abs(diff)>1?'s':'');
+      badge.classList.add('overdue');
+    } else if (diff === 0) {
+      badge.textContent = '¡Toca hoy!';
+      badge.classList.add('overdue');
+    } else if (isSoon) {
+      badge.textContent = 'En ' + diff + ' día' + (diff>1?'s':'');
+      badge.classList.add('soon');
+    } else {
+      badge.textContent = fmtDate(nextDue);
+      badge.classList.add('ok');
+    }
+    meta.appendChild(badge);
+
+    if (task.lastDone) {
+      var lastEl = document.createElement('span');
+      lastEl.style.cssText = 'color:var(--muted2);font-size:.6rem';
+      lastEl.textContent = 'Última vez: ' + fmtDate(task.lastDone);
+      meta.appendChild(lastEl);
+    }
+
+    info.appendChild(name); info.appendChild(meta);
+
+    if (task.notes) {
+      var notes = document.createElement('div');
+      notes.style.cssText = 'font-size:.7rem;color:var(--muted);margin-top:.2rem;line-height:1.4';
+      notes.textContent = task.notes;
+      info.appendChild(notes);
+    }
+
+    // Acciones
+    var actions = document.createElement('div'); actions.className = 'urec-actions';
+    var doneBtn = document.createElement('button'); doneBtn.className = 'urec-btn';
+    doneBtn.textContent = '✓ Hecha hoy'; doneBtn.onclick = function() { urecMarkDone(task.id); };
+    var editBtn = document.createElement('button'); editBtn.className = 'urec-btn';
+    editBtn.textContent = '✏️ Editar'; editBtn.onclick = function() { urecOpenModal(task.id); };
+    actions.appendChild(doneBtn); actions.appendChild(editBtn);
+    info.appendChild(actions);
+
+    top.appendChild(info);
+    item.appendChild(top);
+    list.appendChild(item);
+  });
+}
+
+function urecMarkDone(id) {
+  var data = urecLoad();
+  var task = data.find(function(t){ return t.id === id; });
+  if (!task) return;
+  task.lastDone = dkToday();
+  urecSave(data); urecRender();
+}
+
+// ── Modal crear/editar
+function urecOpenModal(id) {
+  var data = urecLoad();
+  var existing = id ? data.find(function(t){ return t.id === id; }) : null;
+  var old = document.getElementById('urecModal'); if (old) old.remove();
+
+  var bd = document.createElement('div'); bd.className = 'meta-modal-backdrop'; bd.id = 'urecModal';
+  bd.onclick = function(e){ if(e.target===bd) bd.remove(); };
+  var box = document.createElement('div'); box.className = 'meta-modal-box'; box.style.maxWidth = '380px';
+
+  // Frecuencias predefinidas
+  var FREQS = [
+    {label:'Diario', val:1}, {label:'Cada 2 días', val:2}, {label:'Cada 3 días', val:3},
+    {label:'Semanal', val:7}, {label:'Cada 2 semanas', val:14}, {label:'Mensual', val:30},
+    {label:'Personalizado', val:0}
+  ];
+
+  var selEvery = existing ? existing.every : 7;
+  var isCustom = !FREQS.find(function(f){ return f.val === selEvery && f.val !== 0; });
+
+  var freqBtns = FREQS.map(function(f) {
+    var active = (!isCustom && f.val === selEvery) || (isCustom && f.val === 0);
+    return '<button type="button" class="glow-freq-tab' + (active?' active':'') + '" data-fval="' + f.val + '">' + f.label + '</button>';
+  }).join('');
+
+  box.innerHTML = '<div class="glow-modal-title" style="margin-bottom:.9rem">' + (existing?'✏️ Editar tarea recurrente':'🔁 Nueva tarea recurrente') + '</div>'
+    + '<div class="modal-field"><label class="modal-label">Nombre de la tarea</label>'
+    + '<input class="modal-input" id="urecName" placeholder="Ej: Dividir PDFs del libro…" value="' + (existing?existing.name.replace(/"/g,'&quot;'):'') + '"></div>'
+    + '<div class="modal-field"><label class="modal-label">Frecuencia</label>'
+    + '<div class="glow-freq-tabs" style="flex-wrap:wrap;gap:.3rem" id="urecFreqBtns">' + freqBtns + '</div></div>'
+    + '<div id="urecCustomWrap" style="' + (!isCustom?'display:none':'') + '">'
+    + '<div class="modal-field"><label class="modal-label">Cada cuántos días</label>'
+    + '<input class="modal-input" id="urecCustomDays" type="number" min="1" max="365" value="' + (isCustom?selEvery:7) + '" style="max-width:100px"></div></div>'
+    + '<div class="modal-field"><label class="modal-label">Primera fecha (inicio)</label>'
+    + '<input class="modal-input" id="urecStartDate" type="date" value="' + (existing&&existing.startDate?existing.startDate:dkToday()) + '"></div>'
+    + '<div class="modal-field"><label class="modal-label">Notas <span style="color:var(--muted2);font-weight:600">(opcional)</span></label>'
+    + '<input class="modal-input" id="urecNotes" placeholder="Ej: Cap. 1 del Guyton, págs. 1-50…" value="' + (existing&&existing.notes?existing.notes.replace(/"/g,'&quot;'):'') + '"></div>'
+    + '<div class="modal-btns" style="margin-top:1rem">'
+    + (existing?'<button type="button" class="modal-btn-cancel" style="color:#e53935;border-color:#e53935" id="urecDelBtn">🗑 Eliminar</button>':'')
+    + '<button type="button" class="modal-btn-cancel" id="urecCancelBtn">Cancelar</button>'
+    + '<button type="button" class="modal-btn-save" id="urecSaveBtn">Guardar</button></div>';
+
+  bd.appendChild(box); document.body.appendChild(bd);
+
+  document.getElementById('urecCancelBtn').onclick = function(){ bd.remove(); };
+
+  // Freq buttons
+  var curFreqVal = selEvery;
+  box.querySelectorAll('[data-fval]').forEach(function(btn) {
+    btn.onclick = function() {
+      var val = parseInt(btn.dataset.fval);
+      box.querySelectorAll('[data-fval]').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      var customWrap = document.getElementById('urecCustomWrap');
+      if (val === 0) {
+        customWrap.style.display = '';
+        curFreqVal = parseInt(document.getElementById('urecCustomDays').value) || 7;
+      } else {
+        customWrap.style.display = 'none';
+        curFreqVal = val;
+      }
+    };
+  });
+  document.getElementById('urecCustomDays').oninput = function() {
+    curFreqVal = parseInt(this.value) || 1;
+  };
+
+  document.getElementById('urecSaveBtn').onclick = function() {
+    var name = (document.getElementById('urecName').value||'').trim();
+    if (!name) { document.getElementById('urecName').focus(); return; }
+    var activeFreqBtn = box.querySelector('[data-fval].active');
+    var fval = activeFreqBtn ? parseInt(activeFreqBtn.dataset.fval) : 7;
+    var every = fval === 0 ? (parseInt(document.getElementById('urecCustomDays').value)||7) : fval;
+    var startDate = document.getElementById('urecStartDate').value || dkToday();
+    var notes = (document.getElementById('urecNotes').value||'').trim();
+
+    var fresh = urecLoad();
+    if (existing) {
+      var t = fresh.find(function(x){ return x.id===id; });
+      if (t) { t.name=name; t.every=every; t.startDate=startDate; t.notes=notes; }
+    } else {
+      fresh.push({ id:'urec_'+Date.now(), name:name, every:every, startDate:startDate, notes:notes, lastDone:null });
+    }
+    urecSave(fresh); bd.remove(); urecRender();
+  };
+
+  var delBtn = document.getElementById('urecDelBtn');
+  if (delBtn) {
+    delBtn.onclick = function() {
+      if (typeof kittyConfirm === 'function') {
+        kittyConfirm('¿Eliminar esta tarea recurrente?', function() {
+          var fresh = urecLoad().filter(function(t){ return t.id !== id; });
+          urecSave(fresh); bd.remove(); urecRender();
+        });
+      } else {
+        if (confirm('¿Eliminar?')) {
+          var fresh = urecLoad().filter(function(t){ return t.id !== id; });
+          urecSave(fresh); bd.remove(); urecRender();
+        }
+      }
+    };
+  }
+
+  document.getElementById('urecName').focus();
+}
+
+// ── Wire button
+function urecWire() {
+  var btn = document.getElementById('univRecNewBtn');
+  if (btn && !btn._urecWired) {
+    btn._urecWired = true;
+    btn.onclick = function() { urecOpenModal(null); };
+  }
+  urecRender();
+}
+
+// ── Hook tab switch
+var _origOnTabRec = window._onUnivTabSwitch;
+window._onUnivTabSwitch = function(tab) {
+  if (typeof _origOnTabRec === 'function') _origOnTabRec(tab);
+  if (tab === 'tareas') setTimeout(urecWire, 60);
+};
+
+// ── Cloud sync
+var _origSyncRec = window.syncFromCloud;
+window.syncFromCloud = function() {
+  if (typeof _origSyncRec === 'function') _origSyncRec();
+  if (window._univRecurrentes) {
+    try { localStorage.setItem(UREC_KEY, JSON.stringify(window._univRecurrentes)); } catch(e) {}
+  }
+  urecRender();
+};
+
+setTimeout(urecWire, 600);
 })();
 </script>
 
