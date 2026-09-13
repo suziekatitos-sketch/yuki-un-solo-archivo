@@ -76,33 +76,187 @@ window.kittyConfirm = function(msg, onYes, onNo) {
 };
 </script>
 
-<script>
-// ══ ALMACENAMIENTO LOCAL (sin Firebase) ══
-// La app funciona 100% con localStorage, sin nube ni login.
-window._firebaseReady = true;
+<script type="module">
+// ══ SINCRONIZACIÓN EN LA NUBE (Firebase Auth + Firestore) ══
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import {
+  getAuth, onAuthStateChanged, createUserWithEmailAndPassword,
+  signInWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import {
+  getFirestore, doc, setDoc, getDocs, collection, onSnapshot, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-window.cloudSave = function(key, value) {
+const firebaseConfig = {
+  apiKey: "AIzaSyA2nGcZRUTjc8yAuMoq73jbmUtoHb-v1e4",
+  authDomain: "my-yuki-app.firebaseapp.com",
+  projectId: "my-yuki-app",
+  storageBucket: "my-yuki-app.firebasestorage.app",
+  messagingSenderId: "1093868123072",
+  appId: "1:1093868123072:web:d1c3418f5fcea686e94e25",
+  measurementId: "G-3JZQK604FN"
+};
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+(async function(){ try { await setPersistence(auth, browserLocalPersistence); } catch(e){} })();
+
+window._yukiUser = null;
+var _unsubSnapshot = null;
+var _saveTimers = {};
+var _saveQueue  = {};
+
+// ── Aplica un objeto "raw" (key -> JSON string) a los mirrors window._xxx
+// que usa el resto de la app, y también a localStorage para cualquier
+// clave que no tenga un mirror explícito. Se usa tanto en la carga
+// inicial como en cada actualización en tiempo real. ──
+window.applyCloudRaw = function(raw) {
+  if (!raw) return;
+  Object.keys(raw).forEach(function(key) {
+    try { localStorage.setItem(key, raw[key]); } catch(e) {}
+  });
   try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch(e) { console.warn('cloudSave (local) error', key, e); }
-  return Promise.resolve();
+    if (raw.sem_data)            window._data               = JSON.parse(raw.sem_data);
+    if (raw.sem_custom)          window._customTasks        = JSON.parse(raw.sem_custom);
+    if (raw.recurring_tasks)     window._recurringTasks     = JSON.parse(raw.recurring_tasks);
+    if (raw.completions)         window._completions        = JSON.parse(raw.completions);
+    if (raw.ci_state)            window._checkinState       = JSON.parse(raw.ci_state);
+    if (raw.nd_state)            window._needsState         = JSON.parse(raw.nd_state);
+    if (raw.calm_tools)          window._calmTools          = JSON.parse(raw.calm_tools);
+    if (raw.water_goal)          window._waterGoal          = parseInt(raw.water_goal);
+    if (raw.water_state)         window._waterState         = JSON.parse(raw.water_state);
+    if (raw.food_state)          window._foodState          = JSON.parse(raw.food_state);
+    if (raw.logros_data)         window._logrosData         = JSON.parse(raw.logros_data);
+    if (raw.fortalezas)          window._fortalezas         = JSON.parse(raw.fortalezas);
+    if (raw.cambio_state)        window._cambioState        = JSON.parse(raw.cambio_state);
+    if (raw.cambio_custom)       window._cambioCustom       = JSON.parse(raw.cambio_custom);
+    if (raw.gratitud_data)       window._gratitudData       = JSON.parse(raw.gratitud_data);
+    if (raw.sueno_data)          window._suenoData          = JSON.parse(raw.sueno_data);
+    if (raw.mens_data)           window._mensData           = JSON.parse(raw.mens_data);
+    if (raw.dios_data)           window._diosData           = JSON.parse(raw.dios_data);
+    if (raw.versiculos)          window._versiculos         = JSON.parse(raw.versiculos);
+    if (raw.ej_templates)        window._ejTemplates        = JSON.parse(raw.ej_templates);
+    if (raw.ej_registros)        window._ejRegistros        = JSON.parse(raw.ej_registros);
+    if (raw.belleza_templates)   window._bellezaTemplates   = JSON.parse(raw.belleza_templates);
+    if (raw.belleza_registros)   window._bellezaRegistros   = JSON.parse(raw.belleza_registros);
+    if (raw.rutina_templates)    window._rutinaTemplates    = JSON.parse(raw.rutina_templates);
+    if (raw.rutina_asignaciones) window._rutinaAsignaciones = JSON.parse(raw.rutina_asignaciones);
+    if (raw.rutina_completions)  window._rutinaCompletions  = JSON.parse(raw.rutina_completions);
+    if (raw.desglose_items)      window._desgloseItems      = JSON.parse(raw.desglose_items);
+    if (raw.univ_data)           window._univData           = JSON.parse(raw.univ_data);
+    if (raw.limpieza_data)       window._limpiezaData       = JSON.parse(raw.limpieza_data);
+    if (raw.limp_rutinas)        window._limpRutinas        = JSON.parse(raw.limp_rutinas);
+    if (raw.finanzas_data)       window._finanzasData       = JSON.parse(raw.finanzas_data);
+    if (raw.recetario_data)      window._recetarioData      = JSON.parse(raw.recetario_data);
+    if (raw.habitos_data)        window._habitosData        = JSON.parse(raw.habitos_data);
+    if (raw.vb_items)            window._vbItems            = JSON.parse(raw.vb_items);
+  } catch(e) { console.warn('applyCloudRaw error', e); }
 };
 
+// ── cloudSave: guarda local al instante y sube a Firestore con debounce ──
+window.cloudSave = function(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch(e) { console.warn('cloudSave (local) error', key, e); }
+  if (!window._yukiUser) return Promise.resolve();
+  _saveQueue[key] = value;
+  if (_saveTimers[key]) clearTimeout(_saveTimers[key]);
+  return new Promise(function(resolve) {
+    _saveTimers[key] = setTimeout(function() {
+      var v = _saveQueue[key];
+      delete _saveQueue[key];
+      delete _saveTimers[key];
+      setDoc(doc(db, 'usuarios', window._yukiUser.uid, 'datos', key),
+        { v: JSON.stringify(v), t: serverTimestamp() }, { merge: true }
+      ).catch(function(e){ console.warn('cloudSave (nube) error', key, e); }).finally(resolve);
+    }, 700);
+  });
+};
+
+// ── cloudLoad: trae todo lo guardado en la nube una vez (carga inicial) ──
 window.cloudLoad = async function() {
-  // No hay nube: los datos ya viven en localStorage y los carga loadData().
-  return {};
+  if (!window._yukiUser) return {};
+  var raw = {};
+  try {
+    var snap = await getDocs(collection(db, 'usuarios', window._yukiUser.uid, 'datos'));
+    snap.forEach(function(d) {
+      var data = d.data();
+      if (data && typeof data.v === 'string') raw[d.id] = data.v;
+    });
+  } catch(e) { console.warn('cloudLoad error', e); }
+  return raw;
 };
 
-// Se mantienen por compatibilidad con botones existentes, pero no hacen nada.
-window.signInWithGoogle = function() {};
-window.signOutUser = function() {};
+// ── Sincronización en tiempo real: escucha cambios de otros dispositivos ──
+function startRealtimeSync() {
+  if (_unsubSnapshot) { _unsubSnapshot(); _unsubSnapshot = null; }
+  if (!window._yukiUser) return;
+  _unsubSnapshot = onSnapshot(collection(db, 'usuarios', window._yukiUser.uid, 'datos'), function(snap) {
+    var raw = {}, changed = false;
+    snap.docChanges().forEach(function(change) {
+      if (change.type === 'added' || change.type === 'modified') {
+        var data = change.doc.data();
+        if (data && typeof data.v === 'string') { raw[change.doc.id] = data.v; changed = true; }
+      }
+    });
+    if (changed) {
+      window.applyCloudRaw(raw);
+      if (window._yukiInitDone && typeof window.syncFromCloud === 'function') {
+        try { window.syncFromCloud(); } catch(e) { console.warn('syncFromCloud error', e); }
+      }
+    }
+  }, function(err) { console.warn('onSnapshot error', err); });
+}
 
-document.addEventListener('DOMContentLoaded', () => {
+function paintAuthUI(user) {
+  var label = document.getElementById('drawerAuthLabel');
   var authBtn = document.getElementById('drawerAuthBtn');
-  if (authBtn) authBtn.style.display = 'none';
-  var configSignoutBtn = document.querySelector('.config-signout-btn');
-  if (configSignoutBtn) configSignoutBtn.style.display = 'none';
+  var configBtn = document.querySelector('.config-signout-btn');
+  if (label) label.textContent = user ? (user.email || 'Mi cuenta ☁️') : 'Iniciar sesión';
+  if (authBtn) authBtn.onclick = user ? function(){ if (window.kittyConfirm) window.kittyConfirm('¿Cerrar sesión?', window.signOutUser); else window.signOutUser(); }
+                                       : function(){ window.openYukiLogin(); };
+  if (configBtn) configBtn.style.display = user ? '' : 'none';
+}
+
+onAuthStateChanged(auth, function(user) {
+  window._yukiUser = user;
+  paintAuthUI(user);
+  if (user) { startRealtimeSync(); if (window.closeYukiLogin) window.closeYukiLogin(); }
+  else if (_unsubSnapshot) { _unsubSnapshot(); _unsubSnapshot = null; }
+  window._firebaseReady = true;
+  document.dispatchEvent(new Event('firebase-ready'));
 });
+
+// ── Compat: los botones existentes llaman a estas funciones ──
+window.signInWithGoogle = function() { window.openYukiLogin(); };
+window.signOutUser = function() {
+  return signOut(auth).catch(function(e){ console.warn('signOut error', e); });
+};
+
+function yukiAuthErrorMsg(code) {
+  var map = {
+    'auth/invalid-email': 'Correo inválido.',
+    'auth/user-not-found': 'No existe una cuenta con ese correo.',
+    'auth/wrong-password': 'Contraseña incorrecta.',
+    'auth/invalid-credential': 'Correo o contraseña incorrectos.',
+    'auth/email-already-in-use': 'Ya existe una cuenta con ese correo.',
+    'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres.',
+    'auth/too-many-requests': 'Demasiados intentos. Intenta de nuevo en unos minutos.',
+    'auth/network-request-failed': 'Sin conexión. Revisa tu internet.',
+    'auth/missing-password': 'Escribe una contraseña.'
+  };
+  return map[code] || 'Ocurrió un error. Intenta de nuevo.';
+}
+
+window._yukiAuthAction = async function(mode, email, password) {
+  try {
+    if (mode === 'signup') await createUserWithEmailAndPassword(auth, email, password);
+    else await signInWithEmailAndPassword(auth, email, password);
+    return { ok: true };
+  } catch(e) {
+    return { ok: false, message: yukiAuthErrorMsg(e.code) };
+  }
+};
 </script>
 <style>
   :root {
@@ -6309,6 +6463,114 @@ function todayKey() { return dateKey(new Date()); }
   document.addEventListener('DOMContentLoaded', function(){
     var loader = document.getElementById('cloudLoader');
     if (loader) obs.observe(loader, { attributes:true, attributeFilter:['style'] });
+  });
+})();
+</script>
+
+<!-- Login / registro por correo y contraseña -->
+<style>
+  #yukiLoginOverlay {
+    position:fixed; inset:0; z-index:10000;
+    background:rgba(40,20,30,.35); backdrop-filter:blur(3px);
+    display:none; align-items:center; justify-content:center; padding:1rem;
+  }
+  .ykn-card {
+    width:100%; max-width:340px; background:var(--card); border:1.5px solid var(--border);
+    border-radius:26px; padding:1.8rem 1.6rem; box-shadow:0 16px 50px rgba(244,167,192,.22);
+    animation:yukiLoaderFadeIn .35s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  .ykn-title { font-family:var(--font-title); font-style:italic; font-size:1.3rem; color:var(--text); text-align:center; margin-bottom:.2rem; }
+  .ykn-sub { font-size:.75rem; color:var(--muted); text-align:center; margin-bottom:1.1rem; }
+  .ykn-field { margin-bottom:.8rem; }
+  .ykn-field label { display:block; font-size:.7rem; font-weight:800; color:var(--muted2); margin-bottom:.3rem; text-transform:uppercase; letter-spacing:.04em; }
+  .ykn-field input {
+    width:100%; box-sizing:border-box; padding:.6rem .8rem; border-radius:14px;
+    border:1.5px solid var(--border); background:var(--bg); font-family:var(--font-body);
+    font-size:.85rem; color:var(--text);
+  }
+  .ykn-field input:focus { outline:none; border-color:var(--rosa); }
+  .ykn-error { font-size:.72rem; color:#c0395a; font-weight:700; margin:-.3rem 0 .7rem; min-height:1em; }
+  .ykn-submit {
+    width:100%; padding:.7rem; border-radius:20px; border:none; background:var(--rosa);
+    color:#fff; font-family:var(--font-body); font-weight:800; font-size:.85rem; cursor:pointer;
+  }
+  .ykn-submit[disabled] { opacity:.6; cursor:default; }
+  .ykn-toggle { text-align:center; font-size:.75rem; color:var(--muted); margin-top:.9rem; }
+  .ykn-toggle a { color:var(--rosa); font-weight:800; cursor:pointer; text-decoration:none; }
+  .ykn-skip { text-align:center; font-size:.72rem; color:var(--muted2); margin-top:.5rem; cursor:pointer; text-decoration:underline; }
+</style>
+<div id="yukiLoginOverlay">
+  <div class="ykn-card">
+    <div class="ykn-title">🌸 <em>Yuki</em></div>
+    <div class="ykn-sub" id="yukiLoginSub">Inicia sesión para sincronizar tus datos entre dispositivos</div>
+    <div class="ykn-field">
+      <label>Correo</label>
+      <input type="email" id="yukiLoginEmail" autocomplete="email" placeholder="tucorreo@ejemplo.com">
+    </div>
+    <div class="ykn-field">
+      <label>Contraseña</label>
+      <input type="password" id="yukiLoginPassword" autocomplete="current-password" placeholder="••••••••">
+    </div>
+    <div class="ykn-error" id="yukiLoginError"></div>
+    <button class="ykn-submit" id="yukiLoginSubmit" onclick="window._yukiSubmitAuth()">Iniciar sesión</button>
+    <div class="ykn-toggle" id="yukiLoginToggle">
+      ¿No tienes cuenta? <a onclick="window._yukiToggleAuthMode()">Crea una</a>
+    </div>
+    <div class="ykn-skip" onclick="window.closeYukiLogin()">Seguir usando la app sin sincronizar</div>
+  </div>
+</div>
+<script>
+(function(){
+  var mode = 'login'; // 'login' | 'signup'
+  window.openYukiLogin = function() {
+    document.getElementById('yukiLoginError').textContent = '';
+    document.getElementById('yukiLoginOverlay').style.display = 'flex';
+  };
+  window.closeYukiLogin = function() {
+    document.getElementById('yukiLoginOverlay').style.display = 'none';
+  };
+  window._yukiToggleAuthMode = function() {
+    mode = (mode === 'login') ? 'signup' : 'login';
+    document.getElementById('yukiLoginSubmit').textContent = mode === 'login' ? 'Iniciar sesión' : 'Crear cuenta';
+    document.getElementById('yukiLoginSub').textContent = mode === 'login'
+      ? 'Inicia sesión para sincronizar tus datos entre dispositivos'
+      : 'Crea tu cuenta — tus datos se guardarán en la nube';
+    document.getElementById('yukiLoginToggle').innerHTML = mode === 'login'
+      ? '¿No tienes cuenta? <a onclick="window._yukiToggleAuthMode()">Crea una</a>'
+      : '¿Ya tienes cuenta? <a onclick="window._yukiToggleAuthMode()">Inicia sesión</a>';
+    document.getElementById('yukiLoginError').textContent = '';
+  };
+  window._yukiSubmitAuth = async function() {
+    var email = document.getElementById('yukiLoginEmail').value.trim();
+    var pass  = document.getElementById('yukiLoginPassword').value;
+    var errEl = document.getElementById('yukiLoginError');
+    var btn   = document.getElementById('yukiLoginSubmit');
+    if (!email || !pass) { errEl.textContent = 'Completa correo y contraseña.'; return; }
+    btn.disabled = true;
+    var prevLabel = btn.textContent;
+    btn.textContent = 'Un momento…';
+    errEl.textContent = '';
+    var result = await window._yukiAuthAction(mode, email, pass);
+    btn.disabled = false;
+    btn.textContent = prevLabel;
+    if (!result.ok) { errEl.textContent = result.message; return; }
+    // Al iniciar/crear sesión, cargar datos de la nube y refrescar la app
+    if (window.cloudLoad) {
+      try {
+        var raw = await window.cloudLoad();
+        if (window.applyCloudRaw) window.applyCloudRaw(raw);
+        if (window._yukiInitDone) {
+          if (typeof window.loadData === 'function') window.loadData();
+          if (typeof window.syncFromCloud === 'function') window.syncFromCloud();
+          else if (typeof window.render === 'function') window.render();
+        }
+      } catch(e) { console.warn('post-login load error', e); }
+    }
+  };
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Enter' && document.getElementById('yukiLoginOverlay').style.display === 'flex') {
+      window._yukiSubmitAuth();
+    }
   });
 })();
 </script>
@@ -22062,38 +22324,7 @@ async function initApp() {
   if (window.cloudLoad) {
     try {
       const raw = await window.cloudLoad();
-      if (raw.sem_data)            window._data             = JSON.parse(raw.sem_data);
-      if (raw.sem_custom)          window._customTasks      = JSON.parse(raw.sem_custom);
-      if (raw.recurring_tasks)     window._recurringTasks   = JSON.parse(raw.recurring_tasks);
-      if (raw.completions)         window._completions      = JSON.parse(raw.completions);
-      if (raw.ci_state)            window._checkinState     = JSON.parse(raw.ci_state);
-      if (raw.nd_state)            window._needsState       = JSON.parse(raw.nd_state);
-      if (raw.calm_tools)          window._calmTools        = JSON.parse(raw.calm_tools);
-      if (raw.water_goal)          window._waterGoal        = parseInt(raw.water_goal);
-      if (raw.water_state)         window._waterState       = JSON.parse(raw.water_state);
-      if (raw.food_state)          window._foodState        = JSON.parse(raw.food_state);
-      if (raw.logros_data)         window._logrosData       = JSON.parse(raw.logros_data);
-      if (raw.fortalezas)          window._fortalezas       = JSON.parse(raw.fortalezas);
-      if (raw.cambio_state)        window._cambioState      = JSON.parse(raw.cambio_state);
-      if (raw.cambio_custom)       window._cambioCustom     = JSON.parse(raw.cambio_custom);
-      if (raw.gratitud_data)       window._gratitudData     = JSON.parse(raw.gratitud_data);
-      if (raw.sueno_data)          window._suenoData        = JSON.parse(raw.sueno_data);
-      if (raw.mens_data)           window._mensData         = JSON.parse(raw.mens_data);
-      if (raw.dios_data)           window._diosData         = JSON.parse(raw.dios_data);
-      if (raw.versiculos)          window._versiculos       = JSON.parse(raw.versiculos);
-      if (raw.ej_templates)        window._ejTemplates      = JSON.parse(raw.ej_templates);
-      if (raw.ej_registros)        window._ejRegistros      = JSON.parse(raw.ej_registros);
-      if (raw.belleza_templates)   window._bellezaTemplates = JSON.parse(raw.belleza_templates);
-      if (raw.belleza_registros)   window._bellezaRegistros = JSON.parse(raw.belleza_registros);
-      if (raw.rutina_templates)    window._rutinaTemplates  = JSON.parse(raw.rutina_templates);
-      if (raw.rutina_asignaciones) window._rutinaAsignaciones = JSON.parse(raw.rutina_asignaciones);
-      if (raw.rutina_completions)  window._rutinaCompletions  = JSON.parse(raw.rutina_completions);
-      if (raw.desglose_items)      window._desgloseItems    = JSON.parse(raw.desglose_items);
-      if (raw.univ_data)           window._univData         = JSON.parse(raw.univ_data);
-      if (raw.limpieza_data)      window._limpiezaData     = JSON.parse(raw.limpieza_data);
-      if (raw.limp_rutinas)        window._limpRutinas      = JSON.parse(raw.limp_rutinas);
-      if (raw.finanzas_data)      window._finanzasData     = JSON.parse(raw.finanzas_data);
-      if (raw.recetario_data)     window._recetarioData    = JSON.parse(raw.recetario_data);
+      if (window.applyCloudRaw) window.applyCloudRaw(raw);
     } catch(e) { console.warn('Cloud load failed, using localStorage', e); }
   }
   const loader = document.getElementById('cloudLoader');
@@ -22101,6 +22332,7 @@ async function initApp() {
   loadData();
   render();
   setTimeout(postParalisisCheck, 800);
+  window._yukiInitDone = true;
 }
 
 if (window._firebaseReady) {
