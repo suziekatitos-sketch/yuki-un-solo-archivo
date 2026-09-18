@@ -4827,10 +4827,10 @@ window._yukiAuthAction = async function(mode, email, password) {
     line-height: 1.3;
   }
 
-  /* ocultar badge recurrencia en móvil */
+  /* En móvil, el tap en la pill completa/descompleta directo;
+     el botón de editar y eliminar deben quedar siempre visibles
+     (ya no hay menú emergente que los revele con un toque largo) */
   @media (max-width: 640px) {
-    .recur-badge { display: none; }
-    .pill-action-btn { display: none; }
     .task-pill {
       flex-direction: column;
       align-items: flex-start;
@@ -4846,12 +4846,13 @@ window._yukiAuthAction = async function(mode, email, password) {
       width: 100%;
       padding-right: 14px;
     }
+    .recur-badge, .pill-action-btn { opacity: .8; }
   }
 
   .pill-action-btn {
     background: none; border: none; cursor: pointer;
     font-size: .65rem; padding: 0 1px;
-    opacity: 0; transition: opacity .15s;
+    opacity: .55; transition: opacity .15s;
     flex-shrink: 0; line-height: 1;
   }
   .task-pill:hover .pill-action-btn { opacity: .7; }
@@ -19975,8 +19976,15 @@ function renderCell(cell, slot, date) {
     const pill = document.createElement('div');
     pill.className = `task-pill ${pillCls}` + (done ? ' done' : '');
     pill.style.cursor = 'pointer';
-    pill.title = done ? '✓ Completada — toca para ver el timer' : '⏱ Toca para abrir el timer';
-    pill.onclick = (e) => { e.stopPropagation(); openTaskPillMenu(task.id, task.text, date, pill); };
+    pill.title = done ? '✓ Completada — toca para desmarcar' : 'Toca para completar';
+    pill.onclick = (e) => {
+      e.stopPropagation();
+      const nowDone = !completions[cKey];
+      if (nowDone) completions[cKey] = true; else delete completions[cKey];
+      saveData();
+      renderCell(cell, slot, date);
+      updateProgress();
+    };
 
     // Ícono de estado (reemplaza el checkbox)
     const statusIcon = document.createElement('span');
@@ -19999,63 +20007,26 @@ function renderCell(cell, slot, date) {
 
     const editBtn = document.createElement('button');
     editBtn.className = 'pill-action-btn pill-edit-btn';
-    editBtn.title = 'Configurar tarea';
+    editBtn.title = 'Editar / establecer frecuencia';
     editBtn.textContent = '✏️';
     editBtn.onclick = (e) => { e.stopPropagation(); openTaskModal(task.id); };
 
-    // Drag handle
-    const handle = document.createElement('span');
-    handle.className = 'pill-handle';
-    handle.textContent = '⠿';
-    handle.title = 'Arrastrar para ordenar';
-
-    pill.draggable = true;
-    pill.dataset.taskId = task.id;
-
-    pill.addEventListener('dragstart', (e) => {
-      pill.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', task.id);
-      window._dragSrcSlot = slot.id;
-      window._dragSrcDate = dk;
-    });
-    pill.addEventListener('dragend', () => {
-      pill.classList.remove('dragging');
-      cell.classList.remove('drag-over');
-      document.querySelectorAll('.task-pill').forEach(p => p.classList.remove('drag-over-pill'));
-    });
-    pill.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      const dragging = cell.querySelector('.dragging');
-      if (!dragging || dragging === pill) return;
-      // Insert before or after based on mouse position
-      const rect = pill.getBoundingClientRect();
-      const midY = rect.top + rect.height / 2;
-      if (e.clientY < midY) {
-        cell.insertBefore(dragging, pill);
-      } else {
-        cell.insertBefore(dragging, pill.nextSibling);
-      }
-    });
-    pill.addEventListener('drop', (e) => {
-      e.preventDefault();
+    const delBtn = document.createElement('button');
+    delBtn.className = 'pill-action-btn pill-edit-btn';
+    delBtn.title = 'Eliminar tarea';
+    delBtn.textContent = '🗑️';
+    delBtn.onclick = (e) => {
       e.stopPropagation();
-      // Reorder recurringTasks based on current DOM order
-      const newOrder = [...cell.querySelectorAll('.task-pill')].map(p => p.dataset.taskId).filter(Boolean);
-      // Build new order: extract these tasks, reinsert in new order
-      const slotTasks = recurringTasks.filter(t => t.slotId === slot.id && taskVisibleOnDate(t, date));
-      const otherTasks = recurringTasks.filter(t => !(t.slotId === slot.id && taskVisibleOnDate(t, date)));
-      const reordered = newOrder.map(id => slotTasks.find(t => t.id === id)).filter(Boolean);
-      // Add any tasks not in DOM (edge case)
-      slotTasks.forEach(t => { if (!reordered.find(r => r.id === t.id)) reordered.push(t); });
-      recurringTasks = [...otherTasks, ...reordered];
-      saveData();
-    });
+      kittyConfirm('¿Eliminar esta tarea?', function() {
+        recurringTasks = recurringTasks.filter(t => t.id !== task.id);
+        saveData();
+        render();
+      });
+    };
 
-    pill.appendChild(handle);
     pill.appendChild(badge);
     pill.appendChild(editBtn);
+    pill.appendChild(delBtn);
     cell.appendChild(pill);
   });
 
@@ -20065,32 +20036,6 @@ function renderCell(cell, slot, date) {
   addBtn.innerHTML = '＋ agregar';
   addBtn.onclick = () => openTaskModal(null, slot.id, date);
   cell.appendChild(addBtn);
-
-  // Botón de transición al siguiente slot (solo en el día de hoy, no en el último slot)
-  const slotIdx = SLOTS.indexOf(slot);
-  if (isToday && slotIdx < SLOTS.length - 1) {
-    const sigSlot = SLOTS[slotIdx + 1];
-    const SLOTS_HORAS = { m:'11:00', t:'18:00', n:'22:00' };
-    const horaSlot = SLOTS_HORAS[slot.id] || '12:00';
-    const transSlotBtn = document.createElement('button');
-    transSlotBtn.style.cssText = [
-      'display:flex','align-items:center','gap:.35rem',
-      'width:100%','margin-top:.5rem','padding:.38rem .7rem',
-      'border-radius:10px','border:1.5px dashed var(--border)',
-      'background:none','cursor:pointer',
-      'font-family:var(--font-body)','font-size:.68rem',
-      'font-weight:700','color:var(--muted)','transition:all .2s'
-    ].join(';');
-    transSlotBtn.innerHTML = '🔄 → ' + sigSlot.icon + ' ' + sigSlot.name;
-    transSlotBtn.title = 'Planear transición a ' + sigSlot.name;
-    transSlotBtn.onmouseover = function() { transSlotBtn.style.borderColor='var(--rosa)'; transSlotBtn.style.color='var(--rosa)'; transSlotBtn.style.background='var(--rosa-soft)'; };
-    transSlotBtn.onmouseout  = function() { transSlotBtn.style.borderColor='var(--border)'; transSlotBtn.style.color='var(--muted)'; transSlotBtn.style.background='none'; };
-    transSlotBtn.onclick = function(e) {
-      e.stopPropagation();
-      if (window.transNuevaDesdeHorario) transNuevaDesdeHorario(slot.icon + ' ' + slot.name, sigSlot.icon + ' ' + sigSlot.name, horaSlot);
-    };
-    cell.appendChild(transSlotBtn);
-  }
 }
 
 function recurrenceLabel(task) {
@@ -20168,59 +20113,6 @@ function resetAll() {
 
 // ── TASK MODAL ────────────────────────────────────────────
 let _modalTaskId = null;  // null = new task
-
-function openTaskPillMenu(taskId, taskText, date, pillEl) {
-  // En PC (hover disponible) abrir el timer directamente
-  if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
-    openTaskTimer(taskId, taskText, date);
-    return;
-  }
-  // En móvil: mini-menú contextual
-  const old = document.getElementById('taskPillMenu');
-  if (old) { old.remove(); return; }
-
-  const menu = document.createElement('div');
-  menu.id = 'taskPillMenu';
-  menu.className = 'task-pill-menu';
-
-  const btns = [
-    { emoji: '▶️', label: 'Abrir timer', action: () => { menu.remove(); openTaskTimer(taskId, taskText, date); } },
-    { emoji: '✏️', label: 'Editar',      action: () => { menu.remove(); openTaskModal(taskId); } },
-    { emoji: '🗑️', label: 'Eliminar',    action: () => {
-      menu.remove();
-      if (confirm('¿Eliminar esta tarea?')) {
-        recurringTasks = recurringTasks.filter(t => t.id !== taskId);
-        saveData();
-        render();
-      }
-    }},
-  ];
-
-  btns.forEach(b => {
-    const btn = document.createElement('button');
-    btn.className = 'task-pill-menu-btn';
-    btn.innerHTML = `<span class="tpm-emoji">${b.emoji}</span><span class="tpm-label">${b.label}</span>`;
-    btn.onclick = (e) => { e.stopPropagation(); b.action(); };
-    menu.appendChild(btn);
-  });
-
-  // Posicionar relativo a la pill
-  document.body.appendChild(menu);
-  const pillRect = pillEl.getBoundingClientRect();
-  const menuW = 160;
-  let left = pillRect.left + window.scrollX;
-  let top = pillRect.bottom + window.scrollY + 4;
-  if (left + menuW > window.innerWidth - 8) left = window.innerWidth - menuW - 8;
-  menu.style.left = left + 'px';
-  menu.style.top = top + 'px';
-
-  // Cerrar al tocar fuera
-  setTimeout(() => {
-    document.addEventListener('click', function handler(e) {
-      if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('click', handler); }
-    });
-  }, 10);
-}
 
 function openTaskModal(taskId, defaultSlotId, defaultDate) {
   _modalTaskId = taskId;
@@ -20859,8 +20751,11 @@ function abrirDiaModal(date, dk) {
         '<span style="flex:1;font-size:.82rem;font-weight:700;color:var(--text);'+(done?'text-decoration:line-through;opacity:.6':'')+'">'+t.text+'</span>' +
         '<span style="font-size:.65rem;color:var(--muted2)">'+slot.name+'</span>';
       row.onclick = function() {
-        openTaskTimer(t.id, t.text, date);
+        if (done) delete completions[cKey]; else completions[cKey] = true;
+        saveData();
+        render();
         backdrop.remove();
+        abrirDiaModal(date, dk);
       };
       box.appendChild(row);
     });
@@ -38819,12 +38714,13 @@ function openUnivMateriaModal(editIdx) {
   document.getElementById('univMatSave').onclick = function() {
     var n = document.getElementById('univMatNombre').value.trim();
     if (!n) return;
+    var semGuardar = getActiveSem() || sem;
     if (isEdit) {
-      sem.materias[editIdx].name  = n;
-      sem.materias[editIdx].color = selColor;
-      sem.materias[editIdx].img   = selImgData;
+      semGuardar.materias[editIdx].name  = n;
+      semGuardar.materias[editIdx].color = selColor;
+      semGuardar.materias[editIdx].img   = selImgData;
     } else {
-      sem.materias.push({ id:'mat_'+Date.now(), name:n, color:selColor, img:selImgData, calificacion:'' });
+      semGuardar.materias.push({ id:'mat_'+Date.now(), name:n, color:selColor, img:selImgData, calificacion:'' });
     }
     saveUniv(); 
     renderUnivMaterias();
@@ -38993,7 +38889,8 @@ function openUnivTareaModal() {
     if (currentPasos.length > 0) {
       tarea.pasos = currentPasos.map(function(p, i){ return {id:'p'+i,texto:p,done:false}; });
     }
-    sem.tareas.push(tarea);
+    var semGuardar = getActiveSem() || sem;
+    semGuardar.tareas.push(tarea);
     saveUniv(); renderUniv(); back.remove();
   };
 
@@ -39026,7 +38923,8 @@ function openUnivExamenModal() {
   document.getElementById('univExSave').onclick = function() {
     var n = document.getElementById('univExNombre').value.trim();
     if (!n) return;
-    sem.examenes.push({id:'ex_'+Date.now(),name:n,
+    var semGuardar = getActiveSem() || sem;
+    semGuardar.examenes.push({id:'ex_'+Date.now(),name:n,
       materia:document.getElementById('univExMateria').value,
       fecha:document.getElementById('univExFecha').value});
     saveUniv(); renderUniv(); back.remove();
