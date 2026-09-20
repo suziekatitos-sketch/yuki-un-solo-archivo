@@ -2807,47 +2807,6 @@ window._yukiAuthAction = async function(mode, email, password) {
   }
   .univ-plan-regen-btn:hover { border-color: var(--rosa); color: var(--rosa); }
 
-  /* ── Banner detección de evitación ── */
-  .univ-evitacion-banner {
-    display: flex;
-    align-items: center;
-    gap: .75rem;
-    background: linear-gradient(135deg, rgba(167,139,250,.13), rgba(244,194,214,.15));
-    border: 1.5px solid rgba(167,139,250,.35);
-    border-radius: 16px;
-    padding: .85rem 1rem;
-    margin-bottom: 1rem;
-    animation: evitacion-in .4s cubic-bezier(.34,1.56,.64,1) both;
-  }
-  @keyframes evitacion-in {
-    from { opacity:0; transform:translateY(-8px) scale(.97); }
-    to   { opacity:1; transform:translateY(0) scale(1); }
-  }
-  .univ-evitacion-emoji { font-size:1.5rem; flex-shrink:0; }
-  .univ-evitacion-texto {
-    flex:1;
-    font-size:.82rem;
-    color: var(--text);
-    line-height: 1.4;
-    font-family: var(--font-body);
-  }
-  .univ-evitacion-texto strong { color: var(--rosa); }
-  .univ-empezar-facil-btn {
-    background: linear-gradient(135deg, #a78bfa, #818cf8);
-    color: #fff;
-    border: none;
-    border-radius: 20px;
-    padding: .45rem 1rem;
-    font-size: .78rem;
-    font-weight: 700;
-    font-family: var(--font-body);
-    cursor: pointer;
-    white-space: nowrap;
-    flex-shrink: 0;
-    transition: transform .15s, box-shadow .15s;
-    box-shadow: 0 3px 12px rgba(167,139,250,.4);
-  }
-  .univ-empezar-facil-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(167,139,250,.5); }
   .univ-empezar-facil-btn:active { transform: translateY(0); }
   /* Micro-paso overlay */
   #univMicropaso {
@@ -4829,24 +4788,22 @@ window._yukiAuthAction = async function(mode, email, password) {
 
   /* En móvil, el tap en la pill completa/descompleta directo;
      el botón de editar y eliminar deben quedar siempre visibles
-     (ya no hay menú emergente que los revele con un toque largo) */
+     (ya no hay menú emergente que los revele con un toque largo).
+     Todo en una sola fila para no ocupar espacio vertical de más. */
   @media (max-width: 640px) {
     .task-pill {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 2px;
-      padding: .2rem .35rem;
-    }
-    .task-pill > .pill-check {
-      position: absolute;
-      top: .25rem;
-      right: .25rem;
+      flex-direction: row;
+      align-items: center;
+      gap: 4px;
+      padding: .28rem .45rem;
     }
     .pill-text {
-      width: 100%;
-      padding-right: 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: auto;
     }
-    .recur-badge, .pill-action-btn { opacity: .8; }
+    .recur-badge, .pill-action-btn { opacity: .85; }
   }
 
   .pill-action-btn {
@@ -11251,8 +11208,10 @@ window.openProyectoModal = function openProyectoModal(proyId) {
   if (old) old.remove();
   const titleVal = existing ? existing.title : '';
   const tipoVal  = existing ? (existing.tipo || '') : '';
+  const materiaVal = existing ? (existing.materia || '') : '';
   const pasos    = existing ? [...existing.pasos] : [];
   const TIPOS = ['Maqueta','Investigación','Exposición','Trabajo escrito','Laboratorio','Otro'];
+  const materiasDisponibles = (typeof getMaterias === 'function') ? getMaterias() : [];
 
   const backdrop = document.createElement('div');
   backdrop.className = 'rutina-modal-backdrop';
@@ -11261,10 +11220,15 @@ window.openProyectoModal = function openProyectoModal(proyId) {
   const box = document.createElement('div');
   box.className = 'rutina-modal-box';
 
+  const materiaOpts = '<option value="">Sin materia / general</option>' +
+    materiasDisponibles.map(m => '<option value="'+m.name+'"'+(materiaVal===m.name?' selected':'')+'>'+m.name+'</option>').join('');
+
   box.innerHTML =
     '<div class="rutina-modal-title">🔬 <em>' + (existing ? 'Editar' : 'Nuevo') + ' proyecto</em></div>' +
     '<div class="modal-field"><label class="modal-label">Nombre del proyecto</label>' +
     '<input class="modal-input" id="pTitle" placeholder="ej: Maqueta del sistema solar..." value="' + titleVal.replace(/"/g,'&quot;') + '"></div>' +
+    '<div class="modal-field"><label class="modal-label">Materia (opcional)</label>' +
+    '<select class="modal-input" id="pMateria" style="cursor:pointer">'+materiaOpts+'</select></div>' +
     '<div class="modal-field"><label class="modal-label">Tipo de proyecto</label>' +
     '<div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.3rem" id="pTipoWrap">' +
     TIPOS.map(t => '<button class="proy-tipo-btn' + (tipoVal === t ? ' selected' : '') + '" data-tipo="' + t + '" style="padding:.3rem .7rem;border-radius:20px;border:1.5px solid var(--border);background:var(--bg);font-size:.72rem;font-weight:600;cursor:pointer;color:var(--text);transition:all .15s">' + t + '</button>').join('') +
@@ -11315,11 +11279,12 @@ window.openProyectoModal = function openProyectoModal(proyId) {
   box.querySelector('#pSaveBtn').onclick = () => {
     const t = box.querySelector('#pTitle').value.trim();
     if (!t) { box.querySelector('#pTitle').focus(); return; }
+    const materiaSel = box.querySelector('#pMateria').value;
     const cleanPasos = pasos.filter(p => p.trim() !== '');
     if (existing) {
-      existing.title = t; existing.tipo = selectedTipo; existing.pasos = cleanPasos;
+      existing.title = t; existing.tipo = selectedTipo; existing.pasos = cleanPasos; existing.materia = materiaSel;
     } else {
-      univProyectos.push({ id: 'proy_' + Date.now(), title: t, tipo: selectedTipo, pasos: cleanPasos, completedSteps: [] });
+      univProyectos.push({ id: 'proy_' + Date.now(), title: t, tipo: selectedTipo, materia: materiaSel, pasos: cleanPasos, completedSteps: [] });
     }
     saveProyectos(); renderProyectos(); backdrop.remove();
   };
@@ -33530,6 +33495,14 @@ window.showPage = function(pageId) {
 
     <div class="univ-block">
       <div class="univ-block-hdr">
+        <span class="univ-block-title">📌 Fechas importantes</span>
+        <button class="rutina-new-btn" id="univNewEventoBtn">＋ Evento</button>
+      </div>
+      <div id="univEventosList"></div>
+    </div>
+
+    <div class="univ-block">
+      <div class="univ-block-hdr">
         <span class="univ-block-title">🔬 Mis proyectos</span>
         <button class="rutina-new-btn" id="univNewProyectoBtn" onclick="openProyectoModal(null)">＋ Nuevo proyecto</button>
       </div>
@@ -37314,6 +37287,7 @@ function renderUniv() {
   renderUnivMaterias();
   renderUnivTareas();
   renderUnivExamenes();
+  renderUnivEventos();
   renderUnivHoras();
   renderUnivHistorial();
   renderUnivCalendario();
@@ -37980,25 +37954,11 @@ function renderUnivTareas() {
       urg.textContent = '¡Urgente!';
       row.appendChild(urg);
     }
-    // Botón "empezar fácil" para estado bloqueada
-    if (_univEstadoActual === 'bloqueada' && !tarea.done) {
-      var btnFacil = document.createElement('button');
-      btnFacil.className = 'rutina-new-btn';
-      btnFacil.style.cssText = 'font-size:.68rem;padding:.2rem .6rem;border-radius:20px;margin-left:.4rem;background:linear-gradient(135deg,#a78bfa,#818cf8);color:#fff;border:none;cursor:pointer;';
-      btnFacil.textContent = '▶ empezar fácil';
-      btnFacil.onclick = function(e) {
-        e.stopPropagation();
-        sem.tareas[realIdx].done = !sem.tareas[realIdx].done;
-        saveUniv(); renderUnivTareas();
-      };
-      row.appendChild(btnFacil);
-    } else {
-      var del = document.createElement('button');
-      del.className = 'univ-materia-del';
-      del.textContent = '✕';
-      del.onclick = function(e) { e.stopPropagation(); sem.tareas.splice(realIdx,1); saveUniv(); renderUnivTareas(); };
-      row.appendChild(del);
-    }
+    var del = document.createElement('button');
+    del.className = 'univ-materia-del';
+    del.textContent = '✕';
+    del.onclick = function(e) { e.stopPropagation(); sem.tareas.splice(realIdx,1); saveUniv(); renderUnivTareas(); };
+    row.appendChild(del);
     // ── Pasos de estudio (si existen) ──
     if (tarea.pasos && tarea.pasos.length > 0 && !tarea.done && !modoSimple) {
       var pasosDone = tarea.pasos.filter(function(p){return p.done;}).length;
@@ -38116,6 +38076,89 @@ function renderUnivExamenes() {
     row.appendChild(fechaEl); row.appendChild(info); row.appendChild(diasEl); row.appendChild(del);
     list.appendChild(row);
   });
+}
+
+// ── Eventos / fechas importantes
+function renderUnivEventos() {
+  var list = document.getElementById('univEventosList');
+  if (!list) return;
+  list.innerHTML = '';
+  var sem = getActiveSem();
+  if (!sem) { list.innerHTML = '<div class="univ-empty">Crea un semestre primero 🎓</div>'; return; }
+  if (!sem.eventos) sem.eventos = [];
+
+  var today = new Date(); today.setHours(0,0,0,0);
+  var upcoming = sem.eventos.filter(function(e) {
+    return !e.fecha || new Date(e.fecha + 'T12:00:00') >= today;
+  });
+  upcoming.sort(function(a,b) { return new Date(a.fecha+'T12:00:00') - new Date(b.fecha+'T12:00:00'); });
+
+  if (upcoming.length === 0) { list.innerHTML = '<div class="univ-empty">Sin fechas importantes próximas 📌</div>'; return; }
+
+  upcoming.forEach(function(ev) {
+    var realIdx = sem.eventos.findIndex(function(e) { return e.id === ev.id; });
+    var row = document.createElement('div');
+    row.className = 'univ-examen-row';
+    var fechaEl = document.createElement('div');
+    fechaEl.className = 'univ-examen-fecha';
+    if (ev.fecha) {
+      var d = new Date(ev.fecha+'T12:00:00');
+      fechaEl.innerHTML = '<span class="univ-examen-dia">'+d.getDate()+'</span><span class="univ-examen-mes">'+MESES_CORTO[d.getMonth()]+'</span>';
+    } else { fechaEl.innerHTML = '<span class="univ-examen-dia">?</span>'; }
+    var info = document.createElement('div');
+    info.className = 'univ-examen-info';
+    info.innerHTML = '<div class="univ-examen-name">📌 '+ev.name+'</div>' + (ev.materia ? '<div class="univ-examen-materia">'+ev.materia+'</div>' : '');
+    var diasEl = document.createElement('div');
+    diasEl.className = 'univ-examen-dias';
+    if (ev.fecha) {
+      var d2 = new Date(ev.fecha+'T12:00:00');
+      var diff = Math.ceil((d2-today)/86400000);
+      diasEl.textContent = diff===0?'¡Hoy!':diff===1?'Mañana':'en '+diff+'d';
+    }
+    var del = document.createElement('button');
+    del.className = 'univ-examen-del';
+    del.textContent = '✕';
+    del.onclick = function() { sem.eventos.splice(realIdx,1); saveUniv(); renderUnivEventos(); };
+    row.appendChild(fechaEl); row.appendChild(info); row.appendChild(diasEl); row.appendChild(del);
+    list.appendChild(row);
+  });
+}
+
+function openUnivEventoModal() {
+  var sem = getActiveSem();
+  if (!sem) { alert('Primero crea un semestre 🎓'); return; }
+  if (!sem.eventos) sem.eventos = [];
+  var back = document.createElement('div');
+  back.className = 'rutina-modal-backdrop';
+  back.onclick = function(e) { if (e.target===back) back.remove(); };
+  var materiaOpts = '<option value="">Sin materia / general</option>' +
+    sem.materias.map(function(m){return '<option value="'+m.name+'">'+m.name+'</option>';}).join('');
+  var box = document.createElement('div');
+  box.className = 'rutina-modal-box';
+  box.innerHTML = '<div class="rutina-modal-title">📌 <em>Nueva fecha importante</em></div>' +
+    '<div class="modal-field"><label class="modal-label">¿Qué es? (ej: práctica de laboratorio, entrega de kit...)</label>' +
+    '<input class="modal-input" id="univEvNombre" placeholder="ej: Práctica de laboratorio..." style="width:100%"></div>' +
+    '<div class="modal-field" style="margin-top:.8rem"><label class="modal-label">Materia (opcional)</label>' +
+    '<select class="modal-input" id="univEvMateria" style="width:100%">'+materiaOpts+'</select></div>' +
+    '<div class="modal-field" style="margin-top:.8rem"><label class="modal-label">Fecha</label>' +
+    '<input type="date" class="modal-input" id="univEvFecha" style="width:100%"></div>' +
+    '<div class="modal-btns" style="margin-top:1.2rem">' +
+    '<button class="modal-btn-cancel" id="univEvCancel">Cancelar</button>' +
+    '<button class="modal-btn-save" id="univEvSave">Guardar 📌</button></div>';
+  back.appendChild(box);
+  document.body.appendChild(back);
+  document.getElementById('univEvCancel').onclick = function() { back.remove(); };
+  document.getElementById('univEvSave').onclick = function() {
+    var n = document.getElementById('univEvNombre').value.trim();
+    if (!n) return;
+    var semGuardar = getActiveSem() || sem;
+    if (!semGuardar.eventos) semGuardar.eventos = [];
+    semGuardar.eventos.push({id:'ev_'+Date.now(),name:n,
+      materia:document.getElementById('univEvMateria').value,
+      fecha:document.getElementById('univEvFecha').value});
+    saveUniv(); renderUniv(); back.remove();
+  };
+  document.getElementById('univEvNombre').focus();
 }
 
 // ── Horas de estudio
@@ -38539,7 +38582,7 @@ function openUnivSemModal() {
     if (!n) return;
     // Deactivate all
     univData.semestres.forEach(function(s){s.activo=false;});
-    univData.semestres.push({ id:'sem_'+Date.now(), nombre:n, activo:true, materias:[], tareas:[], examenes:[] });
+    univData.semestres.push({ id:'sem_'+Date.now(), nombre:n, activo:true, materias:[], tareas:[], examenes:[], eventos:[] });
     saveUniv(); renderUniv();
     back.remove();
   };
@@ -38642,6 +38685,167 @@ function openUnivMateriaViewModal(matIdx) {
   }
   tasksDiv.appendChild(tasksList);
   content.appendChild(tasksDiv);
+
+  // Próximos exámenes de esta materia
+  var examsDiv = document.createElement('div');
+  examsDiv.style.marginBottom = '1rem';
+  var examsLabel = document.createElement('div');
+  examsLabel.style.cssText = 'font-size:.75rem;font-weight:700;color:var(--text);margin-bottom:.5rem;text-transform:uppercase';
+  examsLabel.textContent = '📅 Próximos exámenes';
+  examsDiv.appendChild(examsLabel);
+
+  var examsList = document.createElement('div');
+  examsList.style.display = 'flex';
+  examsList.style.flexDirection = 'column';
+  examsList.style.gap = '.4rem';
+
+  var hoyD = new Date(); hoyD.setHours(0,0,0,0);
+  var materiaExams = (sem.examenes || [])
+    .filter(function(e) { return e.materia === mat.name && (!e.fecha || new Date(e.fecha+'T12:00:00') >= hoyD); })
+    .sort(function(a,b) { return new Date(a.fecha+'T12:00:00') - new Date(b.fecha+'T12:00:00'); });
+
+  if (materiaExams.length === 0) {
+    var emptyExam = document.createElement('div');
+    emptyExam.style.cssText = 'font-size:.7rem;color:var(--muted2);font-style:italic;padding:.5rem;text-align:center';
+    emptyExam.textContent = 'Sin exámenes próximos 🎉';
+    examsList.appendChild(emptyExam);
+  } else {
+    materiaExams.forEach(function(ex) {
+      var exRow = document.createElement('div');
+      exRow.style.cssText = 'display:flex;align-items:center;gap:.5rem;padding:.6rem;background:var(--surface);border-radius:8px;border-left:3px solid '+mat.color;
+      var exName = document.createElement('div');
+      exName.style.cssText = 'flex:1;font-size:.75rem;font-weight:600;color:var(--text)';
+      exName.textContent = ex.name;
+      var exDate = document.createElement('div');
+      exDate.style.cssText = 'font-size:.65rem;color:var(--muted);white-space:nowrap';
+      exDate.textContent = ex.fecha ? formatFecha(ex.fecha) : '—';
+      exRow.appendChild(exName); exRow.appendChild(exDate);
+      examsList.appendChild(exRow);
+    });
+  }
+  examsDiv.appendChild(examsList);
+  content.appendChild(examsDiv);
+
+  // Fechas importantes / eventos de esta materia
+  var eventsDiv = document.createElement('div');
+  eventsDiv.style.marginBottom = '1rem';
+  var eventsLabel = document.createElement('div');
+  eventsLabel.style.cssText = 'font-size:.75rem;font-weight:700;color:var(--text);margin-bottom:.5rem;text-transform:uppercase';
+  eventsLabel.textContent = '📌 Fechas importantes';
+  eventsDiv.appendChild(eventsLabel);
+
+  var eventsList = document.createElement('div');
+  eventsList.style.display = 'flex';
+  eventsList.style.flexDirection = 'column';
+  eventsList.style.gap = '.4rem';
+
+  var materiaEventos = (sem.eventos || [])
+    .filter(function(e) { return e.materia === mat.name && (!e.fecha || new Date(e.fecha+'T12:00:00') >= hoyD); })
+    .sort(function(a,b) { return new Date(a.fecha+'T12:00:00') - new Date(b.fecha+'T12:00:00'); });
+
+  if (materiaEventos.length === 0) {
+    var emptyEv = document.createElement('div');
+    emptyEv.style.cssText = 'font-size:.7rem;color:var(--muted2);font-style:italic;padding:.5rem;text-align:center';
+    emptyEv.textContent = 'Sin fechas importantes próximas 📌';
+    eventsList.appendChild(emptyEv);
+  } else {
+    materiaEventos.forEach(function(ev) {
+      var evRow = document.createElement('div');
+      evRow.style.cssText = 'display:flex;align-items:center;gap:.5rem;padding:.6rem;background:var(--surface);border-radius:8px;border-left:3px solid '+mat.color;
+      var evName = document.createElement('div');
+      evName.style.cssText = 'flex:1;font-size:.75rem;font-weight:600;color:var(--text)';
+      evName.textContent = ev.name;
+      var evDate = document.createElement('div');
+      evDate.style.cssText = 'font-size:.65rem;color:var(--muted);white-space:nowrap';
+      evDate.textContent = ev.fecha ? formatFecha(ev.fecha) : '—';
+      evRow.appendChild(evName); evRow.appendChild(evDate);
+      eventsList.appendChild(evRow);
+    });
+  }
+  eventsDiv.appendChild(eventsList);
+  content.appendChild(eventsDiv);
+
+  // Proyecto(s) en curso de esta materia
+  var proyDiv = document.createElement('div');
+  proyDiv.style.marginBottom = '1rem';
+  var proyLabel = document.createElement('div');
+  proyLabel.style.cssText = 'font-size:.75rem;font-weight:700;color:var(--text);margin-bottom:.5rem;text-transform:uppercase';
+  proyLabel.textContent = '🔬 Proyecto en curso';
+  proyDiv.appendChild(proyLabel);
+
+  var proyList = document.createElement('div');
+  proyList.style.display = 'flex';
+  proyList.style.flexDirection = 'column';
+  proyList.style.gap = '.4rem';
+
+  var proyectosMateria = (window.univProyectos || []).filter(function(p) {
+    if (p.materia !== mat.name) return false;
+    var total = (p.pasos || []).length;
+    var hechos = (p.completedSteps || []).length;
+    return total === 0 || hechos < total; // sigue en curso
+  });
+
+  if (proyectosMateria.length === 0) {
+    var emptyProy = document.createElement('div');
+    emptyProy.style.cssText = 'font-size:.7rem;color:var(--muted2);font-style:italic;padding:.5rem;text-align:center';
+    emptyProy.textContent = 'Sin proyectos en curso ✨';
+    proyList.appendChild(emptyProy);
+  } else {
+    proyectosMateria.forEach(function(p) {
+      var pRow = document.createElement('div');
+      pRow.style.cssText = 'display:flex;align-items:center;gap:.5rem;padding:.6rem;background:var(--surface);border-radius:8px;border-left:3px solid '+mat.color+';cursor:pointer';
+      var total = (p.pasos || []).length;
+      var hechos = (p.completedSteps || []).length;
+      var pName = document.createElement('div');
+      pName.style.cssText = 'flex:1;font-size:.75rem;font-weight:600;color:var(--text)';
+      pName.textContent = p.title;
+      var pProg = document.createElement('div');
+      pProg.style.cssText = 'font-size:.65rem;color:var(--muted);white-space:nowrap';
+      pProg.textContent = total ? (hechos + '/' + total) : '';
+      pRow.appendChild(pName); pRow.appendChild(pProg);
+      pRow.onclick = function() { back.remove(); if (window.openProyectoModal) window.openProyectoModal(p.id); };
+      proyList.appendChild(pRow);
+    });
+  }
+  proyDiv.appendChild(proyList);
+  content.appendChild(proyDiv);
+
+  // Vista simple del temario de esta materia
+  var temDiv = document.createElement('div');
+  temDiv.style.marginBottom = '1rem';
+  var temLabel = document.createElement('div');
+  temLabel.style.cssText = 'font-size:.75rem;font-weight:700;color:var(--text);margin-bottom:.5rem;text-transform:uppercase';
+  temLabel.textContent = '🧠 Temario';
+  temDiv.appendChild(temLabel);
+
+  var temList = document.createElement('div');
+  temList.style.display = 'flex';
+  temList.style.flexDirection = 'column';
+  temList.style.gap = '.35rem';
+
+  var temasMateria = (typeof temLoad === 'function') ? temLoad().filter(function(t){ return t.materiaId === mat.id; }) : [];
+  if (temasMateria.length === 0) {
+    var emptyTem = document.createElement('div');
+    emptyTem.style.cssText = 'font-size:.7rem;color:var(--muted2);font-style:italic;padding:.5rem;text-align:center';
+    emptyTem.textContent = 'Aún no agregas temas 📝';
+    temList.appendChild(emptyTem);
+  } else {
+    temasMateria.forEach(function(t) {
+      var tRow = document.createElement('div');
+      tRow.style.cssText = 'display:flex;align-items:center;gap:.5rem;padding:.5rem .6rem;background:var(--surface);border-radius:8px';
+      var tName = document.createElement('div');
+      tName.style.cssText = 'flex:1;font-size:.72rem;font-weight:600;color:var(--text)';
+      tName.textContent = t.nombre;
+      var tSubs = document.createElement('div');
+      tSubs.style.cssText = 'font-size:.63rem;color:var(--muted);white-space:nowrap';
+      var nSub = (t.subtemas || []).length;
+      tSubs.textContent = nSub ? (nSub + ' subtema' + (nSub>1?'s':'')) : '';
+      tRow.appendChild(tName); tRow.appendChild(tSubs);
+      temList.appendChild(tRow);
+    });
+  }
+  temDiv.appendChild(temList);
+  content.appendChild(temDiv);
 
   // Cerrar botón
   var closeBtn = document.createElement('button');
@@ -39170,6 +39374,8 @@ document.addEventListener('DOMContentLoaded', function() {
   if (newTarBtn) newTarBtn.onclick = function() { openUnivTareaModal(); };
   var newExBtn  = document.getElementById('univNewExamenBtn');
   if (newExBtn)  newExBtn.onclick  = function() { openUnivExamenModal(); };
+  var newEvBtn  = document.getElementById('univNewEventoBtn');
+  if (newEvBtn)  newEvBtn.onclick  = function() { openUnivEventoModal(); };
 });
 </script>
 
