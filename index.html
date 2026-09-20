@@ -17976,7 +17976,12 @@ window.scShowTab = function(idx) {
   .glow-today-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:.9rem; }
   .glow-today-title { font-family:var(--font-title); font-size:1.05rem; font-style:italic; color:var(--text); }
   .glow-today-date { font-size:.7rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
-  .glow-today-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(165px,1fr)); gap:.6rem; margin-bottom:1.5rem; }
+  .glow-today-grid { display:flex; flex-direction:column; gap:1rem; margin-bottom:1.5rem; }
+  .glow-block-header {
+    font-size:.7rem; font-weight:800; color:var(--rosa); text-transform:uppercase;
+    letter-spacing:.07em; margin:.2rem 0 -.35rem;
+  }
+  .glow-block-group { display:grid; grid-template-columns:repeat(auto-fill,minmax(165px,1fr)); gap:.6rem; }
 
   /* ── Card de actividad (hoy) ── */
   .glow-act-card {
@@ -18231,6 +18236,11 @@ window.scShowTab = function(idx) {
     else {
       try { glowLogs = JSON.parse(localStorage.getItem('yuki_glow_logs') || 'null') || {}; } catch(e){ glowLogs = {}; }
     }
+    // Migración: actividades viejas tenían "block" (uno solo) en vez de "blocks" (array)
+    glowActivities.forEach(function(a){
+      if (a.block && (!a.blocks || !a.blocks.length)) { a.blocks = [a.block]; }
+      delete a.block;
+    });
     // Primera vez: cargar defaults
     if (glowActivities.length === 0) { glowActivities = DEFAULT_ACTIVITIES.map(function(a){ return Object.assign({},a); }); }
   }
@@ -18244,9 +18254,18 @@ window.scShowTab = function(idx) {
   function todayKey() { return dateKey(new Date()); }
   function todayDow() { return new Date().getDay(); } // 0=Dom
 
-  function isDoneToday(actId) {
+  function isDoneToday(actId, block) {
     var dk = todayKey();
-    return !!(glowLogs[dk] && glowLogs[dk][actId]);
+    var key = block ? (actId + '::' + block) : actId;
+    return !!(glowLogs[dk] && glowLogs[dk][key]);
+  }
+
+  // ¿Está la actividad completa hoy? (todos sus bloques marcados, o el check simple si no tiene bloques)
+  function isActFullyDoneOnDay(act, dk) {
+    if (act.blocks && act.blocks.length) {
+      return act.blocks.every(function(b){ return !!(glowLogs[dk] && glowLogs[dk][act.id + '::' + b]); });
+    }
+    return !!(glowLogs[dk] && glowLogs[dk][act.id]);
   }
 
   function isTodayActivity(act) {
@@ -18264,9 +18283,11 @@ window.scShowTab = function(idx) {
   }
 
   function getLastDoneDate(actId) {
+    var act = glowActivities.find(function(a){ return a.id === actId; });
     var keys = Object.keys(glowLogs).sort().reverse();
     for (var i = 0; i < keys.length; i++) {
-      if (glowLogs[keys[i]] && glowLogs[keys[i]][actId]) {
+      var isDone = act ? isActFullyDoneOnDay(act, keys[i]) : !!(glowLogs[keys[i]] && glowLogs[keys[i]][actId]);
+      if (isDone) {
         var parts = keys[i].split('-');
         return new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
       }
@@ -18293,7 +18314,7 @@ window.scShowTab = function(idx) {
       var keys = Object.keys(glowLogs).sort().reverse();
       var lastDate = null;
       for (var i = 0; i < keys.length; i++) {
-        if (glowLogs[keys[i]] && glowLogs[keys[i]][actId]) {
+        if (isActFullyDoneOnDay(act, keys[i])) {
           var parts = keys[i].split('-');
           var d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
           if (!lastDate) { streak = 1; lastDate = d; }
@@ -18313,7 +18334,7 @@ window.scShowTab = function(idx) {
         var dow = d.getDay();
         var dk = dateKey(d);
         if (act.days && act.days.indexOf(dow) !== -1) {
-          if (glowLogs[dk] && glowLogs[dk][actId]) { streak++; }
+          if (isActFullyDoneOnDay(act, dk)) { streak++; }
           else if (i > 0) { break; } // hoy lo contamos aunque no lo haya hecho
         }
         d.setDate(d.getDate() - 1);
@@ -18349,6 +18370,9 @@ window.scShowTab = function(idx) {
   // ══════════════════════════════
   // Render: Hoy toca
   // ══════════════════════════════
+  var BLOQUES_ORDEN = ['mañana','mediodia','tarde','noche'];
+  var BLOQUE_LABEL  = { mañana:'☀️ Mañana', mediodia:'🌞 Mediodía', tarde:'🌤 Tarde', noche:'🌙 Noche' };
+
   function renderGlowToday() {
     var grid = document.getElementById('glowTodayGrid'); if (!grid) return;
     grid.innerHTML = '';
@@ -18368,19 +18392,68 @@ window.scShowTab = function(idx) {
       emp.style.cssText = 'grid-column:1/-1;text-align:center;color:var(--muted2);font-size:.82rem;font-weight:600;padding:1.5rem 0';
       emp.textContent = '¡Nada pendiente por hoy! Descansa bonita 🌸';
       grid.appendChild(emp);
+      return;
     }
 
+    // Agrupar por bloque: cada actividad aparece una vez por cada bloque
+    // que tenga asignado (así una actividad de 2x al día, ej. mañana+noche,
+    // sale en ambos bloques con su propio check independiente).
+    var grupos = {}; // bloque -> [ {act} ]
+    BLOQUES_ORDEN.forEach(function(b){ grupos[b] = []; });
+    var sinHorario = [];
+
     todayActs.forEach(function(act) {
-      grid.appendChild(makeGlowCard(act, true));
+      if (act.timeMode === 'block' && act.blocks && act.blocks.length) {
+        act.blocks.forEach(function(b) {
+          if (grupos[b]) grupos[b].push(act);
+        });
+      } else {
+        sinHorario.push(act);
+      }
     });
+
+    var huboAlgo = false;
+    BLOQUES_ORDEN.forEach(function(b) {
+      if (!grupos[b].length) return;
+      huboAlgo = true;
+      grid.appendChild(makeGlowBlockHeader(BLOQUE_LABEL[b]));
+      var wrap = document.createElement('div'); wrap.className = 'glow-block-group';
+      grupos[b].forEach(function(act) { wrap.appendChild(makeGlowCard(act, true, b)); });
+      grid.appendChild(wrap);
+    });
+
+    if (sinHorario.length) {
+      huboAlgo = true;
+      grid.appendChild(makeGlowBlockHeader('📝 Sin horario fijo'));
+      var wrap2 = document.createElement('div'); wrap2.className = 'glow-block-group';
+      sinHorario.forEach(function(act) { wrap2.appendChild(makeGlowCard(act, true, null)); });
+      grid.appendChild(wrap2);
+    }
+
+    if (!huboAlgo && todayActs.length) {
+      // fallback de seguridad, no debería pasar
+      todayActs.forEach(function(act) { grid.appendChild(makeGlowCard(act, true, null)); });
+    }
+
     // Mostrar las que no tocan hoy con opacidad
-    otherActs.slice(0,4).forEach(function(act) {
-      grid.appendChild(makeGlowCard(act, false));
-    });
+    var pendientes = otherActs.slice(0,4);
+    if (pendientes.length) {
+      grid.appendChild(makeGlowBlockHeader('⏳ Próximamente'));
+      var wrap3 = document.createElement('div'); wrap3.className = 'glow-block-group';
+      pendientes.forEach(function(act) { wrap3.appendChild(makeGlowCard(act, false, null)); });
+      grid.appendChild(wrap3);
+    }
   }
 
-  function makeGlowCard(act, tocaHoy) {
-    var done = isDoneToday(act.id);
+  function makeGlowBlockHeader(label) {
+    var h = document.createElement('div');
+    h.className = 'glow-block-header';
+    h.textContent = label;
+    return h;
+  }
+
+  function makeGlowCard(act, tocaHoy, block) {
+    var done = isDoneToday(act.id, block);
     var streak = computeStreak(act.id, act);
 
     var card = document.createElement('div');
@@ -18402,11 +18475,13 @@ window.scShowTab = function(idx) {
     var info = document.createElement('div'); info.className = 'glow-act-info';
     var name = document.createElement('div'); name.className = 'glow-act-name'; name.textContent = act.name;
 
-    // Horario / bloque
+    // Horario / bloque — si esta tarjeta representa un bloque específico
+    // (actividad con 2+ veces al día) mostramos solo ESE bloque, no todos.
     var timeLabel = '';
-    if (act.timeMode === 'block' && act.block) {
-      var blockIcons = { mañana:'☀️', tarde:'🌤', noche:'🌙' };
-      timeLabel = (blockIcons[act.block] || '') + ' ' + act.block.charAt(0).toUpperCase() + act.block.slice(1);
+    if (block) {
+      var blockIcons = { mañana:'☀️', mediodia:'🌞', tarde:'🌤', noche:'🌙' };
+      var blockNombre = { mañana:'Mañana', mediodia:'Mediodía', tarde:'Tarde', noche:'Noche' };
+      timeLabel = (blockIcons[block] || '') + ' ' + blockNombre[block];
     } else if (act.timeMode === 'hour' && act.hour) {
       timeLabel = '🕐 ' + act.hour;
     } else if (act.timeMode === 'note' && act.timeNote) {
@@ -18418,7 +18493,7 @@ window.scShowTab = function(idx) {
       var daysLeft = getDaysUntilNext(act);
       freq.textContent = daysLeft > 0 ? 'En ' + daysLeft + ' día' + (daysLeft>1?'s':'') : freqLabel(act);
     } else {
-      freq.textContent = freqLabel(act);
+      freq.textContent = freqLabel(act) + (act.blocks && act.blocks.length > 1 ? ' · ' + act.blocks.length + 'x al día' : '');
     }
 
     info.appendChild(name);
@@ -18461,7 +18536,7 @@ window.scShowTab = function(idx) {
     }
 
     if (tocaHoy) {
-      topRow.onclick = function() { toggleGlowDone(act.id); };
+      topRow.onclick = function() { toggleGlowDone(act.id, block); };
       topRow.style.cursor = 'pointer';
     }
     return card;
@@ -18476,11 +18551,12 @@ window.scShowTab = function(idx) {
     return '';
   }
 
-  function toggleGlowDone(actId) {
+  function toggleGlowDone(actId, block) {
     var dk = todayKey();
+    var key = block ? (actId + '::' + block) : actId;
     if (!glowLogs[dk]) glowLogs[dk] = {};
-    glowLogs[dk][actId] = !glowLogs[dk][actId];
-    if (!glowLogs[dk][actId]) delete glowLogs[dk][actId];
+    glowLogs[dk][key] = !glowLogs[dk][key];
+    if (!glowLogs[dk][key]) delete glowLogs[dk][key];
     glowSave(); renderGlow();
   }
 
@@ -18522,9 +18598,10 @@ window.scShowTab = function(idx) {
       var metaEl = document.createElement('div'); metaEl.className = 'glow-list-meta';
       var catObj = GLOW_CATS.find(function(c){ return c.id === act.cat; });
       var metaParts = [(catObj ? catObj.label : ''), freqLabel(act)];
-      if (act.timeMode === 'block' && act.block) {
-        var blockIcons = { mañana:'☀️', tarde:'🌤', noche:'🌙' };
-        metaParts.push((blockIcons[act.block]||'') + ' ' + act.block.charAt(0).toUpperCase() + act.block.slice(1));
+      if (act.timeMode === 'block' && act.blocks && act.blocks.length) {
+        var blockIcons = { mañana:'☀️', mediodia:'🌞', tarde:'🌤', noche:'🌙' };
+        var blockNombre = { mañana:'Mañana', mediodia:'Mediodía', tarde:'Tarde', noche:'Noche' };
+        metaParts.push(act.blocks.map(function(b){ return (blockIcons[b]||'') + ' ' + blockNombre[b]; }).join(' + '));
       } else if (act.timeMode === 'hour' && act.hour) {
         metaParts.push('🕐 ' + act.hour);
       } else if (act.timeMode === 'note' && act.timeNote) {
@@ -18585,14 +18662,16 @@ window.scShowTab = function(idx) {
 
     // Tiempo
     var tMode = existing ? (existing.timeMode || 'none') : 'none';
-    var tBlock = existing ? (existing.block || 'mañana') : 'mañana';
+    var tBlocks = existing && existing.blocks && existing.blocks.length ? existing.blocks.slice() : ['mañana'];
     var tHour  = existing ? (existing.hour  || '') : '';
 
-    var BLOQUES = ['mañana','tarde','noche'];
+    var BLOQUES = ['mañana','mediodia','tarde','noche'];
+    var BLOQUE_ICONS  = { mañana:'☀️', mediodia:'🌞', tarde:'🌤', noche:'🌙' };
+    var BLOQUE_NOMBRE = { mañana:'Mañana', mediodia:'Mediodía', tarde:'Tarde', noche:'Noche' };
 
     var bloqueBtns = BLOQUES.map(function(b){
-      var icons = { mañana:'☀️', tarde:'🌤', noche:'🌙' };
-      return '<button type="button" class="glow-bloque-btn'+(tBlock===b?' on':'')+'" data-bloque="'+b+'">'+icons[b]+' '+b.charAt(0).toUpperCase()+b.slice(1)+'</button>';
+      var on = tBlocks.indexOf(b) !== -1;
+      return '<button type="button" class="glow-bloque-btn'+(on?' on':'')+'" data-bloque="'+b+'">'+BLOQUE_ICONS[b]+' '+BLOQUE_NOMBRE[b]+'</button>';
     }).join('');
 
     // Pasos existentes
@@ -18629,6 +18708,7 @@ window.scShowTab = function(idx) {
       +'</div></div>'
       +'<div id="glowTimeBlockWrap" style="'+(tMode==='block'?'':'display:none')+'">'
       +'<div class="glow-bloque-btns" id="glowBloqueBtns">'+bloqueBtns+'</div>'
+      +'<div style="font-size:.68rem;color:var(--muted2);font-weight:600;margin-top:.4rem" id="glowBloqueHint">Toca uno o varios — si la haces más de una vez al día (ej. lavarte la cara en la mañana y en la noche), selecciona esos bloques</div>'
       +'</div>'
       +'<div id="glowTimeHourWrap" style="'+(tMode==='hour'?'':'display:none')+'">'
       +'<input class="modal-input" id="glowHourInp" type="time" value="'+tHour+'" style="max-width:130px;margin-top:.4rem">'
@@ -18680,7 +18760,7 @@ window.scShowTab = function(idx) {
 
     // ── Time mode switch
     var glowTimeMode = tMode;
-    var glowSelectedBlock = tBlock;
+    var glowSelectedBlocks = tBlocks.slice();
     window.glowSwitchTime = function(mode) {
       glowTimeMode = mode;
       ['none','block','hour','note'].forEach(function(m){
@@ -18692,13 +18772,30 @@ window.scShowTab = function(idx) {
       document.getElementById('glowTimeNoteWrap').style.display  = mode==='note'  ? '' : 'none';
     };
 
-    // Bloque toggle
+    // Bloque toggle (selección múltiple: hasta 4 veces al día)
+    function actualizarBloqueHint() {
+      var hint = document.getElementById('glowBloqueHint');
+      if (!hint) return;
+      var n = glowSelectedBlocks.length;
+      if (n <= 1) hint.textContent = 'Toca uno o varios — si la haces más de una vez al día (ej. lavarte la cara en la mañana y en la noche), selecciona esos bloques';
+      else hint.textContent = '✨ Se marcará ' + n + ' veces al día, una vez por cada bloque elegido';
+    }
     box.querySelectorAll('[data-bloque]').forEach(function(btn){
       btn.onclick = function(){
-        glowSelectedBlock = btn.dataset.bloque;
-        box.querySelectorAll('[data-bloque]').forEach(function(b){ b.classList.toggle('on', b===btn); });
+        var b = btn.dataset.bloque;
+        var idx = glowSelectedBlocks.indexOf(b);
+        if (idx === -1) {
+          if (glowSelectedBlocks.length >= 4) return; // máximo 4 veces al día
+          glowSelectedBlocks.push(b);
+        } else {
+          if (glowSelectedBlocks.length === 1) return; // siempre debe quedar al menos uno
+          glowSelectedBlocks.splice(idx, 1);
+        }
+        btn.classList.toggle('on', glowSelectedBlocks.indexOf(b) !== -1);
+        actualizarBloqueHint();
       };
     });
+    actualizarBloqueHint();
 
     // ── Pasos builder
     var glowSteps = initSteps.slice();
@@ -18745,7 +18842,8 @@ window.scShowTab = function(idx) {
         if (freqMode === 'days') { existing.days = glowSelectedDays; delete existing.every; }
         else { existing.every = everyN; delete existing.days; }
         existing.timeMode = glowTimeMode;
-        existing.block    = glowTimeMode === 'block' ? glowSelectedBlock : undefined;
+        existing.blocks   = glowTimeMode === 'block' ? glowSelectedBlocks.slice() : undefined;
+        delete existing.block; // campo viejo (un solo bloque), ya no se usa
         existing.hour     = glowTimeMode === 'hour'  ? hourVal : undefined;
         existing.timeNote = glowTimeMode === 'note'  ? noteVal : undefined;
         existing.steps = cleanSteps;
@@ -18756,7 +18854,7 @@ window.scShowTab = function(idx) {
           days: freqMode === 'days' ? glowSelectedDays : undefined,
           every: freqMode === 'every' ? everyN : undefined,
           timeMode: glowTimeMode,
-          block:    glowTimeMode === 'block' ? glowSelectedBlock : undefined,
+          blocks:   glowTimeMode === 'block' ? glowSelectedBlocks.slice() : undefined,
           hour:     glowTimeMode === 'hour'  ? hourVal : undefined,
           timeNote: glowTimeMode === 'note'  ? noteVal : undefined,
           steps: cleanSteps,
@@ -35875,16 +35973,30 @@ var habitosData = [];
 // cada hábito: { id, nombre, emoji, completions:{} }
 // completions: { 'YYYY-MM-DD': true }
 
+var _habitosSaving = false;
+var _habitosSaveTimer = null;
+var _habitosCloudLoadedOnce = false;
+
 function saveHabitos() {
   try { localStorage.setItem('habitos_data', JSON.stringify(habitosData)); } catch(e){}
+  _habitosSaving = true;
+  if (_habitosSaveTimer) clearTimeout(_habitosSaveTimer);
+  _habitosSaveTimer = setTimeout(function() { _habitosSaving = false; }, 5000);
   if (window.cloudSave) window.cloudSave('habitos_data', habitosData);
 }
 
 function loadHabitos() {
+  // Nunca bloqueamos la PRIMERA carga real desde la nube (por si este
+  // dispositivo no tenía los datos completos todavía). Después de esa
+  // primera carga, sí evitamos que un guardado local recién hecho se
+  // pise por una sincronización de fondo que aún no lo incluye.
+  if (_habitosSaving && _habitosCloudLoadedOnce) return;
   habitosData = window._habitosData || JSON.parse(localStorage.getItem('habitos_data') || '[]');
+  if (window._habitosData) _habitosCloudLoadedOnce = true;
 }
 
 function dateKey(d) {
+  if (typeof d === 'string') return d;
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
