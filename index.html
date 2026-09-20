@@ -2217,6 +2217,31 @@ window._yukiAuthAction = async function(mode, email, password) {
 
   .univ-tab-panel { animation: fadeUp .22s ease both; }
 
+  /* Sub-tabs dentro de un tab (ej. Plan / Braindump) */
+  .univ-subtabs-nav {
+    display: flex; gap: .35rem; margin-bottom: 1rem;
+    overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .univ-subtabs-nav::-webkit-scrollbar { display: none; }
+  .univ-subtab-btn {
+    flex-shrink: 0; padding: .32rem .8rem; border-radius: 16px;
+    border: 1.5px solid var(--border); background: none; color: var(--muted);
+    font-family: var(--font-body); font-size: .7rem; font-weight: 700;
+    cursor: pointer; transition: all .18s; white-space: nowrap;
+  }
+  .univ-subtab-btn:hover { border-color: var(--rosa); color: var(--rosa); }
+  .univ-subtab-btn.active { background: var(--rosa-soft); border-color: var(--rosa); color: var(--rosa); }
+
+  /* Notas de braindump */
+  .univ-bd-note {
+    background: var(--surface); border-radius: 12px; padding: .7rem .85rem;
+    border-left: 3px solid var(--rosa); display: flex; gap: .6rem; align-items: flex-start;
+  }
+  .univ-bd-note-text { flex: 1; font-size: .8rem; color: var(--text); white-space: pre-wrap; line-height: 1.4; }
+  .univ-bd-note-meta { font-size: .62rem; color: var(--muted2); margin-top: .3rem; font-weight: 600; }
+  .univ-bd-note-del { background: none; border: none; color: var(--muted2); cursor: pointer; font-size: .75rem; flex-shrink: 0; }
+  .univ-bd-note-del:hover { color: var(--rosa); }
+
   /* Materias — tarjetas con foto */
   .univ-materias-grid {
     display: grid;
@@ -5621,6 +5646,33 @@ window._yukiAuthAction = async function(mode, email, password) {
   ══════════════════════════════════════════ */
   body { padding-bottom: 90px; }
 
+  /* ── REFRESH BUTTON ── */
+  .refresh-btn {
+    position: fixed;
+    top: 14px;
+    right: 72px;
+    z-index: 400;
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.25rem;
+    color: var(--rosa);
+    box-shadow: 0 3px 12px rgba(0,0,0,.08);
+    transition: all .2s;
+  }
+  .refresh-btn:hover { background: var(--rosa-soft); }
+  .refresh-btn.spinning svg { animation: refresh-spin .7s linear; }
+  @keyframes refresh-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @media (min-width: 901px) {
+    .refresh-btn { right: 116px; }
+  }
+
   /* ── HAMBURGER BUTTON ── */
   .hamburger-btn {
     position: fixed;
@@ -6281,9 +6333,25 @@ function todayKey() { return dateKey(new Date()); }
 <div id="app-screen">
 <!-- ══ HAMBURGER + DRAWER ══ -->
 <button class="back-btn" id="backBtn" aria-label="Regresar" onclick="yukiGoBack()">‹</button>
+<button class="refresh-btn" id="refreshAppBtn" aria-label="Actualizar app" title="Actualizar app a la última versión" onclick="window.yukiRefreshApp()">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
+</button>
 <button class="hamburger-btn" id="hamburgerBtn" aria-label="Menú">
   <span></span><span></span><span></span>
 </button>
+<script>
+  // Botón de refresh: fuerza a recargar la página saltándose la copia
+  // en caché, para que al actualizar el código no haya que borrar el
+  // acceso directo y volver a instalarla — solo tocar el botón.
+  window.yukiRefreshApp = function() {
+    var btn = document.getElementById('refreshAppBtn');
+    if (btn) btn.classList.add('spinning');
+    setTimeout(function() {
+      var base = location.href.split('#')[0].split('?')[0];
+      location.href = base + '?_r=' + Date.now();
+    }, 220);
+  };
+</script>
 <div class="drawer-overlay" id="drawerOverlay"></div>
 <div class="drawer" id="drawer">
   <div class="drawer-header" id="drawerHeader">
@@ -33512,19 +33580,38 @@ window.showPage = function(pageId) {
 
   <!-- ── TAB: PLAN ── -->
   <div class="univ-tab-panel" id="univTab-plan" style="display:none">
-    <div class="univ-block" id="univPlanBlock">
-      <div class="univ-block-hdr">
-        <span class="univ-block-title">🗓️ Plan de estudio flexible</span>
-        <button class="rutina-new-btn" id="univGenPlanBtn">✨ Generar plan</button>
-      </div>
-      <div id="univPlanWrap"></div>
+    <div class="univ-subtabs-nav" id="univPlanSubNav">
+      <button class="univ-subtab-btn active" data-subtab="plan">🗓️ Plan</button>
+      <button class="univ-subtab-btn" data-subtab="braindump">🧠 Braindump</button>
     </div>
 
-    <div class="univ-block">
-      <div class="univ-block-hdr">
-        <span class="univ-block-title">⏱️ Horas de estudio hoy</span>
+    <div id="univPlanSub-plan">
+      <div class="univ-block" id="univPlanBlock">
+        <div class="univ-block-hdr">
+          <span class="univ-block-title">🗓️ Plan de estudio flexible</span>
+          <button class="rutina-new-btn" id="univGenPlanBtn">✨ Generar plan</button>
+        </div>
+        <div id="univPlanWrap"></div>
       </div>
-      <div class="univ-horas-wrap" id="univHorasWrap"></div>
+
+      <div class="univ-block">
+        <div class="univ-block-hdr">
+          <span class="univ-block-title">⏱️ Horas de estudio hoy</span>
+        </div>
+        <div class="univ-horas-wrap" id="univHorasWrap"></div>
+      </div>
+    </div>
+
+    <div id="univPlanSub-braindump" style="display:none">
+      <div class="univ-block">
+        <div class="univ-block-hdr">
+          <span class="univ-block-title">🧠 Braindump de Universidad</span>
+        </div>
+        <p style="font-size:.78rem;color:var(--muted2);margin:0 0 .9rem;font-style:italic;">Suelta aquí cualquier pensamiento, duda o nota sobre tus clases: temas, exámenes, métodos de evaluación, lo que sea 🌸</p>
+        <textarea id="univBdInput" class="modal-input" rows="3" style="width:100%;resize:vertical;font-family:var(--font-body)" placeholder="Ej: la profe dijo que el parcial 2 es con formulario, revisar tema 4 antes del jueves..."></textarea>
+        <button class="rutina-new-btn" id="univBdSaveBtn" style="margin-top:.6rem">＋ Guardar nota</button>
+        <div id="univBdList" style="margin-top:1rem;display:flex;flex-direction:column;gap:.5rem"></div>
+      </div>
     </div>
   </div>
 
@@ -38161,6 +38248,77 @@ function openUnivEventoModal() {
   document.getElementById('univEvNombre').focus();
 }
 
+// ── Sub-tabs dentro de "Plan": Plan / Braindump
+window._univPlanSubTab = 'plan';
+window.univPlanSetSubTab = function(subtab) {
+  window._univPlanSubTab = subtab;
+  document.querySelectorAll('.univ-subtab-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.subtab === subtab);
+  });
+  var planPanel = document.getElementById('univPlanSub-plan');
+  var bdPanel = document.getElementById('univPlanSub-braindump');
+  if (planPanel) planPanel.style.display = (subtab === 'plan') ? '' : 'none';
+  if (bdPanel) bdPanel.style.display = (subtab === 'braindump') ? '' : 'none';
+  // El Pomodoro solo debe verse dentro de la sub-tab "Plan"
+  var pom = document.getElementById('sec-pomodoro');
+  if (pom) pom.style.display = (subtab === 'plan' && window._univTabActivo === 'plan') ? '' : 'none';
+  if (subtab === 'braindump') renderUnivBraindump();
+};
+
+// ── Braindump de Universidad (notas libres por semestre)
+function renderUnivBraindump() {
+  var list = document.getElementById('univBdList');
+  if (!list) return;
+  list.innerHTML = '';
+  var sem = getActiveSem();
+  if (!sem) { list.innerHTML = '<div class="univ-empty">Crea un semestre primero 🎓</div>'; return; }
+  if (!sem.braindump) sem.braindump = [];
+
+  if (sem.braindump.length === 0) {
+    list.innerHTML = '<div class="univ-empty">Aún no has soltado ningún pensamiento aquí 🌙</div>';
+    return;
+  }
+
+  var notas = sem.braindump.slice().sort(function(a,b){ return (b.createdAt||0) - (a.createdAt||0); });
+  notas.forEach(function(nota) {
+    var row = document.createElement('div');
+    row.className = 'univ-bd-note';
+    var txt = document.createElement('div');
+    var textoDiv = document.createElement('div');
+    textoDiv.className = 'univ-bd-note-text';
+    textoDiv.textContent = nota.text;
+    var meta = document.createElement('div');
+    meta.className = 'univ-bd-note-meta';
+    meta.textContent = nota.createdAt ? new Date(nota.createdAt).toLocaleDateString('es-MX',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+    txt.appendChild(textoDiv); txt.appendChild(meta);
+    var del = document.createElement('button');
+    del.className = 'univ-bd-note-del';
+    del.textContent = '✕';
+    del.onclick = function() {
+      var semDel = getActiveSem() || sem;
+      semDel.braindump = (semDel.braindump || []).filter(function(n){ return n.id !== nota.id; });
+      saveUniv(); renderUnivBraindump();
+    };
+    row.appendChild(txt); row.appendChild(del);
+    list.appendChild(row);
+  });
+}
+
+function univBdGuardar() {
+  var input = document.getElementById('univBdInput');
+  if (!input) return;
+  var texto = input.value.trim();
+  if (!texto) { input.focus(); return; }
+  var sem = getActiveSem();
+  if (!sem) { alert('Primero crea un semestre 🎓'); return; }
+  var semGuardar = getActiveSem() || sem;
+  if (!semGuardar.braindump) semGuardar.braindump = [];
+  semGuardar.braindump.push({ id: 'bd_' + Date.now(), text: texto, createdAt: Date.now() });
+  saveUniv();
+  input.value = '';
+  renderUnivBraindump();
+}
+
 // ── Horas de estudio
 function renderUnivHoras() {
   var wrap = document.getElementById('univHorasWrap');
@@ -38582,7 +38740,7 @@ function openUnivSemModal() {
     if (!n) return;
     // Deactivate all
     univData.semestres.forEach(function(s){s.activo=false;});
-    univData.semestres.push({ id:'sem_'+Date.now(), nombre:n, activo:true, materias:[], tareas:[], examenes:[], eventos:[] });
+    univData.semestres.push({ id:'sem_'+Date.now(), nombre:n, activo:true, materias:[], tareas:[], examenes:[], eventos:[], braindump:[] });
     saveUniv(); renderUniv();
     back.remove();
   };
@@ -39376,6 +39534,11 @@ document.addEventListener('DOMContentLoaded', function() {
   if (newExBtn)  newExBtn.onclick  = function() { openUnivExamenModal(); };
   var newEvBtn  = document.getElementById('univNewEventoBtn');
   if (newEvBtn)  newEvBtn.onclick  = function() { openUnivEventoModal(); };
+  document.querySelectorAll('.univ-subtab-btn').forEach(function(b) {
+    b.onclick = function() { univPlanSetSubTab(b.dataset.subtab); };
+  });
+  var bdSaveBtn = document.getElementById('univBdSaveBtn');
+  if (bdSaveBtn) bdSaveBtn.onclick = function() { univBdGuardar(); };
 });
 </script>
 
@@ -39792,6 +39955,20 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
+  // ── Solo mostrar el Pomodoro en la tab "Plan" (sub-tab "Plan", no "Braindump") de Universidad ──
+  function pomUpdateVisibility(tabId) {
+    var sec = document.getElementById('sec-pomodoro');
+    if (!sec) return;
+    var subtab = window._univPlanSubTab || 'plan';
+    sec.style.display = (tabId === 'plan' && subtab === 'plan') ? '' : 'none';
+  }
+  var _prevOnUnivTabSwitch = window._onUnivTabSwitch;
+  window._onUnivTabSwitch = function(tabId) {
+    if (_prevOnUnivTabSwitch) _prevOnUnivTabSwitch(tabId);
+    pomUpdateVisibility(tabId);
+  };
+  pomUpdateVisibility(window._univTabActivo || 'materias');
+
   setTimeout(function(){ pomUpdateDisplay(); pomUpdateSessions(); }, 200);
 })();
 </script>
@@ -39878,6 +40055,7 @@ var TEM_KEY = 'yuki_temario';
 function temLoad() {
   try { return JSON.parse(localStorage.getItem(TEM_KEY) || '[]'); } catch(e) { return []; }
 }
+window.temLoad = temLoad; // expuesto para que otras secciones (ej. detalle de materia) puedan leer el temario
 function temSave(data) {
   try { localStorage.setItem(TEM_KEY, JSON.stringify(data)); } catch(e) {}
   if (window.cloudSave) window.cloudSave(TEM_KEY, data);
@@ -42535,6 +42713,7 @@ function interesesShowTab(idx) {
 
   <!-- Listas rápidas -->
   <div id="listasTabRapidas">
+    <div class="wl-cat-tabs" id="qlCatTabs"></div>
     <div id="qlListsContainer"></div>
     <button class="add-ql-btn" onclick="openQlModal(null)">＋ Nueva lista</button>
   </div>
@@ -42568,6 +42747,8 @@ function interesesShowTab(idx) {
 (function(){
   // ══ LISTAS RÁPIDAS ══
   var qlLists = [];
+  var qlCats = [];       // [{id, name, emoji}] — sub-tabs creadas por la usuaria
+  var qlCatFilter = 'all';
   var WL_CATS = [
     {id:'libro',  label:'📚 Libros'},
     {id:'serie',  label:'📺 Series'},
@@ -42590,6 +42771,8 @@ function interesesShowTab(idx) {
 
   function qlSave(){ try{localStorage.setItem('ql_lists',JSON.stringify(qlLists));}catch(e){} if(window.cloudSave) window.cloudSave('ql_lists',qlLists); }
   function qlLoad(){ if(window._qlLists){qlLists=window._qlLists;} else { try{qlLists=JSON.parse(localStorage.getItem('ql_lists')||'[]');}catch(e){qlLists=[];} } }
+  function qlCatsSave(){ try{localStorage.setItem('ql_cats',JSON.stringify(qlCats));}catch(e){} if(window.cloudSave) window.cloudSave('ql_cats',qlCats); }
+  function qlCatsLoad(){ if(window._qlCats){qlCats=window._qlCats;} else { try{qlCats=JSON.parse(localStorage.getItem('ql_cats')||'[]');}catch(e){qlCats=[];} } }
   function wlSave(){ try{localStorage.setItem('wl_items',JSON.stringify(wlItems));}catch(e){} if(window.cloudSave) window.cloudSave('wl_items',wlItems); }
   function wlLoad(){ if(window._wlItems){wlItems=window._wlItems;} else { try{wlItems=JSON.parse(localStorage.getItem('wl_items')||'[]');}catch(e){wlItems=[];} } }
   function wlClaSave(){ try{localStorage.setItem("wl_clas",JSON.stringify(wlClasificaciones));}catch(e){} if(window.cloudSave) window.cloudSave("wl_clas",wlClasificaciones); }
@@ -42605,15 +42788,106 @@ function interesesShowTab(idx) {
     if(tab==='wishlist') { wshRenderFilters(); wshRenderGrid(); }
   };
 
+  // ── Render sub-tabs de categorías de listas rápidas
+  function renderQlCatTabs(){
+    var tabs=document.getElementById('qlCatTabs'); if(!tabs) return;
+    tabs.innerHTML='';
+    var all=document.createElement('button'); all.className='wl-cat-btn'+(qlCatFilter==='all'?' active':'');
+    all.textContent='✨ Todas'; all.onclick=function(){qlCatFilter='all';renderQlCatTabs();renderQlLists();};
+    tabs.appendChild(all);
+    qlCats.forEach(function(c){
+      var b=document.createElement('button'); b.className='wl-cat-btn'+(qlCatFilter===c.id?' active':'');
+      b.textContent=c.emoji+' '+c.name;
+      b.onclick=function(){qlCatFilter=c.id;renderQlCatTabs();renderQlLists();};
+      tabs.appendChild(b);
+    });
+    var manageB=document.createElement('button'); manageB.className='wl-cat-btn'; manageB.textContent='⚙️ ＋';
+    manageB.title='Crear o borrar categorías';
+    manageB.onclick=function(){ openQlCatModal(); };
+    tabs.appendChild(manageB);
+  }
+
+  // ── Modal: gestionar categorías (crear / eliminar)
+  var QL_CAT_EMOJIS=['🛒','📚','🎬','✈️','🎁','🏠','💊','🧴','🐾','📌','🎓','💼'];
+  window.openQlCatModal=function(){
+    var old=document.getElementById('qlCatModal'); if(old) old.remove();
+    var backdrop=document.createElement('div'); backdrop.className='meta-modal-backdrop'; backdrop.id='qlCatModal';
+    backdrop.onclick=function(e){if(e.target===backdrop)backdrop.remove();};
+    var box=document.createElement('div'); box.className='meta-modal-box';
+    var emojiOpts=QL_CAT_EMOJIS.map(function(e,i){return '<span class="mood-emoji-opt'+(i===0?' selected':'')+'" data-e="'+e+'" style="font-size:1.2rem">'+e+'</span>';}).join('');
+    box.innerHTML='<div class="mood-modal-title">Categorías de listas</div>'
+      +'<div id="qlCatExisting" style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:.9rem"></div>'
+      +'<div class="modal-field"><label class="modal-label">Nueva categoría</label>'
+      +'<div class="mood-emoji-picker" id="qlCatEmojiPicker">'+emojiOpts+'</div>'
+      +'<input class="modal-input" id="qlCatNameInput" placeholder="Ej: Compras, Viajes, Regalos…" style="margin-top:.5rem"></div>'
+      +'<div class="modal-btns" style="margin-top:.8rem">'
+      +'<button class="modal-btn-cancel" onclick="document.getElementById(&quot;qlCatModal&quot;).remove()">Cerrar</button>'
+      +'<button class="modal-btn-save" id="qlCatAddBtn">＋ Agregar</button></div>';
+    backdrop.appendChild(box); document.body.appendChild(backdrop);
+
+    var selEmoji = QL_CAT_EMOJIS[0];
+    backdrop.querySelectorAll('.mood-emoji-opt').forEach(function(o){
+      o.onclick=function(){backdrop.querySelectorAll('.mood-emoji-opt').forEach(function(x){x.classList.remove('selected');});o.classList.add('selected');selEmoji=o.dataset.e;};
+    });
+
+    function renderExistingCats(){
+      var wrap=document.getElementById('qlCatExisting'); if(!wrap) return;
+      wrap.innerHTML='';
+      if(qlCats.length===0){
+        wrap.innerHTML='<div style="font-size:.72rem;color:var(--muted2);text-align:center;padding:.3rem 0">Aún no tienes categorías — crea la primera abajo 👇</div>';
+        return;
+      }
+      qlCats.forEach(function(c){
+        var row=document.createElement('div');
+        row.style.cssText='display:flex;align-items:center;gap:.5rem;padding:.45rem .65rem;background:var(--surface);border-radius:10px';
+        var lbl=document.createElement('div'); lbl.style.cssText='flex:1;font-size:.78rem;font-weight:600;color:var(--text)';
+        lbl.textContent=c.emoji+' '+c.name;
+        var del=document.createElement('button'); del.textContent='✕';
+        del.style.cssText='background:none;border:none;color:var(--rosa);cursor:pointer;font-size:.85rem;padding:0 .2rem';
+        del.onclick=function(){ qlDeleteCat(c.id, renderExistingCats); };
+        row.appendChild(lbl); row.appendChild(del);
+        wrap.appendChild(row);
+      });
+    }
+    renderExistingCats();
+
+    document.getElementById('qlCatAddBtn').onclick=function(){
+      var n=document.getElementById('qlCatNameInput').value.trim();
+      if(!n) return;
+      qlCats.push({id:'qlcat_'+Date.now(), name:n, emoji:selEmoji});
+      qlCatsSave(); renderQlCatTabs(); renderExistingCats();
+      document.getElementById('qlCatNameInput').value='';
+      document.getElementById('qlCatNameInput').focus();
+    };
+    document.getElementById('qlCatNameInput').focus();
+  };
+
+  window.qlDeleteCat=function(catId, afterFn){
+    var cat = qlCats.find(function(c){return c.id===catId;});
+    kittyConfirm('¿Eliminar la categoría "'+(cat?cat.name:'')+'"? Las listas que tenía quedarán en "Todas".', function(){
+      qlCats = qlCats.filter(function(c){return c.id!==catId;});
+      qlLists.forEach(function(l){ if(l.catId===catId) l.catId=null; });
+      if(qlCatFilter===catId) qlCatFilter='all';
+      qlCatsSave(); qlSave(); renderQlCatTabs(); renderQlLists();
+      if(afterFn) afterFn();
+    });
+  };
+
   // ── Render listas rápidas
   function renderQlLists() {
     var container = document.getElementById('qlListsContainer'); if(!container) return;
     container.innerHTML='';
+    var listsToShow = qlLists.filter(function(l){ return qlCatFilter==='all' || l.catId===qlCatFilter; });
     if(qlLists.length===0){
       container.innerHTML='<div style="color:var(--muted2);font-size:.8rem;font-weight:600;text-align:center;padding:1.5rem 0">Crea tu primera lista rápida ⚡</div>';
       return;
     }
-    qlLists.forEach(function(lst,lIdx){
+    if(listsToShow.length===0){
+      container.innerHTML='<div style="color:var(--muted2);font-size:.8rem;font-weight:600;text-align:center;padding:1.5rem 0">Sin listas en esta categoría todavía</div>';
+      return;
+    }
+    listsToShow.forEach(function(lst){
+      var lIdx = qlLists.indexOf(lst);
       var card=document.createElement('div'); card.className='ql-list-card';
       // Header
       var hdrDiv = document.createElement('div'); hdrDiv.className='ql-list-header';
@@ -42667,14 +42941,19 @@ function interesesShowTab(idx) {
     var old=document.getElementById('qlModal'); if(old) old.remove();
     var existing=lIdx!==null?qlLists[lIdx]:null;
     var emoji=existing?existing.emoji:'📋'; var name=existing?existing.name:'';
+    var catVal=existing?(existing.catId||''):qlCatFilter;
+    if (catVal === 'all') catVal = '';
     var backdrop=document.createElement('div'); backdrop.className='meta-modal-backdrop'; backdrop.id='qlModal';
     backdrop.onclick=function(e){if(e.target===backdrop)backdrop.remove();};
     var box=document.createElement('div'); box.className='meta-modal-box';
     var emojiOpts=QL_EMOJIS.map(function(e){return '<span class="mood-emoji-opt'+(e===emoji?' selected':'')+'" data-e="'+e+'" style="font-size:1.3rem">'+e+'</span>';}).join('');
+    var catOpts='<option value="">Sin categoría</option>'+qlCats.map(function(c){return '<option value="'+c.id+'"'+(catVal===c.id?' selected':'')+'>'+c.emoji+' '+c.name+'</option>';}).join('');
     box.innerHTML='<div class="mood-modal-title">'+(existing?'Editar':'Nueva')+' lista</div>'
       +'<div class="mood-emoji-picker" id="qlEmojiPicker">'+emojiOpts+'</div>'
       +'<div class="modal-field"><label class="modal-label">Nombre</label>'
       +'<input class="modal-input" id="qlNameInput" placeholder="Ej: Lista del súper…" value="'+name.replace(/"/g,'&quot;')+'"></div>'
+      +'<div class="modal-field" style="margin-top:.6rem"><label class="modal-label">Categoría (opcional)</label>'
+      +'<select class="modal-input" id="qlCatSelect" style="cursor:pointer">'+catOpts+'</select></div>'
       +'<div class="modal-btns" style="margin-top:.8rem">'
       +'<button class="modal-btn-cancel" onclick="document.getElementById(&quot;qlModal&quot;).remove()">Cancelar</button>'
       +'<button class="modal-btn-save" id="qlSaveBtn">Guardar</button></div>';
@@ -42685,8 +42964,9 @@ function interesesShowTab(idx) {
     });
     document.getElementById('qlSaveBtn').onclick=function(){
       var n=document.getElementById('qlNameInput').value.trim(); if(!n){document.getElementById('qlNameInput').focus();return;}
-      if(existing){qlLists[lIdx].emoji=selEmoji;qlLists[lIdx].name=n;}
-      else{qlLists.push({id:'ql_'+Date.now(),emoji:selEmoji,name:n,items:[]});}
+      var catSel=document.getElementById('qlCatSelect').value || null;
+      if(existing){qlLists[lIdx].emoji=selEmoji;qlLists[lIdx].name=n;qlLists[lIdx].catId=catSel;}
+      else{qlLists.push({id:'ql_'+Date.now(),emoji:selEmoji,name:n,catId:catSel,items:[]});}
       qlSave(); renderQlLists(); backdrop.remove();
     };
     document.getElementById('qlNameInput').focus();
@@ -43129,8 +43409,8 @@ function interesesShowTab(idx) {
   };
 
   // Init
-  qlLoad(); wlLoad(); wlClaLoad(); wshLoad();
-  setTimeout(function(){ renderQlLists(); renderWlCatTabs(); renderWlStatusFilter(); renderWlClasFilter(); renderWlGrid(); }, 150);
+  qlLoad(); qlCatsLoad(); wlLoad(); wlClaLoad(); wshLoad();
+  setTimeout(function(){ renderQlCatTabs(); renderQlLists(); renderWlCatTabs(); renderWlStatusFilter(); renderWlClasFilter(); renderWlGrid(); }, 150);
 })();
 </script>
 </div><!-- end page-listas -->
