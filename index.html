@@ -20932,7 +20932,7 @@ window.syncFromCloud = function() {
   if (typeof loadBelleza      === 'function') { loadBelleza();    renderBelleza();    }
   if (typeof loadRutinas      === 'function') { loadRutinas();    renderRutinas();    }
   if (typeof loadDesglose     === 'function') { loadDesglose();   renderDesglose();   }
-  if (typeof loadUniv         === 'function') { loadUniv(); loadPlanEstudio(); renderUniv();       }
+  if (typeof loadUniv         === 'function') { loadUniv(); renderUniv();       }
   if (typeof loadLimpieza     === 'function') { loadLimpieza();   renderLimpieza();   }
   if (typeof loadLimpRutinas  === 'function') { loadLimpRutinas(); renderLimpRutinas(); }
   if (typeof loadFinanzas     === 'function') { loadFinanzas();   renderFinanzas();   }
@@ -33586,12 +33586,12 @@ window.showPage = function(pageId) {
     </div>
 
     <div id="univPlanSub-plan">
-      <div class="univ-block" id="univPlanBlock">
+      <div class="univ-block">
         <div class="univ-block-hdr">
-          <span class="univ-block-title">🗓️ Plan de estudio flexible</span>
-          <button class="rutina-new-btn" id="univGenPlanBtn">✨ Generar plan</button>
+          <span class="univ-block-title">📿 Rutinas de estudio</span>
         </div>
-        <div id="univPlanWrap"></div>
+        <p style="font-size:.78rem;color:var(--muted2);margin:.2rem 0 .9rem;line-height:1.4">Tus rutinas de estudio (o de cualquier tipo) viven en la sección de Rutinas y Orden, donde puedes crearlas y armarlas paso a paso.</p>
+        <button class="rutina-new-btn" id="univIrRutinasBtn" style="width:100%">🧭 Llévame a Rutinas</button>
       </div>
 
       <div class="univ-block">
@@ -37360,12 +37360,6 @@ function aplicarAdaptacionUniv(estado) {
   // Re-renderizar listas con los límites aplicados
   renderUnivMaterias();
   renderUnivTareas();
-  // Si hay plan generado y el estado cambió, regenerar automáticamente
-  if (_univPlan && _univPlan.estado !== _univEstadoActual) {
-    generarPlanEstudio();
-  } else {
-    renderPlanEstudio();
-  }
 }
 
 function renderUniv() {
@@ -37378,10 +37372,9 @@ function renderUniv() {
   renderUnivHoras();
   renderUnivHistorial();
   renderUnivCalendario();
-  renderPlanEstudio();
-  // Botón generar plan
-  var genBtn = document.getElementById('univGenPlanBtn');
-  if (genBtn) { genBtn.onclick = function() { generarPlanEstudio(); }; }
+  // Botón "llévame a Rutinas"
+  var irRutBtn = document.getElementById('univIrRutinasBtn');
+  if (irRutBtn) { irRutBtn.onclick = function() { showPage('page-rutinas'); }; }
   // Aplicar adaptación con el estado actual
   aplicarAdaptacionUniv(_univEstadoActual);
   // Re-renderizar botón empezar
@@ -37708,273 +37701,6 @@ function renderUnivMaterias() {
   }
 }
 
-// ══════════════════════════════════════════════════════════════════════════
-// ── PLAN DE ESTUDIO FLEXIBLE ──────────────────────────────────────────────
-// ══════════════════════════════════════════════════════════════════════════
-
-var _univPlan = null; // { generadoEn, estado, dias: [{fecha, bloques:[{tareaId,dur,done}]}] }
-
-function savePlanEstudio() {
-  try { localStorage.setItem('univ_plan', JSON.stringify(_univPlan)); } catch(e) {}
-  if (window.cloudSave) window.cloudSave('univ_plan', _univPlan);
-}
-
-function loadPlanEstudio() {
-  try {
-    var raw = localStorage.getItem('univ_plan');
-    if (raw) _univPlan = JSON.parse(raw);
-  } catch(e) {}
-}
-
-// Configuración de carga por estado
-var PLAN_CONFIG = {
-  agotada:        { bloquesMax: 1, minPorBloque: 20, diasEstudio: 3, etiqueta: '🫧 Carga suave',   clase: 'ligero'  },
-  bloqueada:      { bloquesMax: 1, minPorBloque: 25, diasEstudio: 4, etiqueta: '🧊 Paso a paso',   clase: 'ligero'  },
-  dispersa:       { bloquesMax: 2, minPorBloque: 30, diasEstudio: 4, etiqueta: '🌀 Poco a poco',   clase: 'normal'  },
-  sobreestimulada:{ bloquesMax: 1, minPorBloque: 20, diasEstudio: 3, etiqueta: '🌊 Modo mínimo',   clase: 'ligero'  },
-  enfocada:       { bloquesMax: 3, minPorBloque: 45, diasEstudio: 5, etiqueta: '⚡ Modo completo', clase: 'intenso' },
-  neutral:        { bloquesMax: 2, minPorBloque: 35, diasEstudio: 4, etiqueta: '🌸 Ritmo suave',   clase: 'normal'  },
-};
-
-// Notas motivacionales por estado
-var PLAN_NOTAS = {
-  agotada:        ['No tienes que hacerlo todo hoy 🌙', 'Un bloque es suficiente ✨', 'Descansar también es avanzar 🌱'],
-  bloqueada:      ['Solo tienes que empezar 🌸', 'Un paso pequeño cuenta 💙', 'No importa el tamaño, solo el movimiento 🌿'],
-  dispersa:       ['Pocas tareas, más claridad 🌀', 'Enfocarse en una cosa es un superpoder 💜'],
-  sobreestimulada:['Menos ruido, más avance 🌊', 'Tu mente necesita espacio para trabajar 🍃'],
-  enfocada:       ['¡Estás en flujo! ⚡', 'Aprovecha esta energía con intención 🌟', 'Cada bloque te acerca más 🎯'],
-  neutral:        ['A tu ritmo, siempre 🌸', 'Hoy es un buen día para avanzar poquito 💙', 'Sin presión, con dirección 🌿'],
-};
-
-function generarPlanEstudio() {
-  var sem = getActiveSem();
-  if (!sem) return;
-
-  var cfg     = PLAN_CONFIG[_univEstadoActual] || PLAN_CONFIG.neutral;
-  var pending = sem.tareas.filter(function(t){ return !t.done; });
-  if (pending.length === 0) { _univPlan = null; renderPlanEstudio(); return; }
-
-  // Ordenar: urgentes primero, luego por fecha de entrega, luego por días sin tocar
-  var ahora = Date.now();
-  pending.sort(function(a, b) {
-    if (a.urgente && !b.urgente) return -1;
-    if (!a.urgente && b.urgente) return 1;
-    if (a.fecha && b.fecha) return new Date(a.fecha+'T12:00:00') - new Date(b.fecha+'T12:00:00');
-    if (a.fecha) return -1; if (b.fecha) return 1;
-    var da = ahora - (a.lastVisited || a.createdAt || ahora);
-    var db = ahora - (b.lastVisited || b.createdAt || ahora);
-    return db - da;
-  });
-
-  // Construir semana desde hoy (7 días)
-  var hoy     = new Date(); hoy.setHours(0,0,0,0);
-  var semana  = [];
-  for (var i = 0; i < 7; i++) {
-    var d = new Date(hoy); d.setDate(hoy.getDate() + i);
-    semana.push({ fecha: d, bloques: [] });
-  }
-
-  // Distribuir tareas en días de estudio (saltando descansos)
-  // Días de estudio = diasEstudio de 7; los restantes son descanso
-  // Distribuir los días de estudio de forma pareja a lo largo de la semana
-  var indicesEstudio = [];
-  var paso = 7 / cfg.diasEstudio;
-  for (var j = 0; j < cfg.diasEstudio; j++) {
-    indicesEstudio.push(Math.min(6, Math.round(j * paso)));
-  }
-  // Eliminar duplicados
-  indicesEstudio = indicesEstudio.filter(function(v, i, a){ return a.indexOf(v) === i; });
-
-  // Cola de tareas a distribuir
-  var cola = pending.slice(); // todas las pendientes
-  var tIdx = 0;
-  indicesEstudio.forEach(function(dIdx) {
-    var dia = semana[dIdx];
-    for (var b = 0; b < cfg.bloquesMax && tIdx < cola.length; b++, tIdx++) {
-      dia.bloques.push({
-        tareaId: cola[tIdx].id,
-        nombre:  cola[tIdx].name,
-        materia: cola[tIdx].materia || '',
-        dur:     cfg.minPorBloque,
-        done:    false,
-      });
-    }
-  });
-
-  // Si quedan tareas sin asignar, distribuirlas en días ya con bloques (overflow)
-  while (tIdx < cola.length) {
-    var dIdx2 = indicesEstudio[tIdx % indicesEstudio.length];
-    semana[dIdx2].bloques.push({
-      tareaId: cola[tIdx].id,
-      nombre:  cola[tIdx].name,
-      materia: cola[tIdx].materia || '',
-      dur:     cfg.minPorBloque,
-      done:    false,
-    });
-    tIdx++;
-  }
-
-  _univPlan = {
-    generadoEn: Date.now(),
-    estado:     _univEstadoActual,
-    dias:       semana.map(function(d) {
-      return {
-        fechaISO: d.fecha.toISOString().split('T')[0],
-        bloques:  d.bloques,
-      };
-    }),
-  };
-  savePlanEstudio();
-  renderPlanEstudio();
-}
-
-function renderPlanEstudio() {
-  var wrap = document.getElementById('univPlanWrap');
-  if (!wrap) return;
-  wrap.innerHTML = '';
-
-  if (!_univPlan || !_univPlan.dias) {
-    wrap.innerHTML = '<div class="univ-plan-empty">Toca ✨ Generar plan para distribuir tus tareas de la semana 💙</div>';
-    return;
-  }
-
-  var cfg   = PLAN_CONFIG[_univPlan.estado] || PLAN_CONFIG.neutral;
-  var notas = PLAN_NOTAS[_univPlan.estado]  || PLAN_NOTAS.neutral;
-  var DIAS_NOMBRE = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-  var hoyISO = (function(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
-
-  // Chip de estado
-  var chip = document.createElement('div');
-  chip.className = 'univ-plan-estado-chip';
-  chip.style.cssText = 'background:var(--beige-soft);color:var(--muted);margin-bottom:.5rem;';
-  chip.innerHTML = cfg.etiqueta + ' <span style="font-weight:400;font-size:.64rem">· basado en tu estado actual</span>';
-  wrap.appendChild(chip);
-
-  var listaDias = document.createElement('div');
-  listaDias.className = 'univ-plan-semana';
-
-  _univPlan.dias.forEach(function(dia, dIdx) {
-    var row = document.createElement('div');
-    row.className = 'univ-plan-dia-row';
-
-    var hdr = document.createElement('div');
-    hdr.className = 'univ-plan-dia-hdr';
-
-    var fechaObj  = new Date(dia.fechaISO + 'T12:00:00');
-    var diaNombre = DIAS_NOMBRE[fechaObj.getDay()];
-    var diaNum    = fechaObj.getDate();
-    var esHoy     = dia.fechaISO === hoyISO;
-
-    var nomEl = document.createElement('div');
-    nomEl.className = 'univ-plan-dia-nombre' + (esHoy ? ' hoy' : '');
-    nomEl.textContent = diaNombre + ' ' + diaNum + (esHoy ? ' · hoy' : '');
-
-    // Pips de carga
-    var cargaEl = document.createElement('div');
-    cargaEl.className = 'univ-plan-dia-carga';
-    var maxPips = 3;
-    for (var p = 0; p < maxPips; p++) {
-      var pip = document.createElement('div');
-      pip.className = 'univ-plan-pip' + (p < dia.bloques.length ? ' lleno' : '');
-      cargaEl.appendChild(pip);
-    }
-
-    var labelEl = document.createElement('div');
-    if (dia.bloques.length === 0) {
-      labelEl.className = 'univ-plan-dia-label descanso';
-      labelEl.textContent = '✿ descanso';
-    } else if (dia.bloques.length === 1) {
-      labelEl.className = 'univ-plan-dia-label ligero';
-      labelEl.textContent = dia.bloques.length + ' bloque';
-    } else {
-      labelEl.className = 'univ-plan-dia-label ' + (dia.bloques.length >= 3 ? 'intenso' : 'normal');
-      labelEl.textContent = dia.bloques.length + ' bloques';
-    }
-
-    hdr.appendChild(nomEl);
-    hdr.appendChild(cargaEl);
-    hdr.appendChild(labelEl);
-
-    var body = document.createElement('div');
-    body.className = 'univ-plan-dia-body' + (esHoy ? ' open' : '');
-
-    if (dia.bloques.length === 0) {
-      var desc = document.createElement('div');
-      desc.style.cssText = 'font-size:.75rem;color:var(--muted);padding:.2rem 0;font-family:var(--font-body)';
-      desc.textContent = 'Día libre — recarga energía 🌿';
-      body.appendChild(desc);
-    } else {
-      dia.bloques.forEach(function(bloque, bIdx) {
-        var bl = document.createElement('div');
-        bl.className = 'univ-plan-bloque' + (bloque.done ? ' completado' : '');
-
-        var chk = document.createElement('div');
-        chk.className = 'univ-plan-bloque-check';
-        if (bloque.done) chk.textContent = '✓';
-
-        (function(di, bi) {
-          chk.onclick = function(e) {
-            e.stopPropagation();
-            _univPlan.dias[di].bloques[bi].done = !_univPlan.dias[di].bloques[bi].done;
-            savePlanEstudio();
-            renderPlanEstudio();
-          };
-        })(dIdx, bIdx);
-
-        var info = document.createElement('div');
-        info.className = 'univ-plan-bloque-info';
-
-        var nm = document.createElement('div');
-        nm.className = 'univ-plan-bloque-nombre';
-        nm.textContent = bloque.nombre;
-
-        var meta = document.createElement('div');
-        meta.className = 'univ-plan-bloque-meta';
-        meta.textContent = bloque.materia || 'Tarea pendiente';
-
-        info.appendChild(nm);
-        info.appendChild(meta);
-
-        var dur = document.createElement('div');
-        dur.className = 'univ-plan-bloque-dur';
-        dur.textContent = bloque.dur + ' min';
-
-        bl.appendChild(chk);
-        bl.appendChild(info);
-        bl.appendChild(dur);
-        body.appendChild(bl);
-      });
-    }
-
-    // Toggle día al hacer clic en header
-    hdr.onclick = function() {
-      var isOpen = body.classList.contains('open');
-      body.classList.toggle('open', !isOpen);
-    };
-
-    row.appendChild(hdr);
-    row.appendChild(body);
-    listaDias.appendChild(row);
-  });
-
-  wrap.appendChild(listaDias);
-
-  // Nota motivacional
-  var nota = document.createElement('div');
-  nota.className = 'univ-plan-nota';
-  nota.textContent = notas[Math.floor(Math.random() * notas.length)];
-  wrap.appendChild(nota);
-
-  // Botón regenerar
-  var genWrap = document.createElement('div');
-  genWrap.className = 'univ-plan-gen-wrap';
-  var regenBtn = document.createElement('button');
-  regenBtn.className = 'univ-plan-regen-btn';
-  regenBtn.textContent = '↻ Regenerar plan';
-  regenBtn.onclick = function() { generarPlanEstudio(); };
-  genWrap.appendChild(regenBtn);
-  wrap.appendChild(genWrap);
-}
 
 // ── Tareas
 function renderUnivTareas() {
@@ -38259,9 +37985,6 @@ window.univPlanSetSubTab = function(subtab) {
   var bdPanel = document.getElementById('univPlanSub-braindump');
   if (planPanel) planPanel.style.display = (subtab === 'plan') ? '' : 'none';
   if (bdPanel) bdPanel.style.display = (subtab === 'braindump') ? '' : 'none';
-  // El Pomodoro solo debe verse dentro de la sub-tab "Plan"
-  var pom = document.getElementById('sec-pomodoro');
-  if (pom) pom.style.display = (subtab === 'plan' && window._univTabActivo === 'plan') ? '' : 'none';
   if (subtab === 'braindump') renderUnivBraindump();
 };
 
@@ -38785,22 +38508,82 @@ function openUnivMateriaViewModal(matIdx) {
   var titleDiv = document.createElement('div');
   titleDiv.className = 'rutina-modal-title';
   titleDiv.style.paddingRight = '3rem';
-  titleDiv.innerHTML = '📚 <em>' + mat.name + '</em>';
+  titleDiv.innerHTML = '📚 <em>' + mat.name + '</em>' + (mat.creditos != null && mat.creditos !== '' ? ' <span style="font-size:.65rem;font-weight:700;color:var(--muted);background:var(--surface);padding:.2rem .55rem;border-radius:10px;vertical-align:middle;font-style:normal">'+mat.creditos+' créd.</span>' : '');
+
+  // Siempre obtiene la materia más reciente (evita guardar sobre una copia vieja)
+  function getMatFresh() {
+    var s = getActiveSem() || sem;
+    return (s.materias && s.materias.find(function(m){ return m.id === mat.id; })) || mat;
+  }
+  function refrescarModal() { back.remove(); openUnivMateriaViewModal(matIdx); }
 
   var content = document.createElement('div');
   content.style.marginTop = '.8rem';
 
-  // Sección de calificación
+  // Sección de calificaciones desglosadas
   var calDiv = document.createElement('div');
   calDiv.style.cssText = 'background:'+mat.color+'22;border-left:4px solid '+mat.color+';padding:.8rem;border-radius:8px;margin-bottom:1rem';
   var calLabel = document.createElement('div');
-  calLabel.style.cssText = 'font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:.3rem';
-  calLabel.textContent = '⭐ Calificación General';
-  var calVal = document.createElement('div');
-  calVal.style.cssText = 'font-size:1.3rem;font-weight:800;color:'+mat.color;
-  calVal.textContent = mat.calificacion ? mat.calificacion : '—';
+  calLabel.style.cssText = 'font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:.4rem';
+  calLabel.textContent = '⭐ Calificaciones';
   calDiv.appendChild(calLabel);
+
+  var evals = mat.evaluaciones || [];
+  var pesoTotal = evals.reduce(function(s,e){ return s + (parseFloat(e.peso)||0); }, 0);
+  var notaPonderada = evals.reduce(function(s,e){ return s + ((parseFloat(e.calificacion)||0) * (parseFloat(e.peso)||0) / 100); }, 0);
+
+  var calVal = document.createElement('div');
+  calVal.style.cssText = 'font-size:1.3rem;font-weight:800;color:'+mat.color+';margin-bottom:.5rem';
+  if (evals.length) {
+    calVal.textContent = notaPonderada.toFixed(1) + (pesoTotal < 100 ? ' (con ' + pesoTotal + '% registrado)' : '');
+  } else {
+    calVal.textContent = mat.calificacion ? mat.calificacion : '—';
+  }
   calDiv.appendChild(calVal);
+
+  if (evals.length) {
+    var evalsList = document.createElement('div');
+    evalsList.style.cssText = 'display:flex;flex-direction:column;gap:.3rem;margin-bottom:.6rem';
+    evals.forEach(function(ev) {
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:.5rem;background:var(--card);padding:.4rem .6rem;border-radius:8px;font-size:.72rem';
+      var nm = document.createElement('div'); nm.style.cssText = 'flex:1;font-weight:600;color:var(--text)'; nm.textContent = ev.nombre;
+      var pw = document.createElement('div'); pw.style.cssText = 'color:var(--muted);white-space:nowrap'; pw.textContent = ev.peso + '%';
+      var nt = document.createElement('div'); nt.style.cssText = 'font-weight:800;color:'+mat.color+';white-space:nowrap;min-width:28px;text-align:right'; nt.textContent = ev.calificacion;
+      var del = document.createElement('button'); del.textContent='✕'; del.style.cssText='background:none;border:none;color:var(--muted2);cursor:pointer;font-size:.7rem';
+      del.onclick = function() {
+        var m = getMatFresh();
+        m.evaluaciones = (m.evaluaciones||[]).filter(function(e){ return e.id !== ev.id; });
+        saveUniv(); refrescarModal();
+      };
+      row.appendChild(nm); row.appendChild(pw); row.appendChild(nt); row.appendChild(del);
+      evalsList.appendChild(row);
+    });
+    calDiv.appendChild(evalsList);
+  }
+
+  var addEvalRow = document.createElement('div');
+  addEvalRow.style.cssText = 'display:flex;gap:.35rem;margin-top:.3rem';
+  addEvalRow.innerHTML =
+    '<input class="modal-input" id="matEvNombre" placeholder="ej: Parcial 1" style="flex:2;font-size:.72rem;padding:.4rem .5rem">' +
+    '<input class="modal-input" id="matEvPeso" type="number" min="0" max="100" placeholder="%" style="flex:1;font-size:.72rem;padding:.4rem .5rem">' +
+    '<input class="modal-input" id="matEvNota" type="number" min="0" placeholder="Nota" style="flex:1;font-size:.72rem;padding:.4rem .5rem">';
+  var addEvalBtn = document.createElement('button');
+  addEvalBtn.className = 'rutina-new-btn';
+  addEvalBtn.style.cssText = 'margin-top:.4rem;width:100%';
+  addEvalBtn.textContent = '＋ Agregar evaluación';
+  addEvalBtn.onclick = function() {
+    var nom = document.getElementById('matEvNombre').value.trim();
+    var peso = document.getElementById('matEvPeso').value;
+    var nota = document.getElementById('matEvNota').value;
+    if (!nom || peso === '' || nota === '') return;
+    var m = getMatFresh();
+    if (!m.evaluaciones) m.evaluaciones = [];
+    m.evaluaciones.push({ id:'meval_'+Date.now(), nombre:nom, peso:parseFloat(peso), calificacion:parseFloat(nota) });
+    saveUniv(); refrescarModal();
+  };
+  calDiv.appendChild(addEvalRow);
+  calDiv.appendChild(addEvalBtn);
   content.appendChild(calDiv);
 
   // Tareas pendientes de esta materia
@@ -39005,6 +38788,135 @@ function openUnivMateriaViewModal(matIdx) {
   temDiv.appendChild(temList);
   content.appendChild(temDiv);
 
+  // Asistencia
+  var asisDiv = document.createElement('div');
+  asisDiv.style.marginBottom = '1rem';
+  var asisLabel = document.createElement('div');
+  asisLabel.style.cssText = 'font-size:.75rem;font-weight:700;color:var(--text);margin-bottom:.5rem;text-transform:uppercase';
+  asisLabel.textContent = '🙋 Asistencia';
+  asisDiv.appendChild(asisLabel);
+
+  var asistencia = mat.asistencia || [];
+  var presentes = asistencia.filter(function(a){ return a.status === 'presente'; }).length;
+  var faltas = asistencia.filter(function(a){ return a.status === 'falta'; }).length;
+  var pctAsis = asistencia.length ? Math.round(presentes / asistencia.length * 100) : null;
+
+  var asisStats = document.createElement('div');
+  asisStats.style.cssText = 'font-size:.72rem;color:var(--muted);margin-bottom:.5rem';
+  asisStats.textContent = asistencia.length
+    ? presentes + ' asistencias · ' + faltas + ' faltas · ' + pctAsis + '% de asistencia'
+    : 'Aún no registras asistencia en esta materia';
+  asisDiv.appendChild(asisStats);
+
+  var hoyKey = (typeof todayKey === 'function') ? todayKey() : new Date().toISOString().slice(0,10);
+  var yaHoy = asistencia.find(function(a){ return a.fecha === hoyKey; });
+
+  var asisBtns = document.createElement('div');
+  asisBtns.style.cssText = 'display:flex;gap:.4rem;margin-bottom:.6rem';
+  var btnPresente = document.createElement('button');
+  btnPresente.className = 'rutina-new-btn';
+  btnPresente.style.flex = '1';
+  btnPresente.textContent = yaHoy && yaHoy.status==='presente' ? '✅ Asististe hoy' : '✅ Asistí hoy';
+  btnPresente.onclick = function() {
+    var m = getMatFresh();
+    if (!m.asistencia) m.asistencia = [];
+    var reg = m.asistencia.find(function(a){ return a.fecha === hoyKey; });
+    if (reg) reg.status = 'presente'; else m.asistencia.push({fecha:hoyKey, status:'presente'});
+    saveUniv(); refrescarModal();
+  };
+  var btnFalta = document.createElement('button');
+  btnFalta.className = 'rutina-new-btn';
+  btnFalta.style.cssText = 'flex:1;background:none;border:1.5px solid var(--border);color:var(--rosa)';
+  btnFalta.textContent = yaHoy && yaHoy.status==='falta' ? '❌ Faltaste hoy' : '❌ Falté hoy';
+  btnFalta.onclick = function() {
+    var m = getMatFresh();
+    if (!m.asistencia) m.asistencia = [];
+    var reg = m.asistencia.find(function(a){ return a.fecha === hoyKey; });
+    if (reg) reg.status = 'falta'; else m.asistencia.push({fecha:hoyKey, status:'falta'});
+    saveUniv(); refrescarModal();
+  };
+  asisBtns.appendChild(btnPresente); asisBtns.appendChild(btnFalta);
+  asisDiv.appendChild(asisBtns);
+
+  if (asistencia.length) {
+    var asisHist = document.createElement('div');
+    asisHist.style.cssText = 'display:flex;flex-direction:column;gap:.25rem';
+    asistencia.slice().sort(function(a,b){ return b.fecha.localeCompare(a.fecha); }).slice(0,5).forEach(function(a) {
+      var r = document.createElement('div');
+      r.style.cssText = 'display:flex;align-items:center;gap:.5rem;font-size:.68rem;color:var(--muted);padding:.25rem .4rem';
+      var icon = a.status === 'presente' ? '✅' : '❌';
+      var d = document.createElement('div'); d.style.flex='1'; d.textContent = icon + ' ' + formatFecha(a.fecha);
+      var del = document.createElement('button'); del.textContent='✕'; del.style.cssText='background:none;border:none;color:var(--muted2);cursor:pointer;font-size:.65rem';
+      del.onclick = function() {
+        var m = getMatFresh();
+        m.asistencia = (m.asistencia||[]).filter(function(x){ return x.fecha !== a.fecha; });
+        saveUniv(); refrescarModal();
+      };
+      r.appendChild(d); r.appendChild(del);
+      asisHist.appendChild(r);
+    });
+    asisDiv.appendChild(asisHist);
+  }
+  content.appendChild(asisDiv);
+
+  // Recursos de esta materia
+  var recDiv = document.createElement('div');
+  recDiv.style.marginBottom = '1rem';
+  var recLabel = document.createElement('div');
+  recLabel.style.cssText = 'font-size:.75rem;font-weight:700;color:var(--text);margin-bottom:.5rem;text-transform:uppercase';
+  recLabel.textContent = '🔗 Recursos de ' + mat.name;
+  recDiv.appendChild(recLabel);
+
+  var recursos = mat.recursos || [];
+  if (recursos.length) {
+    var recWrap = document.createElement('div');
+    recWrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.6rem';
+    recursos.forEach(function(r) {
+      var chip = document.createElement('a');
+      chip.className = 'tem-recurso-chip';
+      chip.href = r.url; chip.target = '_blank'; chip.rel = 'noopener';
+      chip.textContent = '🔗 ' + r.label;
+      recWrap.appendChild(chip);
+      var del = document.createElement('button');
+      del.textContent = '✕';
+      del.style.cssText = 'background:none;border:none;color:var(--muted2);cursor:pointer;font-size:.65rem;margin-left:-.15rem;margin-right:.3rem;vertical-align:middle';
+      del.onclick = function() {
+        var m = getMatFresh();
+        m.recursos = (m.recursos||[]).filter(function(x){ return x.url !== r.url || x.label !== r.label; });
+        saveUniv(); refrescarModal();
+      };
+      recWrap.appendChild(del);
+    });
+    recDiv.appendChild(recWrap);
+  } else {
+    var emptyRec = document.createElement('div');
+    emptyRec.style.cssText = 'font-size:.7rem;color:var(--muted2);font-style:italic;padding:.3rem 0';
+    emptyRec.textContent = 'Sin recursos agregados — sílabo, lecturas, links útiles...';
+    recDiv.appendChild(emptyRec);
+  }
+
+  var addRecRow = document.createElement('div');
+  addRecRow.style.cssText = 'display:flex;gap:.35rem';
+  addRecRow.innerHTML =
+    '<input class="modal-input" id="matRecLabel" placeholder="ej: Sílabo, Lectura tema 3..." style="flex:1;font-size:.72rem;padding:.4rem .5rem">' +
+    '<input class="modal-input" id="matRecUrl" placeholder="https://..." style="flex:1;font-size:.72rem;padding:.4rem .5rem">';
+  var addRecBtn = document.createElement('button');
+  addRecBtn.className = 'rutina-new-btn';
+  addRecBtn.style.cssText = 'margin-top:.4rem;width:100%';
+  addRecBtn.textContent = '＋ Agregar recurso';
+  addRecBtn.onclick = function() {
+    var lbl = document.getElementById('matRecLabel').value.trim();
+    var url = document.getElementById('matRecUrl').value.trim();
+    if (!lbl || !url) return;
+    var m = getMatFresh();
+    if (!m.recursos) m.recursos = [];
+    m.recursos.push({ label: lbl, url: url });
+    saveUniv(); refrescarModal();
+  };
+  recDiv.appendChild(addRecRow);
+  recDiv.appendChild(addRecBtn);
+  content.appendChild(recDiv);
+
   // Cerrar botón
   var closeBtn = document.createElement('button');
   closeBtn.className = 'modal-btn-cancel';
@@ -39043,6 +38955,8 @@ function openUnivMateriaModal(editIdx) {
     '<div style="font-size:.65rem;color:var(--muted);font-weight:600;margin-bottom:.8rem">Semestre: ' + sem.nombre + '</div>' +
     '<div class="modal-field"><label class="modal-label">Nombre</label>' +
     '<input class="modal-input" id="univMatNombre" placeholder="ej: Biología, Química..." style="width:100%" value="'+(existing?existing.name:'')+'"></div>' +
+    '<div class="modal-field" style="margin-top:.8rem"><label class="modal-label">Créditos</label>' +
+    '<input class="modal-input" id="univMatCreditos" type="number" min="0" step="1" placeholder="ej: 6" style="width:100%" value="'+(existing&&existing.creditos!=null?existing.creditos:'')+'"></div>' +
     '<div class="modal-field" style="margin-top:.8rem"><label class="modal-label">Color de tarjeta</label>' +
     '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px" id="univColorPicker">'+colOpts+'</div></div>' +
     '<div class="modal-field" style="margin-top:.8rem"><label class="modal-label">Foto de la materia (URL)</label>' +
@@ -39098,13 +39012,16 @@ function openUnivMateriaModal(editIdx) {
   document.getElementById('univMatSave').onclick = function() {
     var n = document.getElementById('univMatNombre').value.trim();
     if (!n) return;
+    var credVal = document.getElementById('univMatCreditos').value;
+    var creditos = credVal !== '' ? parseInt(credVal) : null;
     var semGuardar = getActiveSem() || sem;
     if (isEdit) {
       semGuardar.materias[editIdx].name  = n;
+      semGuardar.materias[editIdx].creditos = creditos;
       semGuardar.materias[editIdx].color = selColor;
       semGuardar.materias[editIdx].img   = selImgData;
     } else {
-      semGuardar.materias.push({ id:'mat_'+Date.now(), name:n, color:selColor, img:selImgData, calificacion:'' });
+      semGuardar.materias.push({ id:'mat_'+Date.now(), name:n, creditos:creditos, color:selColor, img:selImgData, calificacion:'', evaluaciones:[], asistencia:[], recursos:[] });
     }
     saveUniv(); 
     renderUnivMaterias();
@@ -39543,435 +39460,6 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 
-<section class="pomodoro-section" id="sec-pomodoro" style="margin-top:1.5rem">
-<style>
-  .pomodoro-section {
-    max-width: 520px;
-    margin: 1.5rem auto 0;
-    animation: fadeUp .5s .2s ease both;
-    opacity: 0;
-    animation-fill-mode: both;
-  }
-  .pomodoro-card {
-    background: var(--card);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    padding: 1.4rem 1.6rem;
-    text-align: center;
-  }
-  .pomodoro-label {
-    font-size: .62rem;
-    font-weight: 800;
-    letter-spacing: .1em;
-    text-transform: uppercase;
-    color: var(--muted2);
-    margin-bottom: .6rem;
-  }
-  .pomodoro-mode-row {
-    display: flex;
-    gap: .4rem;
-    justify-content: center;
-    margin-bottom: 1rem;
-  }
-  .pom-mode-btn {
-    padding: .25rem .8rem;
-    border-radius: 20px;
-    border: 1.5px solid var(--border);
-    background: var(--surface);
-    font-family: var(--font-body);
-    font-size: .7rem;
-    font-weight: 700;
-    color: var(--muted);
-    cursor: pointer;
-    transition: all .18s;
-  }
-  .pom-mode-btn.active { background: var(--rosa); border-color: var(--rosa); color: #fff; }
-  .pomodoro-display {
-    font-family: var(--font-title);
-    font-size: 3.2rem;
-    font-weight: 800;
-    text-align: center;
-    color: var(--text);
-    letter-spacing: .04em;
-    margin: .6rem 0 .8rem;
-  }
-  .pomodoro-display.running { color: var(--rosa); }
-  .pomodoro-display.break   { color: var(--verde); }
-
-  /* ── Liquid timer ── */
-  .pomodoro-btns {
-    display: flex;
-    gap: .6rem;
-    justify-content: center;
-    margin-bottom: .8rem;
-  }
-  .pom-btn {
-    padding: .45rem 1.3rem;
-    border-radius: 20px;
-    border: 1.5px solid var(--border);
-    background: var(--card);
-    font-family: var(--font-body);
-    font-size: .8rem;
-    font-weight: 800;
-    color: var(--text);
-    cursor: pointer;
-    transition: all .2s;
-  }
-  .pom-btn.primary { background: var(--rosa); border-color: var(--rosa); color: #fff; }
-  .pom-btn:hover { opacity: .85; transform: scale(1.04); }
-  .pomodoro-sessions {
-    font-size: .72rem;
-    font-weight: 700;
-    color: var(--muted);
-    display: flex;
-    gap: .3rem;
-    justify-content: center;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-  .pom-tomato { font-size: .9rem; }
-  .pom-tomato.done { filter: grayscale(0); }
-  .pom-tomato.pending { filter: grayscale(1); opacity: .4; }
-
-  /* ── Gatito CSS animado ── */
-  .pom-cat-wrap { display:inline-block; position:relative; width:90px; height:90px; }
-  .pom-cat { position:relative; width:90px; height:90px; }
-
-  /* Cuerpo */
-  .cat-body {
-    position:absolute; bottom:8px; left:50%; transform:translateX(-50%);
-    width:54px; height:44px; background:var(--rosa); border-radius:50% 50% 45% 45%;
-  }
-  /* Cabeza */
-  .cat-head {
-    position:absolute; top:0; left:50%; transform:translateX(-50%);
-    width:46px; height:42px; background:var(--rosa); border-radius:50%;
-  }
-  /* Orejas */
-  .cat-ear-l, .cat-ear-r {
-    position:absolute; top:-10px; width:0; height:0;
-    border-left:9px solid transparent; border-right:9px solid transparent;
-    border-bottom:18px solid var(--rosa);
-  }
-  .cat-ear-l { left:4px; transform:rotate(-15deg); }
-  .cat-ear-r { right:4px; transform:rotate(15deg); }
-  /* Ojos */
-  .cat-eye-l, .cat-eye-r {
-    position:absolute; top:14px; width:7px; height:7px;
-    background:#fff; border-radius:50%;
-  }
-  .cat-eye-l { left:9px; } .cat-eye-r { right:9px; }
-  .cat-eye-l::after, .cat-eye-r::after {
-    content:''; position:absolute; top:1px; left:1px;
-    width:4px; height:4px; background:#2a1040; border-radius:50%;
-  }
-  /* Nariz */
-  .cat-nose {
-    position:absolute; top:22px; left:50%; transform:translateX(-50%);
-    width:5px; height:4px; background:#f48fb1; border-radius:50%;
-  }
-  /* Bigotes */
-  .cat-wl, .cat-wr {
-    position:absolute; top:24px; height:1.5px; width:14px; background:rgba(255,255,255,.7); border-radius:2px;
-  }
-  .cat-wl { left:-2px; transform:rotate(-10deg); }
-  .cat-wr { right:-2px; transform:rotate(10deg); }
-  /* Cola */
-  .cat-tail {
-    position:absolute; bottom:10px; right:-12px;
-    width:14px; height:32px;
-    border-right:6px solid var(--rosa); border-radius:0 20px 20px 0;
-    transform-origin:bottom right;
-  }
-
-  /* Modos de animación */
-  .pom-cat-wrap.mode-work .cat-tail { animation:tailWag .6s ease-in-out infinite alternate; }
-  .pom-cat-wrap.mode-work .cat-head { animation:headBob .8s ease-in-out infinite alternate; }
-  .pom-cat-wrap.mode-short .cat-body { animation:bodyBounce 1.2s ease-in-out infinite; }
-  .pom-cat-wrap.mode-short .cat-tail { animation:tailCurl 1.5s ease-in-out infinite alternate; }
-  .pom-cat-wrap.mode-long .cat-head { animation:sleepNod 2s ease-in-out infinite alternate; }
-  .pom-cat-wrap.mode-long .cat-eye-l,
-  .pom-cat-wrap.mode-long .cat-eye-r { animation:blink 3s ease-in-out infinite; }
-  .pom-cat-wrap.mode-celebrate .cat-body { animation:celebrate .4s ease-in-out infinite alternate; }
-  .pom-cat-wrap.mode-celebrate .cat-tail { animation:tailWag .3s ease-in-out infinite alternate; }
-
-  @keyframes tailWag { from { transform:rotate(-20deg); } to { transform:rotate(20deg); } }
-  @keyframes headBob { from { transform:translateX(-50%) translateY(0); } to { transform:translateX(-50%) translateY(-3px); } }
-  @keyframes bodyBounce { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(-5px)} }
-  @keyframes tailCurl { from { transform:rotate(0deg) scaleX(1); } to { transform:rotate(30deg) scaleX(.8); } }
-  @keyframes sleepNod { from { transform:translateX(-50%) rotate(-5deg); } to { transform:translateX(-50%) rotate(5deg); } }
-  @keyframes blink { 0%,90%,100%{transform:scaleY(1)} 95%{transform:scaleY(.1)} }
-  @keyframes celebrate { from { transform:translateX(-50%) scale(1); } to { transform:translateX(-50%) scale(1.12) translateY(-4px); } }
-</style>
-  <span class="section-sub">enfoque</span>
-  <h2 class="section-title" style="text-align:center"><em>Pomodoro</em> <span style="font-style:normal;font-weight:400">⋆˚꩜｡</span></h2>
-  <div class="pomodoro-card">
-    <div class="pomodoro-mode-row">
-      <button class="pom-mode-btn active" onclick="pomSetMode('work')">🍅 Foco</button>
-      <button class="pom-mode-btn" onclick="pomSetMode('short')">☕ Descanso corto</button>
-      <button class="pom-mode-btn" onclick="pomSetMode('long')">🛋️ Descanso largo</button>
-    </div>
-    <div style="text-align:right;margin-top:-.3rem;margin-bottom:.2rem">
-      <button onclick="pomOpenConfig()" style="background:none;border:none;cursor:pointer;font-size:.72rem;font-weight:700;color:var(--muted2);font-family:var(--font-body);padding:.2rem .4rem">⚙️ Configurar tiempos</button>
-    </div>
-    <div id="pomGifWrap" style="display:none;margin:.4rem 0 .6rem;text-align:center">
-      <div id="pomCat" class="pom-cat-wrap"></div>
-    </div>
-    <div class="pomodoro-display" id="pomDisplay">25:00</div>
-    <div class="pomodoro-btns">
-      <button class="pom-btn primary" id="pomStartBtn" onclick="pomToggle()">▶ Iniciar</button>
-      <button class="pom-btn" onclick="pomReset()">↺ Reset</button>
-    </div>
-    <div class="pomodoro-sessions" id="pomSessions"></div>
-  </div>
-</section>
-
-<script>
-(function(){
-  // Tiempos configurables (en minutos)
-  function pomLoadConfig() {
-    try {
-      var c = JSON.parse(localStorage.getItem('pom_config') || '{}');
-      return { work: (c.work||25)*60, short: (c.short||5)*60, long: (c.long||15)*60 };
-    } catch(e) { return { work:25*60, short:5*60, long:15*60 }; }
-  }
-  var POM_MODES = pomLoadConfig();
-  var pomMode = 'work';
-  var pomTimeLeft = POM_MODES.work;
-  var pomRunning = false;
-  var pomTimer = null;
-  var pomSessionsDone = 0;
-
-  function pomFmt(s) {
-    var m = Math.floor(s/60);
-    var sec = s % 60;
-    return String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0');
-  }
-
-  function pomSetCatMode(mode) {
-    var cat = document.getElementById('pomCat');
-    if (!cat) return;
-    cat.className = 'pom-cat-wrap mode-' + mode;
-  }
-
-  function pomBuildCat() {
-    var cat = document.getElementById('pomCat');
-    if (!cat || cat.querySelector('.cat-body')) return;
-    cat.innerHTML =
-      '<div class="pom-cat">' +
-        '<div class="cat-head">' +
-          '<div class="cat-ear-l"></div>' +
-          '<div class="cat-ear-r"></div>' +
-          '<div class="cat-eye-l"></div>' +
-          '<div class="cat-eye-r"></div>' +
-          '<div class="cat-nose"></div>' +
-          '<div class="cat-wl"></div>' +
-          '<div class="cat-wr"></div>' +
-        '</div>' +
-        '<div class="cat-body">' +
-          '<div class="cat-tail"></div>' +
-        '</div>' +
-      '</div>';
-  }
-
-  function pomUpdateGif() {
-    var wrap = document.getElementById('pomGifWrap');
-    if (!wrap) return;
-    pomBuildCat();
-    if (pomRunning) {
-      pomSetCatMode(pomMode);
-      wrap.style.display = 'block';
-    } else {
-      wrap.style.display = 'none';
-    }
-  }
-
-  function pomUpdateDisplay() {
-    var disp = document.getElementById('pomDisplay');
-    var btn = document.getElementById('pomStartBtn');
-    if (!disp) return;
-    disp.textContent = pomFmt(pomTimeLeft);
-    disp.className = 'pomodoro-display' + (pomRunning ? (pomMode==='work' ? ' running' : ' break') : '');
-    if (btn) btn.textContent = pomRunning ? '⏸ Pausar' : '▶ Iniciar';
-    pomUpdateGif();
-  }
-
-  function pomUpdateSessions() {
-    var el = document.getElementById('pomSessions');
-    if (!el) return;
-    var html = 'Sesiones: ';
-    for (var i = 0; i < 4; i++) {
-      html += '<span class="pom-tomato ' + (i < pomSessionsDone % 4 ? 'done' : 'pending') + '">🍅</span>';
-    }
-    el.innerHTML = html;
-  }
-
-  window.pomSetMode = function(mode) {
-    pomMode = mode;
-    pomRunning = false;
-    clearInterval(pomTimer);
-    pomTimeLeft = POM_MODES[mode];
-    document.querySelectorAll('.pom-mode-btn').forEach(function(b, i) {
-      b.classList.toggle('active', ['work','short','long'][i] === mode);
-    });
-    pomUpdateDisplay();
-  };
-
-  window.pomToggle = function() {
-    if (pomRunning) {
-      pomRunning = false;
-      clearInterval(pomTimer);
-      pomUpdateDisplay();
-    } else {
-      pomRunning = true;
-      pomTimer = setInterval(function() {
-        pomTimeLeft--;
-        pomUpdateDisplay();
-        if (pomTimeLeft <= 0) {
-          clearInterval(pomTimer);
-          pomRunning = false;
-          if (pomMode === 'work') {
-            pomSessionsDone++;
-            pomUpdateSessions();
-            pomNotify('¡Sesión completada! 🍅 Tómate un descanso.');
-            // 🎓 Registrar minutos en tracker de horas
-            var workMins = Math.round(POM_MODES['work'] / 60);
-            var tdk2 = (function(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
-            // Acumular minutos en clave temporal
-            var accKey = 'yuki_pom_mins_' + tdk2;
-            var accMins = parseInt(localStorage.getItem(accKey) || '0') + workMins;
-            localStorage.setItem(accKey, accMins);
-            // Cada 60 min acumulados → +1 hora en el tracker
-            var horasAntes = Math.floor((accMins - workMins) / 60);
-            var horasDespues = Math.floor(accMins / 60);
-            if (horasDespues > horasAntes && typeof univData !== 'undefined') {
-              var diff = horasDespues - horasAntes;
-              if (!univData.horas) univData.horas = {};
-              univData.horas[tdk2] = (univData.horas[tdk2] || 0) + diff;
-              saveUniv();
-              if (typeof renderUnivHoras === 'function') renderUnivHoras();
-              if (typeof renderUnivCalendario === 'function') renderUnivCalendario();
-            }
-            // Flores de Sakura por horas de estudio
-            if (window.yukiAddStudyMinutes) window.yukiAddStudyMinutes(workMins);
-          } else {
-            pomNotify('¡Descanso terminado! Vuelve al foco 💪');
-          }
-          // Gatito de celebración al terminar
-          var wrap = document.getElementById('pomGifWrap');
-          if (wrap) {
-            pomBuildCat();
-            pomSetCatMode('celebrate');
-            wrap.style.display = 'block';
-            setTimeout(function() { wrap.style.display = 'none'; }, 3500);
-          }
-        }
-      }, 1000);
-      pomUpdateDisplay();
-    }
-  };
-
-  window.pomOpenConfig = function() {
-    var old = document.getElementById('pomConfigModal'); if(old) old.remove();
-    var cfg = {};
-    try { cfg = JSON.parse(localStorage.getItem('pom_config')||'{}'); } catch(e){}
-
-    var backdrop = document.createElement('div');
-    backdrop.id = 'pomConfigModal';
-    backdrop.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;display:flex;align-items:center;justify-content:center;padding:1rem';
-    backdrop.onclick = function(e){ if(e.target===backdrop) backdrop.remove(); };
-
-    var box = document.createElement('div');
-    box.style.cssText = 'background:var(--card);border-radius:24px;padding:1.4rem;max-width:320px;width:100%;box-shadow:0 12px 48px rgba(0,0,0,.2)';
-
-    var title = document.createElement('div');
-    title.style.cssText = "font-family:var(--font-title);font-size:1rem;font-style:italic;color:var(--rosa);margin-bottom:1.1rem";
-    title.textContent = '⚙️ Configurar Pomodoro';
-    box.appendChild(title);
-
-    var fields = [
-      { key:'work',  label:'🍅 Foco (minutos)',           def: cfg.work  || 25 },
-      { key:'short', label:'☕ Descanso corto (minutos)', def: cfg.short || 5  },
-      { key:'long',  label:'🛋️ Descanso largo (minutos)', def: cfg.long  || 15 },
-    ];
-    var inputs = {};
-    fields.forEach(function(f) {
-      var fieldDiv = document.createElement('div'); fieldDiv.style.marginBottom='.8rem';
-      var lbl = document.createElement('label');
-      lbl.style.cssText = "display:block;font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted2);margin-bottom:.3rem;font-family:var(--font-body)";
-      lbl.textContent = f.label;
-      var inp = document.createElement('input');
-      inp.type = 'number'; inp.min = '1'; inp.max = '120';
-      inp.value = f.def;
-      inp.style.cssText = "width:100%;border:1.5px solid var(--border);border-radius:12px;padding:.5rem .9rem;font-family:var(--font-body);font-size:.9rem;font-weight:700;color:var(--text);background:var(--bg);outline:none;box-sizing:border-box";
-      inp.onfocus = function(){ this.style.borderColor='var(--rosa)'; };
-      inp.onblur  = function(){ this.style.borderColor='var(--border)'; };
-      inputs[f.key] = inp;
-      fieldDiv.appendChild(lbl); fieldDiv.appendChild(inp);
-      box.appendChild(fieldDiv);
-    });
-
-    var btns = document.createElement('div');
-    btns.style.cssText = 'display:flex;gap:.6rem;margin-top:1rem;justify-content:flex-end';
-    var cancelBtn = document.createElement('button');
-    cancelBtn.className = 'modal-btn-cancel'; cancelBtn.textContent = 'Cancelar';
-    cancelBtn.onclick = function(){ backdrop.remove(); };
-    var saveBtn = document.createElement('button');
-    saveBtn.className = 'modal-btn-save'; saveBtn.textContent = 'Guardar 🍅';
-    saveBtn.onclick = function() {
-      var w = parseInt(inputs.work.value)||25;
-      var s = parseInt(inputs.short.value)||5;
-      var l = parseInt(inputs.long.value)||15;
-      var newCfg = { work: Math.min(120,Math.max(1,w)), short: Math.min(60,Math.max(1,s)), long: Math.min(60,Math.max(1,l)) };
-      localStorage.setItem('pom_config', JSON.stringify(newCfg));
-      POM_MODES.work  = newCfg.work  * 60;
-      POM_MODES.short = newCfg.short * 60;
-      POM_MODES.long  = newCfg.long  * 60;
-      // Resetear al modo actual con nuevo tiempo
-      pomRunning = false; clearInterval(pomTimer);
-      pomTimeLeft = POM_MODES[pomMode];
-      pomUpdateDisplay();
-      backdrop.remove();
-    };
-    btns.appendChild(cancelBtn); btns.appendChild(saveBtn);
-    box.appendChild(btns);
-    backdrop.appendChild(box);
-    document.body.appendChild(backdrop);
-    inputs.work.focus();
-  };
-
-  window.pomReset = function() {
-    pomRunning = false;
-    clearInterval(pomTimer);
-    pomTimeLeft = POM_MODES[pomMode];
-    pomUpdateDisplay();
-  };
-
-  function pomNotify(msg) {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('Yuki ⏱️', { body: msg });
-    } else {
-      alert(msg);
-    }
-  }
-
-  // ── Solo mostrar el Pomodoro en la tab "Plan" (sub-tab "Plan", no "Braindump") de Universidad ──
-  function pomUpdateVisibility(tabId) {
-    var sec = document.getElementById('sec-pomodoro');
-    if (!sec) return;
-    var subtab = window._univPlanSubTab || 'plan';
-    sec.style.display = (tabId === 'plan' && subtab === 'plan') ? '' : 'none';
-  }
-  var _prevOnUnivTabSwitch = window._onUnivTabSwitch;
-  window._onUnivTabSwitch = function(tabId) {
-    if (_prevOnUnivTabSwitch) _prevOnUnivTabSwitch(tabId);
-    pomUpdateVisibility(tabId);
-  };
-  pomUpdateVisibility(window._univTabActivo || 'materias');
-
-  setTimeout(function(){ pomUpdateDisplay(); pomUpdateSessions(); }, 200);
-})();
-</script>
 
 
   <!-- ══════════════════════════════════════════════════════ -->
