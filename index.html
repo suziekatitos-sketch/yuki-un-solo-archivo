@@ -4811,26 +4811,6 @@ window._yukiAuthAction = async function(mode, email, password) {
     line-height: 1.3;
   }
 
-  /* En móvil, el tap en la pill completa/descompleta directo;
-     el botón de editar y eliminar deben quedar siempre visibles
-     (ya no hay menú emergente que los revele con un toque largo).
-     Todo en una sola fila para no ocupar espacio vertical de más. */
-  @media (max-width: 640px) {
-    .task-pill {
-      flex-direction: row;
-      align-items: center;
-      gap: 4px;
-      padding: .28rem .45rem;
-    }
-    .pill-text {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      width: auto;
-    }
-    .recur-badge, .pill-action-btn { opacity: .85; }
-  }
-
   .pill-action-btn {
     background: none; border: none; cursor: pointer;
     font-size: .65rem; padding: 0 1px;
@@ -4841,6 +4821,28 @@ window._yukiAuthAction = async function(mode, email, password) {
   .pill-action-btn:hover { opacity: 1 !important; }
   .pill-del-btn { color: var(--rosa); }
   .pill-edit-btn { color: var(--muted); }
+
+  /* En móvil, el tap en la pill completa/descompleta directo;
+     el botón de editar y eliminar deben quedar siempre visibles
+     (ya no hay menú emergente que los revele con un toque largo).
+     El texto se muestra completo (sin cortar) y los botones quedan
+     alineados al lado, aunque la tarjeta crezca un poco más alto. */
+  @media (max-width: 640px) {
+    .task-pill {
+      flex-direction: row;
+      align-items: center;
+      gap: 4px;
+      padding: .28rem .45rem;
+    }
+    .pill-text {
+      white-space: normal;
+      overflow: visible;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      width: auto;
+    }
+    .recur-badge, .pill-action-btn { opacity: .85; }
+  }
 
   /* Mini-menú contextual de tarea (móvil) */
   .task-pill-menu {
@@ -37710,11 +37712,12 @@ function renderUnivTareas() {
   var sem = getActiveSem();
   if (!sem) { list.innerHTML = '<div class="univ-empty">Crea un semestre primero 🎓</div>'; return; }
 
-  var pending = sem.tareas.filter(function(t) { return !t.done; });
-  var done    = sem.tareas.filter(function(t) { return t.done; });
+  var pending = sem.tareas.filter(function(t) { return !t.done && !t.archivada; });
+  var done    = sem.tareas.filter(function(t) { return t.done && !t.archivada; });
   var sorted  = pending.concat(done);
 
-  if (sorted.length === 0) { list.innerHTML = '<div class="univ-empty">Sin tareas pendientes 🎉</div>'; return; }
+  var huboVacio = sorted.length === 0;
+  if (huboVacio) { list.innerHTML = '<div class="univ-empty">Sin tareas pendientes 🎉</div>'; }
 
   // Límites de tareas visibles según estado
   var limiteT = sorted.length;
@@ -37746,7 +37749,7 @@ function renderUnivTareas() {
     info.className = 'univ-tarea-info';
     var nm = document.createElement('div');
     nm.className = 'univ-tarea-name';
-    nm.textContent = tarea.name;
+    nm.textContent = (tarea.emoji ? tarea.emoji + ' ' : '') + tarea.name;
     // En modo simple: no mostrar metadatos para reducir estímulos
     if (!modoSimple) {
       var meta = document.createElement('div');
@@ -37767,11 +37770,23 @@ function renderUnivTareas() {
       urg.textContent = '¡Urgente!';
       row.appendChild(urg);
     }
-    var del = document.createElement('button');
-    del.className = 'univ-materia-del';
-    del.textContent = '✕';
-    del.onclick = function(e) { e.stopPropagation(); sem.tareas.splice(realIdx,1); saveUniv(); renderUnivTareas(); };
-    row.appendChild(del);
+    var editBtn = document.createElement('button');
+    editBtn.className = 'univ-materia-del';
+    editBtn.textContent = '✏️';
+    editBtn.onclick = function(e) { e.stopPropagation(); openUnivTareaModal(tarea.id); };
+    row.appendChild(editBtn);
+    var arch = document.createElement('button');
+    arch.className = 'univ-materia-del';
+    arch.textContent = '🗄️';
+    arch.title = 'Archivar';
+    arch.onclick = function(e) {
+      e.stopPropagation();
+      var semA = getActiveSem() || sem;
+      var t2 = semA.tareas.find(function(x){ return x.id === tarea.id; });
+      if (t2) t2.archivada = true;
+      saveUniv(); renderUnivTareas();
+    };
+    row.appendChild(arch);
     // ── Pasos de estudio (si existen) ──
     if (tarea.pasos && tarea.pasos.length > 0 && !tarea.done && !modoSimple) {
       var pasosDone = tarea.pasos.filter(function(p){return p.done;}).length;
@@ -37844,6 +37859,51 @@ function renderUnivTareas() {
     avisoT.textContent = '+ ' + (sorted.length - limiteT) + ' tarea' + (sorted.length - limiteT !== 1 ? 's' : '') + ' más — cuando tengas más energía 🌸';
     list.appendChild(avisoT);
   }
+
+  // ── Tareas archivadas ──
+  var archivadas = sem.tareas.filter(function(t) { return t.archivada; });
+  if (archivadas.length) {
+    var archToggle = document.createElement('button');
+    archToggle.style.cssText = 'font-size:.72rem;background:none;border:none;color:var(--muted);cursor:pointer;padding:.5rem 0;text-align:center;width:100%';
+    archToggle.textContent = '🗄️ Ver ' + archivadas.length + ' archivada' + (archivadas.length!==1?'s':'');
+    var archBody = document.createElement('div');
+    archBody.style.cssText = 'display:none;flex-direction:column;gap:.4rem;margin-top:.3rem';
+    archivadas.forEach(function(t) {
+      var r = document.createElement('div');
+      r.style.cssText = 'display:flex;align-items:center;gap:.5rem;background:var(--surface);padding:.5rem .7rem;border-radius:8px;opacity:.75';
+      var nm2 = document.createElement('div');
+      nm2.style.cssText = 'flex:1;font-size:.78rem;color:var(--text)';
+      nm2.textContent = (t.emoji ? t.emoji+' ' : '') + t.name;
+      var restBtn = document.createElement('button');
+      restBtn.textContent = '↩️'; restBtn.title = 'Restaurar';
+      restBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:.75rem';
+      restBtn.onclick = function() {
+        var semR = getActiveSem() || sem;
+        var tr = semR.tareas.find(function(x){ return x.id === t.id; });
+        if (tr) delete tr.archivada;
+        saveUniv(); renderUnivTareas();
+      };
+      var delBtn = document.createElement('button');
+      delBtn.textContent = '✕'; delBtn.title = 'Eliminar para siempre';
+      delBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:.75rem;color:var(--rosa)';
+      delBtn.onclick = function() {
+        kittyConfirm('¿Eliminar esta tarea archivada para siempre?', function() {
+          var semD = getActiveSem() || sem;
+          semD.tareas = semD.tareas.filter(function(x){ return x.id !== t.id; });
+          saveUniv(); renderUnivTareas();
+        });
+      };
+      r.appendChild(nm2); r.appendChild(restBtn); r.appendChild(delBtn);
+      archBody.appendChild(r);
+    });
+    archToggle.onclick = function() {
+      var open = archBody.style.display === 'flex';
+      archBody.style.display = open ? 'none' : 'flex';
+      archToggle.textContent = (open ? '🗄️ Ver ' : '🗄️ Ocultar ') + archivadas.length + ' archivada' + (archivadas.length!==1?'s':'');
+    };
+    list.appendChild(archToggle);
+    list.appendChild(archBody);
+  }
 }
 
 // ── Exámenes
@@ -37856,14 +37916,13 @@ function renderUnivExamenes() {
 
   var today = new Date(); today.setHours(0,0,0,0);
   var upcoming = sem.examenes.filter(function(e) {
-    return !e.fecha || new Date(e.fecha + 'T12:00:00') >= today;
+    return !e.archivada && (!e.fecha || new Date(e.fecha + 'T12:00:00') >= today);
   });
   upcoming.sort(function(a,b) { return new Date(a.fecha+'T12:00:00') - new Date(b.fecha+'T12:00:00'); });
 
-  if (upcoming.length === 0) { list.innerHTML = '<div class="univ-empty">Sin exámenes próximos 🎓</div>'; return; }
+  if (upcoming.length === 0) { list.innerHTML = '<div class="univ-empty">Sin exámenes próximos 🎓</div>'; }
 
   upcoming.forEach(function(ex) {
-    var realIdx = sem.examenes.findIndex(function(e) { return e.id === ex.id; });
     var row = document.createElement('div');
     row.className = 'univ-examen-row';
     var fechaEl = document.createElement('div');
@@ -37874,21 +37933,76 @@ function renderUnivExamenes() {
     } else { fechaEl.innerHTML = '<span class="univ-examen-dia">?</span>'; }
     var info = document.createElement('div');
     info.className = 'univ-examen-info';
-    info.innerHTML = '<div class="univ-examen-name">'+ex.name+'</div>' + (ex.materia ? '<div class="univ-examen-materia">'+ex.materia+'</div>' : '');
+    info.innerHTML = '<div class="univ-examen-name">'+(ex.emoji?ex.emoji+' ':'')+ex.name+'</div>' + (ex.materia ? '<div class="univ-examen-materia">'+ex.materia+'</div>' : '');
     var diasEl = document.createElement('div');
     diasEl.className = 'univ-examen-dias';
     if (ex.fecha) {
-      var d2 = new Date(ex.fecha+'T12:00:00');
-      var diff = Math.ceil((d2-today)/86400000);
+      var d2 = new Date(ex.fecha+'T00:00:00');
+      var diff = Math.round((d2-today)/86400000);
       diasEl.textContent = diff===0?'¡Hoy!':diff===1?'Mañana':'en '+diff+'d';
     }
-    var del = document.createElement('button');
-    del.className = 'univ-examen-del';
-    del.textContent = '✕';
-    del.onclick = function() { sem.examenes.splice(realIdx,1); saveUniv(); renderUnivExamenes(); };
-    row.appendChild(fechaEl); row.appendChild(info); row.appendChild(diasEl); row.appendChild(del);
+    var editBtn = document.createElement('button');
+    editBtn.className = 'univ-examen-del';
+    editBtn.textContent = '✏️';
+    editBtn.onclick = function() { openUnivExamenModal(ex.id); };
+    var arch = document.createElement('button');
+    arch.className = 'univ-examen-del';
+    arch.textContent = '🗄️';
+    arch.title = 'Archivar';
+    arch.onclick = function() {
+      var semA = getActiveSem() || sem;
+      var e2 = semA.examenes.find(function(x){ return x.id === ex.id; });
+      if (e2) e2.archivada = true;
+      saveUniv(); renderUnivExamenes();
+    };
+    row.appendChild(fechaEl); row.appendChild(info); row.appendChild(diasEl); row.appendChild(editBtn); row.appendChild(arch);
     list.appendChild(row);
   });
+
+  // ── Exámenes archivados ──
+  var archivadosEx = sem.examenes.filter(function(e) { return e.archivada; });
+  if (archivadosEx.length) {
+    var archToggleEx = document.createElement('button');
+    archToggleEx.style.cssText = 'font-size:.72rem;background:none;border:none;color:var(--muted);cursor:pointer;padding:.5rem 0;text-align:center;width:100%';
+    archToggleEx.textContent = '🗄️ Ver ' + archivadosEx.length + ' archivado' + (archivadosEx.length!==1?'s':'');
+    var archBodyEx = document.createElement('div');
+    archBodyEx.style.cssText = 'display:none;flex-direction:column;gap:.4rem;margin-top:.3rem';
+    archivadosEx.forEach(function(ex) {
+      var r = document.createElement('div');
+      r.style.cssText = 'display:flex;align-items:center;gap:.5rem;background:var(--surface);padding:.5rem .7rem;border-radius:8px;opacity:.75';
+      var nm2 = document.createElement('div');
+      nm2.style.cssText = 'flex:1;font-size:.78rem;color:var(--text)';
+      nm2.textContent = (ex.emoji ? ex.emoji+' ' : '') + ex.name;
+      var restBtn = document.createElement('button');
+      restBtn.textContent = '↩️'; restBtn.title = 'Restaurar';
+      restBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:.75rem';
+      restBtn.onclick = function() {
+        var semR = getActiveSem() || sem;
+        var er = semR.examenes.find(function(x){ return x.id === ex.id; });
+        if (er) delete er.archivada;
+        saveUniv(); renderUnivExamenes();
+      };
+      var delBtn = document.createElement('button');
+      delBtn.textContent = '✕'; delBtn.title = 'Eliminar para siempre';
+      delBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:.75rem;color:var(--rosa)';
+      delBtn.onclick = function() {
+        kittyConfirm('¿Eliminar este examen archivado para siempre?', function() {
+          var semD = getActiveSem() || sem;
+          semD.examenes = semD.examenes.filter(function(x){ return x.id !== ex.id; });
+          saveUniv(); renderUnivExamenes();
+        });
+      };
+      r.appendChild(nm2); r.appendChild(restBtn); r.appendChild(delBtn);
+      archBodyEx.appendChild(r);
+    });
+    archToggleEx.onclick = function() {
+      var open = archBodyEx.style.display === 'flex';
+      archBodyEx.style.display = open ? 'none' : 'flex';
+      archToggleEx.textContent = (open ? '🗄️ Ver ' : '🗄️ Ocultar ') + archivadosEx.length + ' archivado' + (archivadosEx.length!==1?'s':'');
+    };
+    list.appendChild(archToggleEx);
+    list.appendChild(archBodyEx);
+  }
 }
 
 // ── Eventos / fechas importantes
@@ -37924,8 +38038,8 @@ function renderUnivEventos() {
     var diasEl = document.createElement('div');
     diasEl.className = 'univ-examen-dias';
     if (ev.fecha) {
-      var d2 = new Date(ev.fecha+'T12:00:00');
-      var diff = Math.ceil((d2-today)/86400000);
+      var d2 = new Date(ev.fecha+'T00:00:00');
+      var diff = Math.round((d2-today)/86400000);
       diasEl.textContent = diff===0?'¡Hoy!':diff===1?'Mañana':'en '+diff+'d';
     }
     var del = document.createElement('button');
@@ -39055,27 +39169,30 @@ function detectStudyTemplate(text) {
   return null;
 }
 
-function openUnivTareaModal() {
+function openUnivTareaModal(tareaId) {
   var sem = getActiveSem();
   if (!sem) { alert('Primero crea un semestre 🎓'); return; }
+  var existing = tareaId ? sem.tareas.find(function(t){ return t.id === tareaId; }) : null;
   var back = document.createElement('div');
   back.className = 'rutina-modal-backdrop';
   back.onclick = function(e) { if (e.target===back) back.remove(); };
   var materiaOpts = '<option value="">Sin materia</option>' +
-    sem.materias.map(function(m){return '<option value="'+m.name+'">'+m.name+'</option>';}).join('');
+    sem.materias.map(function(m){return '<option value="'+m.name+'"'+(existing&&existing.materia===m.name?' selected':'')+'>'+m.name+'</option>';}).join('');
   var box = document.createElement('div');
   box.className = 'rutina-modal-box';
   box.style.maxWidth = '480px';
 
-  box.innerHTML = '<div class="rutina-modal-title">📝 <em>Nueva tarea</em></div>' +
-    '<div class="modal-field"><label class="modal-label">Tarea</label>' +
-    '<input class="modal-input" id="univTareaNombre" placeholder="ej: estudiar examen, resumen capítulo 3..." style="width:100%"></div>' +
+  box.innerHTML = '<div class="rutina-modal-title">📝 <em>'+(existing?'Editar tarea':'Nueva tarea')+'</em></div>' +
+    '<div class="modal-field"><label class="modal-label">Emoji (opcional)</label>' +
+    '<input class="modal-input" id="univTareaEmoji" maxlength="4" placeholder="🧪" style="width:70px;text-align:center;font-size:1.1rem" value="'+(existing&&existing.emoji?existing.emoji:'')+'"></div>' +
+    '<div class="modal-field" style="margin-top:.6rem"><label class="modal-label">Tarea</label>' +
+    '<input class="modal-input" id="univTareaNombre" placeholder="ej: estudiar examen, resumen capítulo 3..." style="width:100%" value="'+(existing?existing.name.replace(/"/g,'&quot;'):'')+'"></div>' +
     '<div class="modal-field" style="margin-top:.8rem"><label class="modal-label">Materia</label>' +
     '<select class="modal-input" id="univTareaMateria" style="width:100%">'+materiaOpts+'</select></div>' +
     '<div class="modal-field" style="margin-top:.8rem"><label class="modal-label">Fecha de entrega</label>' +
-    '<input type="date" class="modal-input" id="univTareaFecha" style="width:100%"></div>' +
+    '<input type="date" class="modal-input" id="univTareaFecha" style="width:100%" value="'+(existing&&existing.fecha?existing.fecha:'')+'"></div>' +
     '<div class="modal-field" style="margin-top:.8rem;display:flex;align-items:center;gap:.6rem">' +
-    '<input type="checkbox" id="univTareaUrgente" style="width:16px;height:16px">' +
+    '<input type="checkbox" id="univTareaUrgente" style="width:16px;height:16px"'+(existing&&existing.urgente?' checked':'')+'>' +
     '<label for="univTareaUrgente" class="modal-label" style="margin:0">¡Urgente!</label></div>' +
     // ── Sección de pasos sugeridos ──
     '<div id="univPasosSection" style="display:none;margin-top:1rem">' +
@@ -39091,14 +39208,21 @@ function openUnivTareaModal() {
     '</div>' +
     '<div class="modal-btns" style="margin-top:1.2rem">' +
     '<button class="modal-btn-cancel" id="univTareaCancel">Cancelar</button>' +
-    '<button class="modal-btn-save" id="univTareaSave">Guardar 📝</button></div>';
+    '<button class="modal-btn-save" id="univTareaSave">'+(existing?'Guardar cambios ✏️':'Guardar 📝')+'</button></div>';
 
   back.appendChild(box);
   document.body.appendChild(back);
 
   // ── Estado de pasos ──
-  var currentPasos = [];
+  var currentPasos = existing && existing.pasos ? existing.pasos.map(function(p){ return p.texto; }) : [];
   var editando = false;
+  if (currentPasos.length > 0) {
+    setTimeout(function() {
+      var section = document.getElementById('univPasosSection');
+      if (section) section.style.display = '';
+      renderPasos();
+    }, 0);
+  }
 
   function renderPasos() {
     var list = document.getElementById('univPasosList');
@@ -39117,8 +39241,7 @@ function openUnivTareaModal() {
     var ed = document.getElementById('univPasosEditor');
     if (!ed) return;
     currentPasos = ed.value.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
-    renderPasos();
-  }
+    renderPasos();  }
 
   // ── Detectar tipo al escribir nombre ──
   var debounceTimer;
@@ -39175,59 +39298,85 @@ function openUnivTareaModal() {
     if (!n) return;
     // Si está en modo edición, sincronizar antes de guardar
     if (editando) syncPasosFromEditor();
-    var tarea = {
-      id: 'tar_'+Date.now(),
-      name: n,
-      materia: document.getElementById('univTareaMateria').value,
-      fecha: document.getElementById('univTareaFecha').value,
-      urgente: document.getElementById('univTareaUrgente').checked,
-      done: false,
-      createdAt: Date.now(),
-      lastVisited: null,
-      visitCount: 0,
-      _justAdded: Date.now()
-    };
-    if (currentPasos.length > 0) {
-      tarea.pasos = currentPasos.map(function(p, i){ return {id:'p'+i,texto:p,done:false}; });
-    }
+    var emojiVal = document.getElementById('univTareaEmoji').value.trim();
+    var pasosObj = currentPasos.length > 0 ? currentPasos.map(function(p, i){ return {id:'p'+i,texto:p,done:false}; }) : undefined;
     var semGuardar = getActiveSem() || sem;
-    semGuardar.tareas.push(tarea);
+    if (existing) {
+      var t = semGuardar.tareas.find(function(x){ return x.id === existing.id; });
+      if (t) {
+        t.name = n;
+        t.emoji = emojiVal;
+        t.materia = document.getElementById('univTareaMateria').value;
+        t.fecha = document.getElementById('univTareaFecha').value;
+        t.urgente = document.getElementById('univTareaUrgente').checked;
+        if (pasosObj) t.pasos = pasosObj;
+      }
+    } else {
+      var tarea = {
+        id: 'tar_'+Date.now(),
+        name: n,
+        emoji: emojiVal,
+        materia: document.getElementById('univTareaMateria').value,
+        fecha: document.getElementById('univTareaFecha').value,
+        urgente: document.getElementById('univTareaUrgente').checked,
+        done: false,
+        createdAt: Date.now(),
+        lastVisited: null,
+        visitCount: 0,
+        _justAdded: Date.now()
+      };
+      if (pasosObj) tarea.pasos = pasosObj;
+      semGuardar.tareas.push(tarea);
+    }
     saveUniv(); renderUniv(); back.remove();
   };
 
   document.getElementById('univTareaNombre').focus();
 }
 
-function openUnivExamenModal() {
+function openUnivExamenModal(exId) {
   var sem = getActiveSem();
   if (!sem) { alert('Primero crea un semestre 🎓'); return; }
+  var existing = exId ? sem.examenes.find(function(e){ return e.id === exId; }) : null;
   var back = document.createElement('div');
   back.className = 'rutina-modal-backdrop';
   back.onclick = function(e) { if (e.target===back) back.remove(); };
   var materiaOpts = '<option value="">Sin materia</option>' +
-    sem.materias.map(function(m){return '<option value="'+m.name+'">'+m.name+'</option>';}).join('');
+    sem.materias.map(function(m){return '<option value="'+m.name+'"'+(existing&&existing.materia===m.name?' selected':'')+'>'+m.name+'</option>';}).join('');
   var box = document.createElement('div');
   box.className = 'rutina-modal-box';
-  box.innerHTML = '<div class="rutina-modal-title">📅 <em>Nuevo examen</em></div>' +
-    '<div class="modal-field"><label class="modal-label">Nombre del examen</label>' +
-    '<input class="modal-input" id="univExNombre" placeholder="ej: Parcial 1..." style="width:100%"></div>' +
+  box.innerHTML = '<div class="rutina-modal-title">📅 <em>'+(existing?'Editar examen':'Nuevo examen')+'</em></div>' +
+    '<div class="modal-field"><label class="modal-label">Emoji (opcional)</label>' +
+    '<input class="modal-input" id="univExEmoji" maxlength="4" placeholder="📅" style="width:70px;text-align:center;font-size:1.1rem" value="'+(existing&&existing.emoji?existing.emoji:'')+'"></div>' +
+    '<div class="modal-field" style="margin-top:.6rem"><label class="modal-label">Nombre del examen</label>' +
+    '<input class="modal-input" id="univExNombre" placeholder="ej: Parcial 1..." style="width:100%" value="'+(existing?existing.name.replace(/"/g,'&quot;'):'')+'"></div>' +
     '<div class="modal-field" style="margin-top:.8rem"><label class="modal-label">Materia</label>' +
     '<select class="modal-input" id="univExMateria" style="width:100%">'+materiaOpts+'</select></div>' +
     '<div class="modal-field" style="margin-top:.8rem"><label class="modal-label">Fecha</label>' +
-    '<input type="date" class="modal-input" id="univExFecha" style="width:100%"></div>' +
+    '<input type="date" class="modal-input" id="univExFecha" style="width:100%" value="'+(existing&&existing.fecha?existing.fecha:'')+'"></div>' +
     '<div class="modal-btns" style="margin-top:1.2rem">' +
     '<button class="modal-btn-cancel" id="univExCancel">Cancelar</button>' +
-    '<button class="modal-btn-save" id="univExSave">Guardar 📅</button></div>';
+    '<button class="modal-btn-save" id="univExSave">'+(existing?'Guardar cambios ✏️':'Guardar 📅')+'</button></div>';
   back.appendChild(box);
   document.body.appendChild(back);
   document.getElementById('univExCancel').onclick = function() { back.remove(); };
   document.getElementById('univExSave').onclick = function() {
     var n = document.getElementById('univExNombre').value.trim();
     if (!n) return;
+    var emojiVal = document.getElementById('univExEmoji').value.trim();
     var semGuardar = getActiveSem() || sem;
-    semGuardar.examenes.push({id:'ex_'+Date.now(),name:n,
-      materia:document.getElementById('univExMateria').value,
-      fecha:document.getElementById('univExFecha').value});
+    if (existing) {
+      var e2 = semGuardar.examenes.find(function(x){ return x.id === existing.id; });
+      if (e2) {
+        e2.name = n; e2.emoji = emojiVal;
+        e2.materia = document.getElementById('univExMateria').value;
+        e2.fecha = document.getElementById('univExFecha').value;
+      }
+    } else {
+      semGuardar.examenes.push({id:'ex_'+Date.now(),name:n,emoji:emojiVal,
+        materia:document.getElementById('univExMateria').value,
+        fecha:document.getElementById('univExFecha').value});
+    }
     saveUniv(); renderUniv(); back.remove();
   };
   document.getElementById('univExNombre').focus();
