@@ -38878,7 +38878,7 @@ function openUnivMateriaViewModal(matIdx) {
   temList.style.flexDirection = 'column';
   temList.style.gap = '.35rem';
 
-  var temasMateria = (typeof temLoad === 'function') ? temLoad().filter(function(t){ return t.materiaId === mat.id; }) : [];
+  var temasMateria = (typeof temLoad === 'function') ? temLoad().filter(function(t){ return t.materiaId === mat.id && !t.archivada; }) : [];
   if (temasMateria.length === 0) {
     var emptyTem = document.createElement('div');
     emptyTem.style.cssText = 'font-size:.7rem;color:var(--muted2);font-style:italic;padding:.5rem;text-align:center';
@@ -39781,11 +39781,56 @@ function temRender() {
   toolbar.appendChild(vistas); toolbar.appendChild(newBtn);
   wrap.appendChild(toolbar);
 
-  var data = temLoad();
+  var data = temLoad().filter(function(t){ return !t.archivada; });
 
   if (temVista === 'hoy') temRenderHoy(wrap, data, 1);
   else if (temVista === '3dias') temRenderHoy(wrap, data, 3);
   else temRenderMes(wrap, data);
+
+  // ── Temas archivados ──
+  var archivadosT = temLoad().filter(function(t){ return t.archivada; });
+  if (archivadosT.length) {
+    var archToggleT = document.createElement('button');
+    archToggleT.style.cssText = 'font-size:.72rem;background:none;border:none;color:var(--muted);cursor:pointer;padding:.6rem 0;text-align:center;width:100%';
+    archToggleT.textContent = '🗄️ Ver ' + archivadosT.length + ' tema' + (archivadosT.length!==1?'s':'') + ' archivado' + (archivadosT.length!==1?'s':'');
+    var archBodyT = document.createElement('div');
+    archBodyT.style.cssText = 'display:none;flex-direction:column;gap:.4rem;margin-top:.3rem';
+    archivadosT.forEach(function(tema) {
+      var mat = getMateriaById(tema.materiaId);
+      var r = document.createElement('div');
+      r.style.cssText = 'display:flex;align-items:center;gap:.5rem;background:var(--surface);padding:.5rem .7rem;border-radius:8px;opacity:.75';
+      var nm2 = document.createElement('div');
+      nm2.style.cssText = 'flex:1;font-size:.78rem;color:var(--text)';
+      nm2.textContent = tema.nombre + (mat ? ' · ' + mat.name : '');
+      var restBtn = document.createElement('button');
+      restBtn.textContent = '↩️'; restBtn.title = 'Restaurar';
+      restBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:.75rem';
+      restBtn.onclick = function() {
+        var all = temLoad();
+        var tt = all.find(function(x){ return x.id === tema.id; });
+        if (tt) delete tt.archivada;
+        temSave(all); temRender();
+      };
+      var delBtn = document.createElement('button');
+      delBtn.textContent = '✕'; delBtn.title = 'Eliminar para siempre';
+      delBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:.75rem;color:var(--rosa)';
+      delBtn.onclick = function() {
+        kittyConfirm('¿Eliminar este tema archivado para siempre?', function() {
+          var all = temLoad().filter(function(x){ return x.id !== tema.id; });
+          temSave(all); temRender();
+        });
+      };
+      r.appendChild(nm2); r.appendChild(restBtn); r.appendChild(delBtn);
+      archBodyT.appendChild(r);
+    });
+    archToggleT.onclick = function() {
+      var open = archBodyT.style.display === 'flex';
+      archBodyT.style.display = open ? 'none' : 'flex';
+      archToggleT.textContent = (open ? '🗄️ Ver ' : '🗄️ Ocultar ') + archivadosT.length + ' tema' + (archivadosT.length!==1?'s':'') + ' archivado' + (archivadosT.length!==1?'s':'');
+    };
+    wrap.appendChild(archToggleT);
+    wrap.appendChild(archBodyT);
+  }
 
   panel.appendChild(wrap);
 }
@@ -39910,7 +39955,16 @@ function makeTemCard(tema, dkey, data) {
     e.stopPropagation();
     temOpenMoverFecha(tema.id);
   };
-  actions.appendChild(editBtn); actions.appendChild(moveBtn);
+  var archBtn = document.createElement('button'); archBtn.className = 'tem-card-btn'; archBtn.textContent = '🗄️ Archivar';
+  archBtn.title = 'Ya no me pidas repasar este tema';
+  archBtn.onclick = function(e){
+    e.stopPropagation();
+    var all = temLoad();
+    var t2 = all.find(function(x){ return x.id === tema.id; });
+    if (t2) t2.archivada = true;
+    temSave(all); temRender();
+  };
+  actions.appendChild(editBtn); actions.appendChild(moveBtn); actions.appendChild(archBtn);
   body.appendChild(actions);
 
   // Subtemas
