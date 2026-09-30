@@ -492,6 +492,23 @@ window._yukiAuthAction = async function(mode, email, password) {
   }
   .day-slot-wrap:last-child { border-right: none; }
 
+  /* En móvil (vistas 3 días / semana / mes), 3 columnas iguales no caben
+     en pantalla — en vez de recortarse, esta fila se vuelve deslizable
+     horizontalmente para poder llegar a Tarde y Noche con el dedo. */
+  @media (max-width: 640px) {
+    .day-slots-row {
+      display: flex;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scroll-snap-type: x proximity;
+    }
+    .day-slots-row .day-slot-wrap {
+      flex: 0 0 82%;
+      min-width: 190px;
+      scroll-snap-align: start;
+    }
+  }
+
   /* ── Vista HOY: columnas verticales anchas en lugar de filas ── */
   .day-slots-row-hoy {
     display: grid;
@@ -45600,6 +45617,9 @@ window.buscarPageShowTab = function(tab) {
     { id:'strawberry', label:'Strawberry 🍓', vars:{ '--bg':'#fff0f2','--surface':'#fdd8dc','--card':'#fff7f8','--border':'#f0b0b8','--rosa':'#d63a50','--rosa-soft':'#fdd8dc','--verde':'#4a8a50','--verde-soft':'#c8e8ca','--beige':'#e8786a','--beige-soft':'#fde0dc','--pink-light':'#fdd8dc','--text':'#4a0e18','--muted':'#c03048','--muted2':'#e8909a','--manana-bg':'#c8e8ca','--manana-border':'#78b880','--tarde-bg':'#fdd8dc','--tarde-border':'#e09098','--noche-bg':'#d8f0da','--noche-border':'#5a9e60' }},
     { id:'naturale',   label:'Naturale 🍃',  vars:{ '--bg':'#f5f0e8','--surface':'#e8e0d0','--card':'#faf6ef','--border':'#c8b898','--rosa':'#5a8a4a','--rosa-soft':'#d8e8d0','--verde':'#4a7840','--verde-soft':'#cce0c8','--beige':'#6a9a58','--beige-soft':'#d8ecd0','--pink-light':'#d8e8d0','--text':'#2a3a1a','--muted':'#5a7040','--muted2':'#90a878','--manana-bg':'#eef5e8','--manana-border':'#a8c890','--tarde-bg':'#f0ece0','--tarde-border':'#c0a870','--noche-bg':'#e0ecd8','--noche-border':'#7a9a68' }},
     { id:'boscaje',    label:'Boscaje 🌿',   vars:{ '--bg':'#f5f0e0','--surface':'#e8e0c8','--card':'#fdf8ee','--border':'#b8c89a','--rosa':'#5a8040','--rosa-soft':'#d8e8c8','--verde':'#4a7030','--verde-soft':'#cce0b8','--beige':'#6a8a50','--beige-soft':'#d8e8c8','--pink-light':'#d8e8c8','--text':'#2a3818','--muted':'#587038','--muted2':'#8aaa68','--manana-bg':'#eef5e0','--manana-border':'#a8c880','--tarde-bg':'#f0ecd8','--tarde-border':'#c0b868','--noche-bg':'#ddecd0','--noche-border':'#789858' }},
+    { id:'cherryblossom', label:'Sakura 🌸', vars:{ '--bg':'#fff5f7','--surface':'#ffe0e8','--card':'#fffafb','--border':'#ffc2d1','--rosa':'#ff9eb5','--rosa-soft':'#ffe0e8','--verde':'#8fbc8f','--verde-soft':'#e8f5e8','--beige':'#d4a5a5','--beige-soft':'#f5e8e8','--pink-light':'#ffe0e8','--text':'#5a2438','--muted':'#c97a94','--muted2':'#f0b8c8','--manana-bg':'#fff0f5','--manana-border':'#ffb8cc','--tarde-bg':'#ffe8ee','--tarde-border':'#ff9eb5','--noche-bg':'#f5e0ea','--noche-border':'#d896b0' }},
+    { id:'bosquepalido', label:'Pálido 🤍', vars:{ '--bg':'#e8e6e2','--surface':'#dcd8d2','--card':'#f2f0ec','--border':'#b8b2a8','--rosa':'#8a8478','--rosa-soft':'#dcd8d2','--verde':'#9a9a8a','--verde-soft':'#e0e0d6','--beige':'#a8a294','--beige-soft':'#ece8e0','--pink-light':'#dcd8d2','--text':'#3a3630','--muted':'#7a7568','--muted2':'#b0aa9c','--manana-bg':'#eae6de','--manana-border':'#c4bcae','--tarde-bg':'#e2ddd6','--tarde-border':'#b8ae9e','--noche-bg':'#d4d0c8','--noche-border':'#9a9488' }},
+    { id:'bosqueotonal', label:'Otoño 🍂', vars:{ '--bg':'#fdf3e7','--surface':'#f5dfc0','--card':'#fffaf0','--border':'#e0b878','--rosa':'#d2691e','--rosa-soft':'#f5dfc0','--verde':'#b8622e','--verde-soft':'#f0e0b0','--beige':'#b8622e','--beige-soft':'#f5e0c0','--pink-light':'#f5dfc0','--text':'#4a2c14','--muted':'#a06830','--muted2':'#d4a468','--manana-bg':'#fdf0dc','--manana-border':'#e8c088','--tarde-bg':'#fbe4c8','--tarde-border':'#dba050','--noche-bg':'#e8d0a0','--noche-border':'#c08840' }},
   ];
 
   var currentTheme = localStorage.getItem('config_theme') || 'rosa';
@@ -45655,7 +45675,7 @@ window.buscarPageShowTab = function(tab) {
   }
 
   function renderThemeGrid() {
-    var solidIds = ['rosa','lila','menta','melocoton','azul','neutro','noche','candy','formal','tierra','oceano','bosque','aurora'];
+    var solidIds = ['rosa','lila','menta','melocoton','azul','neutro','noche','candy','formal','tierra','oceano','bosque','aurora','cherryblossom','bosquepalido','bosqueotonal'];
     var comboIds = ['mystic','mermaid','unicorn','petal','elegantrose','strawberry','naturale','boscaje'];
 
     function fillGrid(gridId, ids) {
